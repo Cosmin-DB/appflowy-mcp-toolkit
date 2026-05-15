@@ -25,15 +25,15 @@
 
 - [x] FastMCP entrypoint.
 - [x] Read-only tools.
-- [ ] In-process MCP tests if practical.
+- [x] In-process MCP tests (tool registration + annotation + health check smoke).
 - [x] Manual stdio MCP smoke: list tools + health.
 
 ## M4 — public cleanup
 
-- [ ] Secret scan.
-- [ ] Remove private paths/IDs.
-- [ ] Review docs for genericity.
-- [ ] Decide license.
+- [x] Secret scan.
+- [x] Remove private paths/IDs.
+- [x] Review docs for genericity.
+- [x] Decide license (MIT).
 - [ ] Create public GitHub repo.
 
 ## M5 — safe writes later
@@ -43,3 +43,14 @@
 - [x] Post-write verification in local disposable workspace smoke test.
 - [x] Disposable write integration smoke test.
 - [x] Manual stdio MCP write smoke in disposable workspace.
+
+### Deferred
+
+- `/api/v1/workspace/get_folder`: live-tested against `beta.appflowy.cloud` and returned
+  404. Not implemented.
+- `/api/v1/` row/create, row/update, row/delete, view/delete, view/update: not
+  implemented; absent from official public OpenAPI (which documents only the
+  `/api/workspace/...` namespace). Require official documentation and independent
+  live verification before any implementation is attempted.
+- Row delete and view delete operations: no confirmed public REST endpoint exists;
+  out of scope until a safe, reversible pattern is established.
