@@ -151,3 +151,87 @@ def test_create_database_row_executes_when_enabled():
     assert result["data"] == "row_demo_001"
     assert seen[0].method == "POST"
     assert seen[0].url.path == "/api/workspace/ws_demo_001/database/db_demo_001/row"
+
+
+def test_list_select_options_extracts_status_options(make_client):
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return json_response(
+            {
+                "data": [
+                    {
+                        "name": "Status",
+                        "type_option": {
+                            "content": {
+                                "options": [
+                                    {"id": "todo", "name": "To Do"},
+                                    {"id": "done", "name": "✅ Done"},
+                                ]
+                            }
+                        },
+                    }
+                ]
+            }
+        )
+
+    client = make_client(handler)
+
+    assert [item["name"] for item in client.list_select_options("ws", "db")] == [
+        "To Do",
+        "✅ Done",
+    ]
+
+
+def test_move_managed_task_status_validates_and_verifies():
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if request.url.path.endswith("/fields"):
+            return json_response(
+                {
+                    "data": [
+                        {
+                            "name": "Status",
+                            "type_option": {
+                                "content": {
+                                    "options": [
+                                        {"id": "doing", "name": "Doing"},
+                                        {"id": "done", "name": "✅ Done"},
+                                    ]
+                                }
+                            },
+                        }
+                    ]
+                }
+            )
+        if request.method == "PUT":
+            return json_response({"data": "managed_row_001", "code": 0})
+        if request.url.path.endswith("/row/detail"):
+            return json_response(
+                {"data": [{"id": "managed_row_001", "cells": {"Status": "✅ Done"}}]}
+            )
+        raise AssertionError(str(request.url))
+
+    config = AppFlowyConfig(
+        base_url="https://example.test",
+        access_token="test-token",
+        allow_writes=True,
+    )
+    from appflowy_mcp_toolkit.client import AppFlowyClient
+
+    client = AppFlowyClient(
+        config,
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    result = client.move_managed_task_status(
+        "ws",
+        "db",
+        task_key="task-1",
+        status="✅ Done",
+        dry_run=False,
+    )
+
+    assert result["data"] == "managed_row_001"
+    assert result["verified_row"][0]["cells"]["Status"] == "✅ Done"
+    assert any(request.method == "PUT" for request in seen)

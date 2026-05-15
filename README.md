@@ -56,12 +56,19 @@ Initial tools are read-only:
 - `appflowy_get_database_schema`
 - `appflowy_list_database_row_ids`
 - `appflowy_get_database_rows`
+- `appflowy_list_select_options`
 
 Write tools exist for controlled testing, but dry-run by default and require
 `APPFLOWY_ALLOW_WRITES=true` for real mutations:
 
 - `appflowy_create_database_row`
 - `appflowy_upsert_database_row`
+- `appflowy_upsert_managed_task`
+- `appflowy_move_managed_task_status`
+
+Current API limitation: public AppFlowy REST does not expose confirmed endpoints
+for deleting rows or creating new select/status options. The toolkit surfaces
+validated status movement for MCP-managed tasks via stable `task_key`/`pre_hash`.
 
 ## Development
 

@@ -62,6 +62,29 @@ def build_parser() -> argparse.ArgumentParser:
     upsert_row.add_argument(
         "--execute", action="store_true", help="Actually upsert it; default is dry-run"
     )
+
+    options = sub.add_parser("select-options")
+    options.add_argument("--workspace-id", required=True)
+    options.add_argument("--database-id", required=True)
+    options.add_argument("--field-name", default="Status")
+
+    managed = sub.add_parser("managed-task")
+    managed.add_argument("--workspace-id", required=True)
+    managed.add_argument("--database-id", required=True)
+    managed.add_argument("--task-key", required=True)
+    managed.add_argument("--description")
+    managed.add_argument("--status")
+    managed.add_argument("--document")
+    managed.add_argument(
+        "--execute", action="store_true", help="Actually upsert it; default is dry-run"
+    )
+
+    move = sub.add_parser("move-managed-task")
+    move.add_argument("--workspace-id", required=True)
+    move.add_argument("--database-id", required=True)
+    move.add_argument("--task-key", required=True)
+    move.add_argument("--status", required=True)
+    move.add_argument("--execute", action="store_true", help="Actually move it; default is dry-run")
     return parser
 
 
@@ -104,6 +127,28 @@ def main(argv: Sequence[str] | None = None) -> int:
                 pre_hash=args.pre_hash,
                 cells=json.loads(args.cells_json),
                 document=args.document,
+                dry_run=not args.execute,
+            )
+        elif args.command == "select-options":
+            result = client.list_select_options(
+                args.workspace_id, args.database_id, field_name=args.field_name
+            )
+        elif args.command == "managed-task":
+            result = client.upsert_managed_task(
+                args.workspace_id,
+                args.database_id,
+                task_key=args.task_key,
+                description=args.description,
+                status=args.status,
+                document=args.document,
+                dry_run=not args.execute,
+            )
+        elif args.command == "move-managed-task":
+            result = client.move_managed_task_status(
+                args.workspace_id,
+                args.database_id,
+                task_key=args.task_key,
+                status=args.status,
                 dry_run=not args.execute,
             )
         else:  # pragma: no cover

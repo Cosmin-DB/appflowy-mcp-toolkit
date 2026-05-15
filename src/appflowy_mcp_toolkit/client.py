@@ -108,6 +108,18 @@ class AppFlowyClient:
         data = self.request("GET", f"/api/workspace/{workspace_id}/database/{database_id}/fields")
         return self._extract_list(data)
 
+    def list_select_options(
+        self, workspace_id: str, database_id: str, *, field_name: str = "Status"
+    ) -> list[dict[str, Any]]:
+        fields = self.list_database_fields(workspace_id, database_id)
+        field = next((item for item in fields if item.get("name") == field_name), None)
+        if field is None:
+            raise AppFlowyError(f"Field not found: {field_name}")
+        options = field.get("type_option", {}).get("content", {}).get("options", [])
+        if not isinstance(options, list):
+            return []
+        return [item for item in options if isinstance(item, dict)]
+
     def list_database_row_ids(self, workspace_id: str, database_id: str) -> list[dict[str, Any]]:
         data = self.request("GET", f"/api/workspace/{workspace_id}/database/{database_id}/row")
         return self._extract_list(data)
@@ -172,6 +184,62 @@ class AppFlowyClient:
             return {"dry_run": True, "method": "PUT", "path": path, "json": payload}
         self._require_writes_enabled()
         return self.request("PUT", path, json=payload)
+
+    def upsert_managed_task(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        task_key: str,
+        description: str | None = None,
+        status: str | None = None,
+        document: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        cells: dict[str, Any] = {}
+        if description is not None:
+            cells["Description"] = description
+        if status is not None:
+            cells["Status"] = status
+        return self.upsert_database_row(
+            workspace_id,
+            database_id,
+            pre_hash=task_key,
+            cells=cells or None,
+            document=document,
+            dry_run=dry_run,
+        )
+
+    def move_managed_task_status(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        task_key: str,
+        status: str,
+        dry_run: bool = True,
+        validate_status: bool = True,
+    ) -> dict[str, Any]:
+        if validate_status:
+            valid = [
+                item.get("name") for item in self.list_select_options(workspace_id, database_id)
+            ]
+            if status not in valid:
+                raise AppFlowyError(f"Invalid Status option: {status}. Valid options: {valid}")
+        result = self.upsert_managed_task(
+            workspace_id,
+            database_id,
+            task_key=task_key,
+            status=status,
+            dry_run=dry_run,
+        )
+        row_id = result.get("data")
+        if not dry_run and isinstance(row_id, str):
+            result = {
+                **result,
+                "verified_row": self.get_database_rows(workspace_id, database_id, [row_id]),
+            }
+        return result
 
     def health_check(self) -> dict[str, Any]:
         try:

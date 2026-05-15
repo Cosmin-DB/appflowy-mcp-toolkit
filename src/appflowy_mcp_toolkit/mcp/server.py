@@ -77,6 +77,17 @@ def appflowy_get_database_rows(
         return compact(client.get_database_rows(workspace_id, database_id, ids, with_doc=with_doc))
 
 
+@mcp.tool(name="appflowy_list_select_options", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_list_select_options(
+    workspace_id: str,
+    database_id: str,
+    field_name: str = "Status",
+) -> str:
+    """List options for a select-like field, typically Status."""
+    with _client() as client:
+        return compact(client.list_select_options(workspace_id, database_id, field_name=field_name))
+
+
 @mcp.tool(name="appflowy_create_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
 def appflowy_create_database_row(
     workspace_id: str,
@@ -122,6 +133,52 @@ def appflowy_upsert_database_row(
                 pre_hash=pre_hash,
                 cells=cells,
                 document=document,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_upsert_managed_task", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_upsert_managed_task(
+    workspace_id: str,
+    database_id: str,
+    task_key: str,
+    description: str | None = None,
+    status: str | None = None,
+    document: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Create/update an MCP-managed task using a stable task_key/pre_hash."""
+    with _client() as client:
+        return compact(
+            client.upsert_managed_task(
+                workspace_id,
+                database_id,
+                task_key=task_key,
+                description=description,
+                status=status,
+                document=document,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_move_managed_task_status", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_move_managed_task_status(
+    workspace_id: str,
+    database_id: str,
+    task_key: str,
+    status: str,
+    dry_run: bool = True,
+) -> str:
+    """Move an MCP-managed task to another Status option, verified after execution."""
+    with _client() as client:
+        return compact(
+            client.move_managed_task_status(
+                workspace_id,
+                database_id,
+                task_key=task_key,
+                status=status,
                 dry_run=dry_run,
             )
         )
