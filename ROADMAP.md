@@ -19,14 +19,14 @@
 
 - [x] CLI entrypoint.
 - [x] JSON output for core read commands.
-- [ ] Manual smoke against real AppFlowy account.
+- [x] Manual smoke against real AppFlowy account.
 
 ## M3 — MCP read-only server
 
 - [x] FastMCP entrypoint.
 - [x] Read-only tools.
 - [ ] In-process MCP tests if practical.
-- [ ] Manual client smoke.
+- [x] Manual stdio MCP smoke: list tools + health.
 
 ## M4 — public cleanup
 
@@ -42,3 +42,4 @@
 - [x] Dry-run create/upsert row.
 - [x] Post-write verification in local disposable workspace smoke test.
 - [x] Disposable write integration smoke test.
+- [x] Manual stdio MCP write smoke in disposable workspace.
