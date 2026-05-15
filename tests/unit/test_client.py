@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from appflowy_mcp_toolkit.config import AppFlowyConfig
-from appflowy_mcp_toolkit.errors import AppFlowyAuthError, AppFlowyRateLimitError
+from appflowy_mcp_toolkit.errors import AppFlowyAuthError, AppFlowyError, AppFlowyRateLimitError
 from tests.helpers import json_response
 
 
@@ -91,3 +91,63 @@ def test_refresh_retry_updates_token():
     )
     assert client.list_workspaces() == []
     assert requests[-1].headers["authorization"] == "Bearer new-token"
+
+
+def test_create_database_row_dry_run_does_not_call_network(make_client):
+    def handler(_request: httpx.Request) -> httpx.Response:
+        raise AssertionError("dry-run should not call network")
+
+    client = make_client(handler)
+    result = client.create_database_row(
+        "ws_demo_001",
+        "db_demo_001",
+        cells={"Description": "Test"},
+        document="Body",
+    )
+
+    assert result["dry_run"] is True
+    assert result["method"] == "POST"
+    assert result["json"] == {"cells": {"Description": "Test"}, "document": "Body"}
+
+
+def test_create_database_row_requires_write_flag(make_client):
+    client = make_client(lambda _request: json_response({"data": "row_demo_001"}))
+
+    with pytest.raises(AppFlowyError, match="Writes are disabled"):
+        client.create_database_row(
+            "ws_demo_001",
+            "db_demo_001",
+            cells={"Description": "Test"},
+            dry_run=False,
+        )
+
+
+def test_create_database_row_executes_when_enabled():
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return json_response({"data": "row_demo_001", "code": 0})
+
+    config = AppFlowyConfig(
+        base_url="https://example.test",
+        access_token="test-token",
+        allow_writes=True,
+    )
+    from appflowy_mcp_toolkit.client import AppFlowyClient
+
+    client = AppFlowyClient(
+        config,
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    result = client.create_database_row(
+        "ws_demo_001",
+        "db_demo_001",
+        cells={"Description": "Test"},
+        dry_run=False,
+    )
+
+    assert result["data"] == "row_demo_001"
+    assert seen[0].method == "POST"
+    assert seen[0].url.path == "/api/workspace/ws_demo_001/database/db_demo_001/row"

@@ -57,6 +57,12 @@ Initial tools are read-only:
 - `appflowy_list_database_row_ids`
 - `appflowy_get_database_rows`
 
+Write tools exist for controlled testing, but dry-run by default and require
+`APPFLOWY_ALLOW_WRITES=true` for real mutations:
+
+- `appflowy_create_database_row`
+- `appflowy_upsert_database_row`
+
 ## Development
 
 ```bash

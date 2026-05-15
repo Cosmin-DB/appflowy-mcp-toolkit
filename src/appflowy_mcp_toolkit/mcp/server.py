@@ -77,6 +77,56 @@ def appflowy_get_database_rows(
         return compact(client.get_database_rows(workspace_id, database_id, ids, with_doc=with_doc))
 
 
+@mcp.tool(name="appflowy_create_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_create_database_row(
+    workspace_id: str,
+    database_id: str,
+    cells: dict[str, object],
+    document: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Create one database row.
+
+    Dry-run by default; real writes require APPFLOWY_ALLOW_WRITES=true.
+    """
+    with _client() as client:
+        return compact(
+            client.create_database_row(
+                workspace_id,
+                database_id,
+                cells=cells,
+                document=document,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_upsert_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_upsert_database_row(
+    workspace_id: str,
+    database_id: str,
+    cells: dict[str, object],
+    pre_hash: str | None = None,
+    document: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Upsert one database row.
+
+    Dry-run by default; real writes require APPFLOWY_ALLOW_WRITES=true.
+    """
+    with _client() as client:
+        return compact(
+            client.upsert_database_row(
+                workspace_id,
+                database_id,
+                pre_hash=pre_hash,
+                cells=cells,
+                document=document,
+                dry_run=dry_run,
+            )
+        )
+
+
 def main() -> None:
     mcp.run()
 

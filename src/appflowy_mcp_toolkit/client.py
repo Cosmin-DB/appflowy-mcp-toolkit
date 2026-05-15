@@ -78,6 +78,13 @@ class AppFlowyClient:
         )
         return self._extract_list(data)
 
+    def create_workspace(self, name: str, *, dry_run: bool = True) -> dict[str, Any]:
+        payload = {"workspace_name": name}
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": "/api/workspace", "json": payload}
+        self._require_writes_enabled()
+        return self.request("POST", "/api/workspace", json=payload)
+
     def get_folder(
         self,
         workspace_id: str,
@@ -123,6 +130,49 @@ class AppFlowyClient:
         )
         return self._extract_list(data)
 
+    def create_database_row(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        cells: dict[str, Any] | None = None,
+        document: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {}
+        if cells is not None:
+            payload["cells"] = cells
+        if document is not None:
+            payload["document"] = document
+        path = f"/api/workspace/{workspace_id}/database/{database_id}/row"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("POST", path, json=payload)
+
+    def upsert_database_row(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        pre_hash: str | None = None,
+        cells: dict[str, Any] | None = None,
+        document: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {}
+        if pre_hash is not None:
+            payload["pre_hash"] = pre_hash
+        if cells is not None:
+            payload["cells"] = cells
+        if document is not None:
+            payload["document"] = document
+        path = f"/api/workspace/{workspace_id}/database/{database_id}/row"
+        if dry_run:
+            return {"dry_run": True, "method": "PUT", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("PUT", path, json=payload)
+
     def health_check(self) -> dict[str, Any]:
         try:
             self.request("GET", "/api/workspace")
@@ -154,6 +204,12 @@ class AppFlowyClient:
 
     def _url(self, path: str) -> str:
         return f"{self.config.base_url}/{path.lstrip('/')}"
+
+    def _require_writes_enabled(self) -> None:
+        if not self.config.allow_writes:
+            raise AppFlowyError(
+                "Writes are disabled. Set APPFLOWY_ALLOW_WRITES=true or use dry_run=True."
+            )
 
     @staticmethod
     def _extract_data(data: dict[str, Any]) -> Any:

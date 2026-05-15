@@ -38,7 +38,7 @@
 
 ## M5 — safe writes later
 
-- [ ] Explicit write-enable flag.
-- [ ] Dry-run create/update row.
-- [ ] Post-write verification.
-- [ ] Disposable write integration tests.
+- [x] Explicit write-enable flag.
+- [x] Dry-run create/upsert row.
+- [x] Post-write verification in local disposable workspace smoke test.
+- [x] Disposable write integration smoke test.
