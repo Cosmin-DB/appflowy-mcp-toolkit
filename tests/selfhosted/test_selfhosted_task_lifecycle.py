@@ -92,6 +92,36 @@ def _status_options(client: AppFlowyClient, workspace_id: str, database_id: str)
     return options
 
 
+def _ensure_database_field(
+    client: AppFlowyClient,
+    workspace_id: str,
+    database_id: str,
+    *,
+    name: str,
+    field_type: int,
+) -> None:
+    def field_exists() -> bool:
+        return any(
+            field.get("name") == name
+            for field in client.list_database_fields(workspace_id, database_id)
+        )
+
+    if field_exists():
+        return
+    client.create_database_field(
+        workspace_id,
+        database_id,
+        name=name,
+        field_type=field_type,
+        dry_run=False,
+    )
+
+    def assert_field_exists() -> None:
+        assert field_exists()
+
+    _eventually(assert_field_exists)
+
+
 def _pick_status(options: list[str], preferred: str, fallback_index: int = 0) -> str:
     if preferred in options:
         return preferred
@@ -567,6 +597,57 @@ def test_selfhosted_typed_multifield_row_lifecycle() -> None:
             assert cells["Status"] == "Doing"
             assert cells["Multiselect"] == ["Q&A", "news"]
             assert cells["Tasks"]["selected_option_ids"] == ["item_0", "item_1"]
+        finally:
+            _delete_created(client, workspace_id, database_id, created_row_ids)
+
+
+def test_selfhosted_typed_scalar_field_lifecycle() -> None:
+    workspace_id, database_id = _selfhosted_ids()
+    suffix = time.time_ns()
+    created_row_ids: list[str] = []
+
+    with AppFlowyClient() as client:
+        for name, field_type in (
+            ("MCP Number", 1),
+            ("MCP DateTime", 2),
+            ("MCP URL", 6),
+            ("MCP Checkbox", 5),
+        ):
+            _ensure_database_field(
+                client,
+                workspace_id,
+                database_id,
+                name=name,
+                field_type=field_type,
+            )
+
+        try:
+            created = client.create_typed_database_row_verified(
+                workspace_id,
+                database_id,
+                values={
+                    "Description": f"Typed scalar fields {suffix}",
+                    "Status": "To Do",
+                    "MCP Number": "42.5",
+                    "MCP DateTime": "2026-05-16T13:00:00+00:00",
+                    "MCP URL": "https://example.test/task",
+                    "MCP Checkbox": True,
+                },
+                dry_run=False,
+                include_blob_diff=False,
+            )
+            row_id = created["result"]["verification"]["row_id"]
+            created_row_ids.append(row_id)
+            assert created["typed_cells"]["MCP Number"] == 42.5
+            assert created["typed_cells"]["MCP Checkbox"] is True
+
+            row = _row_by_id(client, workspace_id, database_id, row_id, with_doc=True)
+            cells = row["cells"]
+            assert cells["Description"] == f"Typed scalar fields {suffix}"
+            assert cells["MCP Number"] == "42.5"
+            assert cells["MCP DateTime"]["start"] == "2026-05-16T13:00:00+00:00"
+            assert cells["MCP URL"] == "https://example.test/task"
+            assert cells["MCP Checkbox"] is True
         finally:
             _delete_created(client, workspace_id, database_id, created_row_ids)
 

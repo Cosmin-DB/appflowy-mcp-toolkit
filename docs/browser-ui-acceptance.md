@@ -73,7 +73,7 @@ Current expectations:
   split: MCP data-plane correctness can be true while AppFlowy Web rendering remains
   stale or incomplete.
 
-Validated 2026-05-16 against the local Docker stack: `1 passed, 1 xfailed`. The
-passing test proves login + To-dos Grid rendering. The xfailed test proves the MCP-created
-row at the data plane first, then records that this AppFlowy Web build still does not
-render that row in Board/Grid during the browser pass.
+Validated 2026-05-16 against the local Docker stack: `2 passed` in the latest run.
+The row-rendering test first proves the MCP-created row at the data plane, then checks
+AppFlowy Web. If a future AppFlowy Web build or cache state does not render that
+verified row, the test records an expected `xfail` instead of hiding the UI limitation.

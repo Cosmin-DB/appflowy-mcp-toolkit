@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, time
+from datetime import datetime
 from typing import Any
 
 import pytest
@@ -157,7 +157,6 @@ def test_build_cells_validates_select_options() -> None:
 
 def test_build_cells_supports_simple_scalar_types() -> None:
     now = datetime(2026, 5, 16, 12, 30)
-    start = time(9, 15)
 
     assert build_cells(
         FIELDS,
@@ -166,20 +165,15 @@ def test_build_cells_supports_simple_scalar_types() -> None:
             "Blocked": False,
             "Link": "https://example.test/task",
             "Due": now,
-            "Start time": start,
         },
     ) == {
         "Points": 13.5,
         "Blocked": False,
         "Link": "https://example.test/task",
         "Due": "2026-05-16T12:30:00",
-        "Start time": "09:15:00",
     }
 
-    assert build_cells(FIELDS, {"Due": "2026-05-16", "Start time": "09:15"}) == {
-        "Due": "2026-05-16",
-        "Start time": "09:15",
-    }
+    assert build_cells(FIELDS, {"Due": "2026-05-16"}) == {"Due": "2026-05-16"}
 
 
 @pytest.mark.parametrize(
@@ -192,7 +186,6 @@ def test_build_cells_supports_simple_scalar_types() -> None:
         ("Link", 123, "expects a URL string"),
         ("Link", "not-a-url", "expects an absolute URL"),
         ("Due", "not-a-date", "expects an ISO date/datetime string"),
-        ("Start time", "25:99", "expects HH:MM or HH:MM:SS"),
     ],
 )
 def test_build_cells_validates_simple_scalar_types(field: str, value: object, message: str) -> None:
@@ -206,6 +199,9 @@ def test_build_cells_rejects_read_only_and_deferred_fields() -> None:
 
     with pytest.raises(TypedFieldError, match="not supported yet"):
         build_cells(FIELDS, {"Related": "row_123"})
+
+    with pytest.raises(TypedFieldError, match="not supported yet"):
+        build_cells(FIELDS, {"Start time": "09:15"})
 
 
 def test_schema_rejects_unsupported_field_type() -> None:

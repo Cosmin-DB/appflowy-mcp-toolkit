@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime, time
+from datetime import datetime
 from enum import Enum
 from typing import Any
 from urllib.parse import urlparse
@@ -70,6 +70,7 @@ DEFERRED_TYPES = {
     FieldType.MEDIA,
     FieldType.SUMMARY,
     FieldType.TRANSLATE,
+    FieldType.TIME,
 }
 
 
@@ -226,8 +227,6 @@ def _build_cell(field: Field, value: Any) -> Any:
             return value
         case FieldType.CHECKLIST:
             return _build_checklist(field, value)
-        case FieldType.TIME:
-            return _build_time(field, value)
         case _:
             _ensure_writable(field)
             raise TypedFieldError(f"Unsupported field type for field {field.name!r}: {field.type}")
@@ -260,19 +259,6 @@ def _build_datetime(field: Field, value: Any) -> str:
         _validate_iso_datetimeish(field, text)
         return text
     raise TypedFieldError(f"Field {field.name!r} expects an ISO date/datetime string")
-
-
-def _build_time(field: Field, value: Any) -> str:
-    if isinstance(value, time):
-        return value.isoformat()
-    if isinstance(value, str):
-        text = value.strip()
-        try:
-            time.fromisoformat(text)
-        except ValueError as exc:
-            raise TypedFieldError(f"Field {field.name!r} expects HH:MM or HH:MM:SS") from exc
-        return text
-    raise TypedFieldError(f"Field {field.name!r} expects HH:MM or HH:MM:SS")
 
 
 def _build_checklist(field: Field, value: Any) -> dict[str, Any]:

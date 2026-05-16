@@ -115,7 +115,7 @@ Start with these files:
 - `README.md` - user-facing install, CLI, MCP tools, and known limitations.
 - `docs/appflowy-coverage-matrix.md` - implemented, candidate, and deferred AppFlowy areas.
 - `docs/browser-ui-acceptance.md` - why browser rendering is tested separately from API/collab truth.
-- `docs/multifield-coverage-plan.md` - typed field/cell coverage plan for richer task cards.
+- `docs/multifield-coverage-plan.md` - typed field/cell coverage status for richer task cards.
 - `docs/self-hosted-test-plan.md` - how to run disposable local AppFlowy for destructive tests.
 - `docs/release-checklist.md` - final checks before publishing or external handoff.
 
@@ -282,10 +282,10 @@ set +a
 APPFLOWY_BROWSER_TESTS=true uv run --extra browser pytest tests/browser -q -s
 ```
 
-Current browser expectation is `1 passed, 1 xfailed`: login/Grid rendering passes;
-MCP-created rows are verified through REST/collab/blob-diff, but this AppFlowy Web
-build may still fail to render the verified row in Board/Grid during the browser pass.
-That is recorded as browser-rendering evidence, not hidden.
+Current browser expectation is: login/Grid rendering should pass; MCP-created rows
+are verified through REST/collab/blob-diff before the UI assertion. Depending on
+AppFlowy Web rendering state, the row-rendering test may pass or record an expected
+`xfail`. That is recorded as browser-rendering evidence, not hidden.
 
 ## Development
 

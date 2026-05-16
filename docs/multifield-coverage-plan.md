@@ -23,19 +23,20 @@ Implemented entry points:
 The current AppFlowy `FieldType` enum in the upstream source is:
 
 - 0 RichText: supported via string.
-- 1 Number: supported for numeric values; still needs a Docker field smoke.
-- 2 DateTime: supported for ISO date/datetime values; still needs a Docker field smoke.
+- 1 Number: supported for numeric values and proven against Docker.
+- 2 DateTime: supported for ISO date/datetime values and proven against Docker.
 - 3 SingleSelect: supported by option name/id.
 - 4 MultiSelect: supported by option name/id list.
-- 5 Checkbox: supported for booleans; still needs a Docker field smoke.
-- 6 URL: supported for absolute URL strings; still needs a Docker field smoke.
+- 5 Checkbox: supported for booleans and proven against Docker.
+- 6 URL: supported for absolute URL strings and proven against Docker.
 - 7 Checklist: supported for checklist items and selected/completed state.
 - 8 LastEditedTime: read-only/auto-managed; rejected for writes.
 - 9 CreatedTime: read-only/auto-managed; rejected for writes.
 - 10 Relation: deferred; needs linked database semantics.
 - 11 Summary: deferred; AI/product-specific.
 - 12 Translate: deferred; AI/product-specific.
-- 13 Time: supported for HH:MM / HH:MM:SS values; still needs a Docker field smoke.
+- 13 Time: deferred; the pinned self-hosted server accepted a Time field but returned null
+  for a simple HH:MM:SS write, so this needs source-level cell-shape work before exposing.
 - 14 Media: deferred; depends on file upload/storage semantics.
 
 User-facing docs also mention email/phone-like field concepts in some contexts, but the
@@ -56,6 +57,10 @@ The Docker smoke test now creates and upserts rows with `Description`, `Status`,
 `Multiselect`, and `Tasks`, verifies the normalized returned cells, and deletes the
 rows afterwards. This is enough to prove the typed writer path against a real AppFlowy
 server without touching AppFlowy official cloud.
+
+The Docker smoke test also creates/reuses disposable scalar fields on the seeded
+database for `Number`, `DateTime`, `URL`, and `Checkbox`, writes a typed row, reads it
+back from AppFlowy, and verifies the returned cell shapes.
 
 ## Implemented Work
 
@@ -87,7 +92,7 @@ values:
 - Checkbox: bool
 - URL: absolute URL string
 - Checklist: item list or structured options with selected/completed state
-- Time: HH:MM / HH:MM:SS
+- Time: deferred until the correct persisted cell shape is confirmed
 
 Coverage:
 
@@ -128,6 +133,8 @@ Implemented for the existing self-hosted To-dos board:
 
 - create a row with Description, Status, Multiselect, Checklist
 - upsert another row with Description, Status, Multiselect, Checklist
+- create/reuse scalar Docker fields for Number, DateTime, URL, Checkbox
+- create a typed scalar row and verify AppFlowy's returned cell shapes
 - verify returned cells match normalized values
 - delete both rows and verify absence through the existing lifecycle cleanup path
 
@@ -149,14 +156,14 @@ Keep these out of the first multi-field release unless explicitly needed:
 ## Remaining Next Slice
 
 The typed API is usable for real task-card work now. The remaining completeness work is
-to create disposable Docker test fields beyond the seeded To-dos board and prove these
-supported builders against AppFlowy end-to-end:
+limited to deferred/high-complexity field families:
 
-- Number
-- Checkbox
-- URL
-- DateTime
 - Time
+- Relation
+- Media
+- Summary
+- Translate
 
-That should be a separate small slice because it depends on creating/editing test
-database fields in Docker, not on the typed builder architecture itself.
+Time is listed here because the local Docker proof showed that a naive time-string
+write currently reads back as `null`; exposing it as supported would create false
+confidence.
