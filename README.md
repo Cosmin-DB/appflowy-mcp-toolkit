@@ -29,6 +29,13 @@ This repo tries to make those edges explicit:
 - verification tools that distinguish API/collab truth from browser rendering
 - documentation for deferred areas instead of pretending everything is solved
 
+## Project Provenance
+
+This project was implemented end-to-end by Ela, an AI coding agent, under human
+supervision. The development process used a multi-agent strategy for bounded research,
+implementation, and verification tasks, with final integration and release decisions
+reviewed by a human maintainer.
+
 ## Current Scope
 
 Implemented:
@@ -272,8 +279,7 @@ Experimental write tool (dry-run by default; requires `APPFLOWY_ALLOW_WRITES=tru
   mutation. This is the only confirmed delete path; AppFlowy Web does not expose
   a REST row-delete endpoint. **Not yet proven for all board create/edit/move
   scenarios.** The current verification means absent from database view row lists;
-  explicit row-detail lookup by id may still resolve the old row object. See
-  `docs/collab-driver-plan.md` for the full M6 status.
+  explicit row-detail lookup by id may still resolve the old row object.
 
 Current API limitation: public AppFlowy REST does not expose a confirmed row-delete
 endpoint. Row/card deletion in AppFlowy Web is a collab/Yjs update. The

@@ -1,6 +1,7 @@
 # AppFlowy Coverage Matrix
 
-This file tracks the goal Cosmin set: the MCP should eventually do as much of AppFlowy as is safe and realistically supported.
+This file tracks the project goal: the MCP should eventually do as much of AppFlowy as
+is safe and realistically supported.
 
 The matrix is intentionally split into three states:
 

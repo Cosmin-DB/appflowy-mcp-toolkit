@@ -1,7 +1,7 @@
 # Self-Hosted Test Environment Plan
 
 Goal: provide a reproducible local AppFlowy environment that can run destructive MCP
-integration tests without touching AppFlowy official cloud or Cosmin's real workspaces.
+integration tests without touching AppFlowy official cloud or real workspaces.
 
 This plan now has a validated initial implementation: `docker/appflowy-test/`,
 `scripts/appflowy_test_env_up.sh`, `scripts/appflowy_test_env_down.sh`,
@@ -263,8 +263,7 @@ Deliverables:
 
 ## Current Implementation Status
 
-The MCP-side checklist in `docs/execution-roadmap.md` is complete. The repo contains a
-validated self-hosted test workflow. Latest verified battery:
+The repo contains a validated self-hosted test workflow. Latest verified battery:
 
 - Docker compose services up.
 - `GET /api/health` OK.

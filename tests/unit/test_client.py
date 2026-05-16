@@ -587,7 +587,7 @@ def test_search_documents_passes_stable_query_params(make_client):
                         "content_type": 0,
                         "content": "full indexed content",
                         "preview": "indexed content",
-                        "created_by": "Cosmin",
+                        "created_by": "Demo User",
                         "created_at": "2026-05-16T10:00:00Z",
                     }
                 ]

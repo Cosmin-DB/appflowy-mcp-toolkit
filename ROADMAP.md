@@ -2,7 +2,7 @@
 
 ## M0 — local repo foundation
 
-- [x] README, DESIGN, ROADMAP, coordination notes.
+- [x] README, DESIGN, and ROADMAP.
 - [x] Package skeleton.
 - [x] Generic env example.
 - [x] Research reports.
@@ -66,8 +66,6 @@ integrated as an experimental path behind `APPFLOWY_ALLOW_WRITES` +
 suite covers the create/update/move/delete data-plane lifecycle. Browser Board rendering
 remains a separate AppFlowy Web cache/rendering concern.
 
-See [docs/collab-driver-plan.md](docs/collab-driver-plan.md).
-Execution plan: [docs/execution-roadmap.md](docs/execution-roadmap.md).
 Full AppFlowy coverage matrix: [docs/appflowy-coverage-matrix.md](docs/appflowy-coverage-matrix.md).
 
 ## Self-hosted AppFlowy Docker tests
@@ -81,7 +79,7 @@ The pre-Docker MCP-side checklist is complete:
 - [x] Keep low-level row/collab tools as diagnostics, not the main public workflow.
 - [x] Add one browser/UI acceptance skeleton for Grid/Board rendering, documenting the
   known AppFlowy Web Board refresh/cache bug separately from data-plane correctness.
-- [x] Align README, DESIGN, ROADMAP and collab-driver docs with the verified data-plane smoke.
+- [x] Align README, DESIGN, ROADMAP and technical docs with the verified data-plane smoke.
 - [x] Re-run unit gates and self-hosted/browser Docker smoke.
 
 The Docker/self-hosted phase now exists and has been validated:
