@@ -272,6 +272,57 @@ def invoke_yjs_add_select_option(
     return _invoke_yjs_helper(payload)
 
 
+def invoke_yjs_rename_select_option(
+    doc_state: list[int],
+    *,
+    field_id: str,
+    field_type: int,
+    new_name: str,
+    option_id: str | None = None,
+    option_name: str | None = None,
+) -> dict[str, Any]:
+    """Call the Yjs helper to rename a select option in a database field."""
+    payload: dict[str, Any] = {
+        "operation": "rename_select_option",
+        "doc_state": doc_state,
+        "field_id": field_id,
+        "field_type": field_type,
+        "new_name": new_name,
+    }
+    if option_id is not None:
+        payload["option_id"] = option_id
+    if option_name is not None:
+        payload["option_name"] = option_name
+    return _invoke_yjs_helper(payload)
+
+
+def invoke_yjs_set_select_option_visibility(
+    doc_state: list[int],
+    *,
+    field_id: str,
+    field_type: int,
+    visible: bool,
+    option_id: str | None = None,
+    option_name: str | None = None,
+    view_id: str | None = None,
+) -> dict[str, Any]:
+    """Call the Yjs helper to show/hide a select option in board view groups."""
+    payload: dict[str, Any] = {
+        "operation": "set_select_option_visibility",
+        "doc_state": doc_state,
+        "field_id": field_id,
+        "field_type": field_type,
+        "visible": visible,
+    }
+    if option_id is not None:
+        payload["option_id"] = option_id
+    if option_name is not None:
+        payload["option_name"] = option_name
+    if view_id is not None:
+        payload["view_id"] = view_id
+    return _invoke_yjs_helper(payload)
+
+
 def allow_collab_writes() -> bool:
     """Return True if APPFLOWY_ALLOW_COLLAB_WRITES is set to a truthy value."""
     return os.getenv("APPFLOWY_ALLOW_COLLAB_WRITES", "false").lower() in {

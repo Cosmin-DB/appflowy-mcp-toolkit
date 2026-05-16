@@ -251,6 +251,33 @@ def build_parser() -> argparse.ArgumentParser:
     add_select_option.add_argument("--view-id")
     add_select_option.add_argument("--execute", action="store_true")
 
+    rename_select_option = sub.add_parser("rename-select-option")
+    rename_select_option.add_argument("--workspace-id", required=True)
+    rename_select_option.add_argument("--database-id", required=True)
+    rename_select_option.add_argument("--new-name", required=True)
+    rename_select_option.add_argument("--field-name", default="Status")
+    rename_select_option.add_argument("--option-id")
+    rename_select_option.add_argument("--option-name")
+    rename_select_option.add_argument("--execute", action="store_true")
+
+    hide_select_option = sub.add_parser("hide-select-option")
+    hide_select_option.add_argument("--workspace-id", required=True)
+    hide_select_option.add_argument("--database-id", required=True)
+    hide_select_option.add_argument("--field-name", default="Status")
+    hide_select_option.add_argument("--option-id")
+    hide_select_option.add_argument("--option-name")
+    hide_select_option.add_argument("--view-id")
+    hide_select_option.add_argument("--execute", action="store_true")
+
+    show_select_option = sub.add_parser("show-select-option")
+    show_select_option.add_argument("--workspace-id", required=True)
+    show_select_option.add_argument("--database-id", required=True)
+    show_select_option.add_argument("--field-name", default="Status")
+    show_select_option.add_argument("--option-id")
+    show_select_option.add_argument("--option-name")
+    show_select_option.add_argument("--view-id")
+    show_select_option.add_argument("--execute", action="store_true")
+
     rows = sub.add_parser("rows")
     rows.add_argument("--workspace-id", required=True)
     rows.add_argument("--database-id", required=True)
@@ -406,6 +433,16 @@ def build_parser() -> argparse.ArgumentParser:
     row_orders.add_argument("--workspace-id", required=True)
     row_orders.add_argument("--database-id", required=True)
 
+    view_configs = sub.add_parser(
+        "view-configs",
+        description=(
+            "Read-only summary of database view settings from collab JSON: "
+            "layout, filters, sorts, groups and field visibility/width."
+        ),
+    )
+    view_configs.add_argument("--workspace-id", required=True)
+    view_configs.add_argument("--database-id", required=True)
+
     blob_diff = sub.add_parser(
         "blob-diff",
         description=(
@@ -422,6 +459,14 @@ def build_parser() -> argparse.ArgumentParser:
     list_tasks.add_argument("--workspace-id", required=True)
     list_tasks.add_argument("--database-id", required=True)
     list_tasks.add_argument("--with-doc", action="store_true")
+
+    search_tasks = sub.add_parser("search-tasks")
+    search_tasks.add_argument("--workspace-id", required=True)
+    search_tasks.add_argument("--database-id", required=True)
+    search_tasks.add_argument("--description", required=True)
+    search_tasks.add_argument("--mode", choices=["exact", "contains"], default="contains")
+    search_tasks.add_argument("--case-sensitive", action="store_true")
+    search_tasks.add_argument("--with-doc", action="store_true")
 
     create_task = sub.add_parser("create-task")
     create_task.add_argument("--workspace-id", required=True)
@@ -443,12 +488,31 @@ def build_parser() -> argparse.ArgumentParser:
     update_task.add_argument("--skip-blob-diff", action="store_true")
     update_task.add_argument("--execute", action="store_true")
 
+    update_task_by_name = sub.add_parser("update-task-by-name")
+    update_task_by_name.add_argument("--workspace-id", required=True)
+    update_task_by_name.add_argument("--database-id", required=True)
+    update_task_by_name.add_argument("--description", required=True)
+    update_task_by_name.add_argument("--new-description")
+    update_task_by_name.add_argument("--status")
+    update_task_by_name.add_argument("--match-mode", choices=["exact", "contains"], default="exact")
+    update_task_by_name.add_argument("--case-sensitive", action="store_true")
+    update_task_by_name.add_argument("--execute", action="store_true")
+
     move_task = sub.add_parser("move-task")
     move_task.add_argument("--workspace-id", required=True)
     move_task.add_argument("--database-id", required=True)
     move_task.add_argument("--task-key", required=True)
     move_task.add_argument("--status", required=True)
     move_task.add_argument("--execute", action="store_true")
+
+    move_task_by_name = sub.add_parser("move-task-by-name")
+    move_task_by_name.add_argument("--workspace-id", required=True)
+    move_task_by_name.add_argument("--database-id", required=True)
+    move_task_by_name.add_argument("--description", required=True)
+    move_task_by_name.add_argument("--status", required=True)
+    move_task_by_name.add_argument("--match-mode", choices=["exact", "contains"], default="exact")
+    move_task_by_name.add_argument("--case-sensitive", action="store_true")
+    move_task_by_name.add_argument("--execute", action="store_true")
 
     update_row_by_id = sub.add_parser("update-row-by-id")
     update_row_by_id.add_argument("--workspace-id", required=True)
@@ -473,6 +537,14 @@ def build_parser() -> argparse.ArgumentParser:
     delete_task.add_argument("--database-id", required=True)
     delete_task.add_argument("--row-id", required=True)
     delete_task.add_argument("--execute", action="store_true")
+
+    delete_task_by_name = sub.add_parser("delete-task-by-name")
+    delete_task_by_name.add_argument("--workspace-id", required=True)
+    delete_task_by_name.add_argument("--database-id", required=True)
+    delete_task_by_name.add_argument("--description", required=True)
+    delete_task_by_name.add_argument("--match-mode", choices=["exact", "contains"], default="exact")
+    delete_task_by_name.add_argument("--case-sensitive", action="store_true")
+    delete_task_by_name.add_argument("--execute", action="store_true")
 
     managed = sub.add_parser("managed-task")
     managed.add_argument("--workspace-id", required=True)
@@ -783,6 +855,38 @@ def main(argv: Sequence[str] | None = None) -> int:
                 view_id=args.view_id,
                 dry_run=not args.execute,
             )
+        elif args.command == "rename-select-option":
+            result = client.rename_select_option_collab(
+                args.workspace_id,
+                args.database_id,
+                field_name=args.field_name,
+                option_id=args.option_id,
+                option_name=args.option_name,
+                new_name=args.new_name,
+                dry_run=not args.execute,
+            )
+        elif args.command == "hide-select-option":
+            result = client.set_select_option_visibility_collab(
+                args.workspace_id,
+                args.database_id,
+                field_name=args.field_name,
+                option_id=args.option_id,
+                option_name=args.option_name,
+                visible=False,
+                view_id=args.view_id,
+                dry_run=not args.execute,
+            )
+        elif args.command == "show-select-option":
+            result = client.set_select_option_visibility_collab(
+                args.workspace_id,
+                args.database_id,
+                field_name=args.field_name,
+                option_id=args.option_id,
+                option_name=args.option_name,
+                visible=True,
+                view_id=args.view_id,
+                dry_run=not args.execute,
+            )
         elif args.command == "rows":
             result = client.list_database_row_ids(args.workspace_id, args.database_id)
         elif args.command == "updated-rows":
@@ -895,6 +999,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         elif args.command == "row-orders":
             result = client.get_database_row_orders(args.workspace_id, args.database_id)
+        elif args.command == "view-configs":
+            result = client.get_database_view_configs(args.workspace_id, args.database_id)
         elif args.command == "blob-diff":
             result = client.get_database_blob_diff_summary(
                 args.workspace_id,
@@ -905,6 +1011,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = client.list_tasks(
                 args.workspace_id,
                 args.database_id,
+                with_doc=args.with_doc,
+            )
+        elif args.command == "search-tasks":
+            result = client.search_tasks_by_description(
+                args.workspace_id,
+                args.database_id,
+                args.description,
+                mode=args.mode,
+                case_sensitive=args.case_sensitive,
                 with_doc=args.with_doc,
             )
         elif args.command == "create-task":
@@ -929,12 +1044,33 @@ def main(argv: Sequence[str] | None = None) -> int:
                 dry_run=not args.execute,
                 include_blob_diff=not args.skip_blob_diff,
             )
+        elif args.command == "update-task-by-name":
+            result = client.update_task_by_description(
+                args.workspace_id,
+                args.database_id,
+                args.description,
+                new_description=args.new_description,
+                status=args.status,
+                match_mode=args.match_mode,
+                case_sensitive=args.case_sensitive,
+                dry_run=not args.execute,
+            )
         elif args.command == "move-task":
             result = client.move_task(
                 args.workspace_id,
                 args.database_id,
                 task_key=args.task_key,
                 status=args.status,
+                dry_run=not args.execute,
+            )
+        elif args.command == "move-task-by-name":
+            result = client.move_task_by_description(
+                args.workspace_id,
+                args.database_id,
+                args.description,
+                status=args.status,
+                match_mode=args.match_mode,
+                case_sensitive=args.case_sensitive,
                 dry_run=not args.execute,
             )
         elif args.command == "update-row-by-id":
@@ -958,6 +1094,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.workspace_id,
                 args.database_id,
                 args.row_id,
+                dry_run=not args.execute,
+            )
+        elif args.command == "delete-task-by-name":
+            result = client.delete_task_by_description(
+                args.workspace_id,
+                args.database_id,
+                args.description,
+                match_mode=args.match_mode,
+                case_sensitive=args.case_sensitive,
                 dry_run=not args.execute,
             )
         elif args.command == "managed-task":

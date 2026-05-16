@@ -45,8 +45,9 @@ Approximate coverage by object family:
 | Database fields | list fields implemented | create field implemented dry-run default | no safe update/delete route confirmed from matrix yet | no safe delete route confirmed | partial | Add friendly field-type builders later; raw payload route exists now |
 | Database rows | list ids/details implemented | create/upsert implemented | upsert/update, status move, and row-id collab update implemented | no REST delete; Yjs row-order delete implemented | high | Broaden field type tests and keep collab mutations narrowly scoped |
 | Typed row cells | schema parsing implemented | typed create/upsert implemented | typed upsert implemented | delete via row delete path | common + scalar + network media fields Docker-proven | Investigate relation/translate and media upload workflows |
-| Task board | list/create/update/move/delete implemented | implemented | managed task move plus manual row-id move implemented | implemented via Yjs row-order delete | high for data plane | Add browser UI acceptance for Grid/Board |
+| Task board | list plus Description exact/contains search implemented | Status option/board column add implemented | managed task move, manual row-id move, and Description-resolved update/move with ambiguity guard; Status option rename/hide/show implemented | row/card delete via Yjs row-order delete, including Description-resolved delete with ambiguity guard; Status option delete deferred | high for data plane, medium for structural view mutations | Add browser UI acceptance for Grid/Board |
 | Row/card ordering | row_orders read implemented | n/a | reorder requires Yjs mutation | n/a | diagnostic only | Defer until browser behavior is mapped |
+| Database view configuration | filters/sorts/groups/field settings/layout settings read implemented | n/a | updates require Yjs view mutation proof | n/a | diagnostic only | Keep read-only until Docker/self-hosted proof exists |
 | Collab documents | JSON/raw/blob diff read implemented | create collab route exists | web-update used for row delete and DatabaseRow cell updates only | delete collab route exists but dangerous | partial | Keep generic collab writes private/diagnostic; do not expose broad destructive collab delete |
 | File storage/blobs | usage/list/metadata and v1 blob download implemented | v1 single-upload implemented; multipart routes mapped but deferred | multipart complete routes mapped but deferred | v1 blob delete implemented | v1 upload/download/delete Docker-proven; Media-cell linking Docker-proven | Add multipart only if large-file demand appears |
 | Trash | trash list implemented | n/a | single restore implemented dry-run default | single delete-from-trash implemented dry-run default | partial | Bulk restore/delete deferred |
@@ -70,6 +71,7 @@ Approximate coverage by object family:
    - Workspace settings/members/usage read. **Done.**
    - Recent/favorite/trash list. **Done.**
    - Search. **Done, AI summary deferred.**
+   - Database view configuration diagnostics. **Done, read-only.**
 
 3. **Page/view management**
    - Create/update space. **Done, dry-run default, self-hosted smoke covered.**
@@ -102,6 +104,7 @@ Approximate coverage by object family:
 - Anything involving sharing, publishing, members, invites, deletion, or imports must not be enabled casually.
 - Browser UI acceptance is required for user-visible page/view/task flows.
 - Data-plane verification remains separate from AppFlowy Web rendering.
+- Human-name task mutations must resolve to exactly one Description match; duplicates return candidates and do not write.
 
 ## Immediate Next Implementable Slice
 

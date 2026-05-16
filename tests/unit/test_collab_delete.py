@@ -18,7 +18,10 @@ from appflowy_mcp_toolkit.collab.collab_delete import (
     CollabHelperError,
     allow_collab_writes,
     check_collab_helper_setup,
+    invoke_yjs_add_select_option,
     invoke_yjs_delete,
+    invoke_yjs_rename_select_option,
+    invoke_yjs_set_select_option_visibility,
 )
 from appflowy_mcp_toolkit.config import AppFlowyConfig
 from appflowy_mcp_toolkit.errors import AppFlowyError
@@ -148,6 +151,129 @@ def test_invoke_yjs_delete_helper_error(monkeypatch: pytest.MonkeyPatch) -> None
         pytest.raises(CollabHelperError, match="data.database not found"),
     ):
         invoke_yjs_delete(FAKE_DOC_STATE, "row-x")
+
+
+def test_invoke_yjs_rename_select_option_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_run(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        sent = json.loads(kwargs["input"])
+        assert sent["operation"] == "rename_select_option"
+        assert sent["field_id"] == "status"
+        assert sent["field_type"] == 3
+        assert sent["option_id"] == "todo"
+        assert sent["new_name"] == "Next"
+        return subprocess.CompletedProcess(
+            args,
+            returncode=0,
+            stdout=json.dumps(
+                {
+                    "ok": True,
+                    "option_id": "todo",
+                    "previous_name": "To Do",
+                    "option": {"id": "todo", "name": "Next"},
+                    "renamed": True,
+                    "delta_update": FAKE_DELTA,
+                }
+            ),
+            stderr="",
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    with (
+        patch("appflowy_mcp_toolkit.collab.collab_delete._require_node", return_value="node"),
+        patch("appflowy_mcp_toolkit.collab.collab_delete._require_helper"),
+    ):
+        result = invoke_yjs_rename_select_option(
+            FAKE_DOC_STATE,
+            field_id="status",
+            field_type=3,
+            option_id="todo",
+            new_name="Next",
+        )
+
+    assert result["renamed"] is True
+    assert result["option"]["name"] == "Next"
+
+
+def test_invoke_yjs_set_select_option_visibility_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_run(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        sent = json.loads(kwargs["input"])
+        assert sent["operation"] == "set_select_option_visibility"
+        assert sent["field_id"] == "status"
+        assert sent["field_type"] == 3
+        assert sent["option_name"] == "Next"
+        assert sent["visible"] is False
+        assert sent["view_id"] == "board"
+        return subprocess.CompletedProcess(
+            args,
+            returncode=0,
+            stdout=json.dumps(
+                {
+                    "ok": True,
+                    "option": {"id": "todo", "name": "Next"},
+                    "visible": False,
+                    "affected_views": ["board"],
+                    "visibility_by_view": {"board": {"before": True, "after": False}},
+                    "delta_update": FAKE_DELTA,
+                }
+            ),
+            stderr="",
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    with (
+        patch("appflowy_mcp_toolkit.collab.collab_delete._require_node", return_value="node"),
+        patch("appflowy_mcp_toolkit.collab.collab_delete._require_helper"),
+    ):
+        result = invoke_yjs_set_select_option_visibility(
+            FAKE_DOC_STATE,
+            field_id="status",
+            field_type=3,
+            option_name="Next",
+            visible=False,
+            view_id="board",
+        )
+
+    assert result["visible"] is False
+    assert result["affected_views"] == ["board"]
+
+
+def test_invoke_yjs_add_select_option_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_run(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        sent = json.loads(kwargs["input"])
+        assert sent["operation"] == "add_select_option"
+        assert sent["option_id"] == "next"
+        assert sent["name"] == "Next"
+        return subprocess.CompletedProcess(
+            args,
+            returncode=0,
+            stdout=json.dumps(
+                {
+                    "ok": True,
+                    "option_added": True,
+                    "option": {"id": "next", "name": "Next", "color": "Purple"},
+                    "affected_views": ["board"],
+                    "delta_update": FAKE_DELTA,
+                }
+            ),
+            stderr="",
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    with (
+        patch("appflowy_mcp_toolkit.collab.collab_delete._require_node", return_value="node"),
+        patch("appflowy_mcp_toolkit.collab.collab_delete._require_helper"),
+    ):
+        result = invoke_yjs_add_select_option(
+            FAKE_DOC_STATE,
+            field_id="status",
+            field_type=3,
+            option_id="next",
+            name="Next",
+        )
+
+    assert result["option_added"] is True
 
 
 def test_invoke_yjs_delete_node_missing() -> None:

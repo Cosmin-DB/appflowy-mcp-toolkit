@@ -587,6 +587,83 @@ def appflowy_add_select_option(
         )
 
 
+@mcp.tool(name="appflowy_rename_select_option", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_rename_select_option(
+    workspace_id: str,
+    database_id: str,
+    new_name: str,
+    field_name: str = "Status",
+    option_id: str | None = None,
+    option_name: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Rename a select option, usually a Status board column. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.rename_select_option_collab(
+                workspace_id,
+                database_id,
+                field_name=field_name,
+                option_id=option_id,
+                option_name=option_name,
+                new_name=new_name,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_hide_select_option", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_hide_select_option(
+    workspace_id: str,
+    database_id: str,
+    field_name: str = "Status",
+    option_id: str | None = None,
+    option_name: str | None = None,
+    view_id: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Hide a select option from board view groups. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.set_select_option_visibility_collab(
+                workspace_id,
+                database_id,
+                field_name=field_name,
+                option_id=option_id,
+                option_name=option_name,
+                visible=False,
+                view_id=view_id,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_show_select_option", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_show_select_option(
+    workspace_id: str,
+    database_id: str,
+    field_name: str = "Status",
+    option_id: str | None = None,
+    option_name: str | None = None,
+    view_id: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Show a select option in board view groups. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.set_select_option_visibility_collab(
+                workspace_id,
+                database_id,
+                field_name=field_name,
+                option_id=option_id,
+                option_name=option_name,
+                visible=True,
+                view_id=view_id,
+                dry_run=dry_run,
+            )
+        )
+
+
 @mcp.tool(name="appflowy_list_database_row_ids", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
 def appflowy_list_database_row_ids(workspace_id: str, database_id: str) -> str:
     """List row IDs for a database."""
@@ -755,6 +832,18 @@ def appflowy_get_database_row_orders(workspace_id: str, database_id: str) -> str
         return compact(client.get_database_row_orders(workspace_id, database_id))
 
 
+@mcp.tool(name="appflowy_get_database_view_configs", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_get_database_view_configs(workspace_id: str, database_id: str) -> str:
+    """Return database view configuration extracted from collab JSON.
+
+    Each entry summarizes one AppFlowy database view: layout, layout settings,
+    filters, sorts, board/group settings, field settings, field order and row
+    count. This is read-only and does not mutate view configuration.
+    """
+    with _client() as client:
+        return compact(client.get_database_view_configs(workspace_id, database_id))
+
+
 @mcp.tool(name="appflowy_get_database_blob_diff", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
 def appflowy_get_database_blob_diff(
     workspace_id: str,
@@ -786,6 +875,29 @@ def appflowy_list_tasks(
     """List task rows from one AppFlowy database."""
     with _client() as client:
         return compact(client.list_tasks(workspace_id, database_id, with_doc=with_doc))
+
+
+@mcp.tool(name="appflowy_search_tasks", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_search_tasks(
+    workspace_id: str,
+    database_id: str,
+    description: str,
+    mode: str = "contains",
+    case_sensitive: bool = False,
+    with_doc: bool = False,
+) -> str:
+    """Search task rows by Description text with exact or contains matching."""
+    with _client() as client:
+        return compact(
+            client.search_tasks_by_description(
+                workspace_id,
+                database_id,
+                description,
+                mode=mode,
+                case_sensitive=case_sensitive,
+                with_doc=with_doc,
+            )
+        )
 
 
 @mcp.tool(name="appflowy_verify_database_row", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
@@ -865,6 +977,33 @@ def appflowy_update_task(
         )
 
 
+@mcp.tool(name="appflowy_update_task_by_name", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_update_task_by_name(
+    workspace_id: str,
+    database_id: str,
+    description: str,
+    new_description: str | None = None,
+    status: str | None = None,
+    match_mode: str = "exact",
+    case_sensitive: bool = False,
+    dry_run: bool = True,
+) -> str:
+    """Update one task resolved by Description text. Ambiguous matches do not write."""
+    with _client() as client:
+        return compact(
+            client.update_task_by_description(
+                workspace_id,
+                database_id,
+                description,
+                new_description=new_description,
+                status=status,
+                match_mode=match_mode,
+                case_sensitive=case_sensitive,
+                dry_run=dry_run,
+            )
+        )
+
+
 @mcp.tool(name="appflowy_move_task", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
 def appflowy_move_task(
     workspace_id: str,
@@ -881,6 +1020,31 @@ def appflowy_move_task(
                 database_id,
                 task_key=task_key,
                 status=status,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_move_task_by_name", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_move_task_by_name(
+    workspace_id: str,
+    database_id: str,
+    description: str,
+    status: str,
+    match_mode: str = "exact",
+    case_sensitive: bool = False,
+    dry_run: bool = True,
+) -> str:
+    """Move one task resolved by Description text. Ambiguous matches do not write."""
+    with _client() as client:
+        return compact(
+            client.move_task_by_description(
+                workspace_id,
+                database_id,
+                description,
+                status=status,
+                match_mode=match_mode,
+                case_sensitive=case_sensitive,
                 dry_run=dry_run,
             )
         )
@@ -943,6 +1107,29 @@ def appflowy_delete_task(
     """Delete a task by row id from all database views via the Yjs collab path."""
     with _client() as client:
         return compact(client.delete_task(workspace_id, database_id, row_id, dry_run=dry_run))
+
+
+@mcp.tool(name="appflowy_delete_task_by_name", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_delete_task_by_name(
+    workspace_id: str,
+    database_id: str,
+    description: str,
+    match_mode: str = "exact",
+    case_sensitive: bool = False,
+    dry_run: bool = True,
+) -> str:
+    """Delete one task resolved by Description text. Ambiguous matches do not write."""
+    with _client() as client:
+        return compact(
+            client.delete_task_by_description(
+                workspace_id,
+                database_id,
+                description,
+                match_mode=match_mode,
+                case_sensitive=case_sensitive,
+                dry_run=dry_run,
+            )
+        )
 
 
 @mcp.tool(name="appflowy_create_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]

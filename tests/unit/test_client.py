@@ -1070,6 +1070,129 @@ def test_list_select_options_extracts_status_options(make_client):
     ]
 
 
+def test_rename_select_option_collab_dry_run_uses_database_collab(make_client, monkeypatch):
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if request.url.path.endswith("/fields"):
+            return json_response(
+                {
+                    "data": [
+                        {
+                            "id": "status",
+                            "name": "Status",
+                            "field_type_id": 3,
+                            "type_option": {
+                                "content": {"options": [{"id": "todo", "name": "To Do"}]}
+                            },
+                        }
+                    ]
+                }
+            )
+        if request.url.path == "/api/workspace/v1/ws/collab/db":
+            assert request.url.params["collab_type"] == "1"
+            return json_response({"data": {"doc_state": [1, 2, 3]}})
+        raise AssertionError(str(request.url))
+
+    def fake_invoke(doc_state: list[int], **kwargs: object):
+        assert doc_state == [1, 2, 3]
+        assert kwargs["field_id"] == "status"
+        assert kwargs["field_type"] == 3
+        assert kwargs["option_id"] == "todo"
+        assert kwargs["new_name"] == "Next"
+        return {
+            "ok": True,
+            "option_id": "todo",
+            "previous_name": "To Do",
+            "option": {"id": "todo", "name": "Next"},
+            "renamed": True,
+            "delta_update": [9, 8, 7],
+        }
+
+    import appflowy_mcp_toolkit.collab.collab_delete as cd_mod
+
+    monkeypatch.setattr(cd_mod, "invoke_yjs_rename_select_option", fake_invoke)
+    client = make_client(handler)
+
+    result = client.rename_select_option_collab(
+        "ws",
+        "db",
+        option_name="To Do",
+        new_name="Next",
+    )
+
+    assert result["dry_run"] is True
+    assert result["option_id"] == "todo"
+    assert result["option"]["name"] == "Next"
+    assert result["delta_update_bytes"] == 3
+    assert all("web-update" not in request.url.path for request in seen)
+
+
+def test_set_select_option_visibility_collab_live_posts(make_client, monkeypatch):
+    monkeypatch.setenv("APPFLOWY_ALLOW_COLLAB_WRITES", "true")
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        path = request.url.path
+        if path.endswith("/fields"):
+            return json_response(
+                {
+                    "data": [
+                        {
+                            "id": "status",
+                            "name": "Status",
+                            "field_type_id": 3,
+                            "type_option": {
+                                "content": {"options": [{"id": "todo", "name": "To Do"}]}
+                            },
+                        }
+                    ]
+                }
+            )
+        if path == "/api/workspace/v1/ws/collab/db":
+            return json_response({"data": {"doc_state": [1, 2, 3]}})
+        if path.endswith("/web-update"):
+            assert request.method == "POST"
+            body = json.loads(request.content)
+            assert body["collab_type"] == 1
+            assert body["doc_state"] == [9, 8, 7]
+            return json_response({"code": 0, "message": "ok"})
+        raise AssertionError(str(request.url))
+
+    def fake_invoke(doc_state: list[int], **kwargs: object):
+        assert kwargs["visible"] is False
+        assert kwargs["view_id"] == "board"
+        return {
+            "ok": True,
+            "option": {"id": "todo", "name": "To Do"},
+            "visible": False,
+            "affected_views": ["board"],
+            "visibility_by_view": {"board": {"before": True, "after": False}},
+            "delta_update": [9, 8, 7],
+        }
+
+    import appflowy_mcp_toolkit.collab.collab_delete as cd_mod
+
+    monkeypatch.setattr(cd_mod, "invoke_yjs_set_select_option_visibility", fake_invoke)
+    client = make_client(handler, allow_writes=True)
+
+    result = client.set_select_option_visibility_collab(
+        "ws",
+        "db",
+        option_id="todo",
+        visible=False,
+        view_id="board",
+        dry_run=False,
+    )
+
+    assert result["server_status"] == 0
+    assert result["visible"] is False
+    assert result["affected_views"] == ["board"]
+    assert any("web-update" in request.url.path for request in seen)
+
+
 def test_move_managed_task_status_validates_and_verifies():
     seen: list[httpx.Request] = []
 
@@ -1234,6 +1357,118 @@ def test_list_tasks_fetches_row_details(make_client):
 
     assert result["row_ids"] == ["row-1", "row-2"]
     assert [row["id"] for row in result["rows"]] == ["row-1", "row-2"]
+
+
+def test_search_tasks_by_description_supports_exact_and_contains(monkeypatch):
+    from appflowy_mcp_toolkit.client import AppFlowyClient
+
+    client = AppFlowyClient(AppFlowyConfig(base_url="https://example.test", access_token="t"))
+    monkeypatch.setattr(
+        client,
+        "list_tasks",
+        lambda *_args, **_kwargs: {
+            "row_ids": ["row-1", "row-2", "row-3"],
+            "rows": [
+                {"id": "row-1", "cells": {"Description": "Ship release", "Status": "To Do"}},
+                {
+                    "id": "row-2",
+                    "cells": {
+                        "Description": [{"insert": "Ship release notes"}],
+                        "Status": "Doing",
+                    },
+                },
+                {"id": "row-3", "cells": {"Description": "Fix docs", "Status": "Done"}},
+            ],
+        },
+    )
+
+    contains = client.search_tasks_by_description("ws", "db", "ship", mode="contains")
+    exact = client.search_tasks_by_description("ws", "db", "Ship release", mode="exact")
+
+    assert [item["row_id"] for item in contains["matches"]] == ["row-1", "row-2"]
+    assert exact["matches"] == [
+        {"row_id": "row-1", "description": "Ship release", "status": "To Do"}
+    ]
+
+
+def test_task_by_description_operations_refuse_ambiguous_matches(monkeypatch):
+    from appflowy_mcp_toolkit.client import AppFlowyClient
+
+    client = AppFlowyClient(AppFlowyConfig(base_url="https://example.test", access_token="t"))
+    monkeypatch.setattr(
+        client,
+        "list_tasks",
+        lambda *_args, **_kwargs: {
+            "row_ids": ["row-1", "row-2"],
+            "rows": [
+                {"id": "row-1", "cells": {"Description": "Duplicate", "Status": "To Do"}},
+                {"id": "row-2", "cells": {"Description": "Duplicate", "Status": "Doing"}},
+            ],
+        },
+    )
+
+    called = False
+
+    def fail_write(*_args: object, **_kwargs: object) -> dict[str, object]:
+        nonlocal called
+        called = True
+        return {}
+
+    monkeypatch.setattr(client, "move_task_by_row_id", fail_write)
+    result = client.move_task_by_description("ws", "db", "Duplicate", status="Done")
+
+    assert result["status"] == "ambiguous"
+    assert [item["row_id"] for item in result["candidates"]] == ["row-1", "row-2"]
+    assert called is False
+
+
+def test_task_by_description_operations_delegate_after_single_resolution(monkeypatch):
+    from appflowy_mcp_toolkit.client import AppFlowyClient
+
+    client = AppFlowyClient(AppFlowyConfig(base_url="https://example.test", access_token="t"))
+    monkeypatch.setattr(
+        client,
+        "list_tasks",
+        lambda *_args, **_kwargs: {
+            "row_ids": ["row-1"],
+            "rows": [{"id": "row-1", "cells": {"Description": "Unique", "Status": "To Do"}}],
+        },
+    )
+    calls: list[tuple[str, dict[str, object]]] = []
+
+    def fake_update(*args: object, **kwargs: object) -> dict[str, object]:
+        calls.append(("update", {"row_id": args[2], **kwargs}))
+        return {"dry_run": True, "row_id": args[2]}
+
+    def fake_delete(*args: object, **kwargs: object) -> dict[str, object]:
+        calls.append(("delete", {"row_id": args[2], **kwargs}))
+        return {"dry_run": True, "row_id": args[2]}
+
+    monkeypatch.setattr(client, "update_database_row_by_id_collab", fake_update)
+    monkeypatch.setattr(client, "delete_task", fake_delete)
+
+    updated = client.update_task_by_description(
+        "ws",
+        "db",
+        "Unique",
+        new_description="Renamed",
+        status="Doing",
+    )
+    deleted = client.delete_task_by_description("ws", "db", "Unique")
+
+    assert updated["status"] == "resolved_dry_run"
+    assert deleted["status"] == "resolved_dry_run"
+    assert calls == [
+        (
+            "update",
+            {
+                "row_id": "row-1",
+                "values": {"Description": "Renamed", "Status": "Doing"},
+                "dry_run": True,
+            },
+        ),
+        ("delete", {"row_id": "row-1", "dry_run": True}),
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -1438,3 +1673,89 @@ def test_get_database_row_orders_inline_views_fallback(make_client):
     assert len(result) == 1
     assert result[0]["view_id"] == "view_inline_001"
     assert result[0]["row_orders"] == ["row_x", "row_y"]
+
+
+def test_get_database_view_configs_normalizes_view_settings(make_client):
+    payload = {
+        "collab": {
+            "database": {
+                "views": {
+                    "view_board": {
+                        "name": "Board",
+                        "database_id": "db_001",
+                        "layout": 1,
+                        "is_inline": True,
+                        "layout_settings": {
+                            "1": {
+                                "hide_ungrouped_column": True,
+                                "collapse_hidden_groups": False,
+                            }
+                        },
+                        "filters": [{"id": "filter_1", "field_id": "status"}],
+                        "sorts": [{"id": "sort_1", "field_id": "priority"}],
+                        "group_settings": [
+                            {
+                                "id": "group_setting_1",
+                                "field_id": "status",
+                                "ty": 3,
+                                "content": "",
+                                "groups": [
+                                    {"id": "todo", "visible": True},
+                                    {"id": "done", "visible": False},
+                                ],
+                            }
+                        ],
+                        "field_settings": {
+                            "description": {
+                                "visibility": 0,
+                                "width": 240,
+                                "wrap": True,
+                            },
+                            "status": {"visibility": 1, "width": 120},
+                        },
+                        "field_orders": [{"id": "description"}, {"field_id": "status"}],
+                        "row_orders": [{"id": "row_1"}, {"id": "row_2"}],
+                        "created_at": 1778930000,
+                        "modified_at": 1778930100,
+                    }
+                }
+            }
+        }
+    }
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return json_response({"data": payload})
+
+    client = make_client(handler)
+    result = client.get_database_view_configs("ws_001", "db_001")
+
+    assert len(result) == 1
+    view = result[0]
+    assert view["view_id"] == "view_board"
+    assert view["name"] == "Board"
+    assert view["layout"] == 1
+    assert view["layout_name"] == "Board"
+    assert view["layout_settings"]["1"]["hide_ungrouped_column"] is True
+    assert view["filters"] == [{"id": "filter_1", "field_id": "status"}]
+    assert view["sorts"] == [{"id": "sort_1", "field_id": "priority"}]
+    assert view["group_settings"][0]["field_id"] == "status"
+    assert view["group_settings"][0]["field_type"] == 3
+    assert view["group_settings"][0]["groups"] == [
+        {"id": "todo", "visible": True, "raw": {"id": "todo", "visible": True}},
+        {"id": "done", "visible": False, "raw": {"id": "done", "visible": False}},
+    ]
+    assert view["field_settings"]["description"]["width"] == 240
+    assert view["field_settings"]["description"]["wrap_cell_content"] is True
+    assert view["field_settings"]["status"]["wrap_cell_content"] is None
+    assert view["field_orders"] == ["description", "status"]
+    assert view["field_order_count"] == 2
+    assert view["row_order_count"] == 2
+
+
+def test_get_database_view_configs_empty_on_no_views(make_client):
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return json_response({"data": {"unrelated": True}})
+
+    client = make_client(handler)
+
+    assert client.get_database_view_configs("ws_001", "db_001") == []

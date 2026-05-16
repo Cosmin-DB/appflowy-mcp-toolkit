@@ -39,15 +39,20 @@ EXPECTED_READ_TOOLS = {
     "appflowy_list_select_options",
     "appflowy_get_collab_json",
     "appflowy_get_database_row_orders",
+    "appflowy_get_database_view_configs",
     "appflowy_get_database_blob_diff",
     "appflowy_list_tasks",
+    "appflowy_search_tasks",
     "appflowy_verify_database_row",
 }
 
 EXPECTED_WRITE_TOOLS = {
     "appflowy_create_task",
     "appflowy_update_task",
+    "appflowy_update_task_by_name",
     "appflowy_move_task",
+    "appflowy_move_task_by_name",
+    "appflowy_delete_task_by_name",
     "appflowy_update_database_row_by_id",
     "appflowy_move_task_by_id",
     "appflowy_delete_task",
@@ -81,6 +86,9 @@ EXPECTED_WRITE_TOOLS = {
     "appflowy_create_typed_database_row",
     "appflowy_create_database_field",
     "appflowy_add_select_option",
+    "appflowy_rename_select_option",
+    "appflowy_hide_select_option",
+    "appflowy_show_select_option",
     "appflowy_upsert_database_row",
     "appflowy_upsert_typed_database_row",
     "appflowy_upsert_managed_task",
@@ -179,6 +187,34 @@ def test_updated_rows_tool_delegates_to_client() -> None:
     )
     content_blocks = raw[0]
     assert json.loads(content_blocks[0].text) == fake_result
+
+
+def test_view_config_tool_delegates_to_client() -> None:
+    fake_result = [
+        {
+            "view_id": "view-board",
+            "layout_name": "Board",
+            "filters": [],
+            "sorts": [],
+        }
+    ]
+
+    with patch(
+        "appflowy_mcp_toolkit.mcp.server.AppFlowyClient",
+        autospec=True,
+    ) as MockClient:
+        instance = MockClient.return_value.__enter__.return_value
+        instance.get_database_view_configs.return_value = fake_result
+
+        raw: Any = asyncio.run(
+            mcp.call_tool(
+                "appflowy_get_database_view_configs",
+                {"workspace_id": "ws", "database_id": "db"},
+            )
+        )
+
+    instance.get_database_view_configs.assert_called_once_with("ws", "db")
+    assert json.loads(raw[0][0].text) == fake_result
 
 
 def test_quick_note_tools_delegate_to_client() -> None:
@@ -569,3 +605,99 @@ def test_page_view_tools_delegate_to_client() -> None:
     assert json.loads(create_raw[0][0].text) == {"dry_run": True}
     assert json.loads(rename_raw[0][0].text) == {"dry_run": True}
     assert json.loads(trash_raw[0][0].text) == {"dry_run": True}
+
+
+def test_task_name_tools_delegate_to_client() -> None:
+    with patch(
+        "appflowy_mcp_toolkit.mcp.server.AppFlowyClient",
+        autospec=True,
+    ) as MockClient:
+        instance = MockClient.return_value.__enter__.return_value
+        instance.search_tasks_by_description.return_value = {"match_count": 1}
+        instance.update_task_by_description.return_value = {"status": "resolved_dry_run"}
+        instance.move_task_by_description.return_value = {"status": "resolved_dry_run"}
+        instance.delete_task_by_description.return_value = {"status": "resolved_dry_run"}
+
+        search_raw: Any = asyncio.run(
+            mcp.call_tool(
+                "appflowy_search_tasks",
+                {
+                    "workspace_id": "ws",
+                    "database_id": "db",
+                    "description": "Ship",
+                    "mode": "exact",
+                },
+            )
+        )
+        update_raw: Any = asyncio.run(
+            mcp.call_tool(
+                "appflowy_update_task_by_name",
+                {
+                    "workspace_id": "ws",
+                    "database_id": "db",
+                    "description": "Ship",
+                    "new_description": "Ship now",
+                },
+            )
+        )
+        move_raw: Any = asyncio.run(
+            mcp.call_tool(
+                "appflowy_move_task_by_name",
+                {
+                    "workspace_id": "ws",
+                    "database_id": "db",
+                    "description": "Ship now",
+                    "status": "Done",
+                },
+            )
+        )
+        delete_raw: Any = asyncio.run(
+            mcp.call_tool(
+                "appflowy_delete_task_by_name",
+                {
+                    "workspace_id": "ws",
+                    "database_id": "db",
+                    "description": "Ship now",
+                },
+            )
+        )
+
+    instance.search_tasks_by_description.assert_called_once_with(
+        "ws",
+        "db",
+        "Ship",
+        mode="exact",
+        case_sensitive=False,
+        with_doc=False,
+    )
+    instance.update_task_by_description.assert_called_once_with(
+        "ws",
+        "db",
+        "Ship",
+        new_description="Ship now",
+        status=None,
+        match_mode="exact",
+        case_sensitive=False,
+        dry_run=True,
+    )
+    instance.move_task_by_description.assert_called_once_with(
+        "ws",
+        "db",
+        "Ship now",
+        status="Done",
+        match_mode="exact",
+        case_sensitive=False,
+        dry_run=True,
+    )
+    instance.delete_task_by_description.assert_called_once_with(
+        "ws",
+        "db",
+        "Ship now",
+        match_mode="exact",
+        case_sensitive=False,
+        dry_run=True,
+    )
+    assert json.loads(search_raw[0][0].text) == {"match_count": 1}
+    assert json.loads(update_raw[0][0].text)["status"] == "resolved_dry_run"
+    assert json.loads(move_raw[0][0].text)["status"] == "resolved_dry_run"
+    assert json.loads(delete_raw[0][0].text)["status"] == "resolved_dry_run"

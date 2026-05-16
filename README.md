@@ -223,6 +223,7 @@ Read-only tools:
 - `appflowy_get_database_row_orders`
 - `appflowy_get_database_blob_diff`
 - `appflowy_list_tasks`
+- `appflowy_search_tasks`
 - `appflowy_verify_database_row`
 
 Write tools exist for controlled testing, but dry-run by default and require
@@ -253,10 +254,13 @@ Write tools exist for controlled testing, but dry-run by default and require
 - `appflowy_delete_all_pages_from_trash`
 - `appflowy_create_task`
 - `appflowy_update_task`
+- `appflowy_update_task_by_name`
 - `appflowy_move_task`
+- `appflowy_move_task_by_name`
 - `appflowy_update_database_row_by_id`
 - `appflowy_move_task_by_id`
 - `appflowy_delete_task`
+- `appflowy_delete_task_by_name`
 - `appflowy_create_quick_note`
 - `appflowy_update_quick_note`
 - `appflowy_delete_quick_note`
@@ -275,9 +279,16 @@ Task-facing tools are the preferred public workflow for board-like task database
 state. For rows created manually in AppFlowy Web, use `move-task-by-id` /
 `appflowy_move_task_by_id` or `update-row-by-id` /
 `appflowy_update_database_row_by_id`; REST `pre_hash` upsert cannot target an
-arbitrary existing `row_id`. `delete_task` currently requires the AppFlowy
-`row_id` returned by create/list because there is no confirmed safe
-lookup-by-`pre_hash` delete endpoint.
+arbitrary existing `row_id`.
+
+For assistant workflows where a human names a card instead of giving a row id,
+use `search-tasks` / `appflowy_search_tasks` to match the `Description` field
+with `exact` or `contains` mode. `update-task-by-name`, `move-task-by-name`, and
+`delete-task-by-name` first resolve that Description text and only mutate when
+there is exactly one match. If there are duplicates, they return candidates and
+take no action. These operations are still dry-run by default; real row-id
+collab updates/deletes require the same write gates as the underlying row-id
+tools.
 
 Experimental collab write tools (dry-run by default; require `APPFLOWY_ALLOW_WRITES=true` **and**
 `APPFLOWY_ALLOW_COLLAB_WRITES=true`; requires Node.js 18+ with `npm install` in

@@ -130,6 +130,36 @@ def _pick_status(options: list[str], preferred: str, fallback_index: int = 0) ->
     return options[min(fallback_index, len(options) - 1)]
 
 
+def _select_option_names(client: AppFlowyClient, workspace_id: str, database_id: str) -> set[str]:
+    return {
+        str(option.get("name"))
+        for option in client.list_select_options(workspace_id, database_id)
+        if option.get("name")
+    }
+
+
+def _group_visibility(payload: Any, option_id: str) -> list[bool]:
+    found: list[bool] = []
+    if isinstance(payload, dict):
+        if payload.get("id") == option_id and isinstance(payload.get("visible"), bool):
+            found.append(bool(payload["visible"]))
+        for value in payload.values():
+            found.extend(_group_visibility(value, option_id))
+    elif isinstance(payload, list):
+        for value in payload:
+            found.extend(_group_visibility(value, option_id))
+    return found
+
+
+def _assert_select_option_name(
+    client: AppFlowyClient,
+    workspace_id: str,
+    database_id: str,
+    name: str,
+) -> None:
+    assert name in _select_option_names(client, workspace_id, database_id)
+
+
 def _row_by_id(
     client: AppFlowyClient,
     workspace_id: str,
@@ -652,6 +682,83 @@ def test_selfhosted_manual_row_can_move_by_row_id_collab(
             _delete_created(client, workspace_id, database_id, created_row_ids)
 
 
+def test_selfhosted_status_option_add_rename_hide_show_collab(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_id, database_id = _selfhosted_ids()
+    suffix = time.time_ns()
+    option_id = f"mcp_board_{suffix}"
+    first_name = f"MCP Board {suffix}"
+    renamed_name = f"MCP Board Renamed {suffix}"
+    monkeypatch.setenv("APPFLOWY_ALLOW_COLLAB_WRITES", "true")
+
+    with AppFlowyClient() as client:
+        added = client.add_select_option_collab(
+            workspace_id,
+            database_id,
+            name=first_name,
+            option_id=option_id,
+            dry_run=False,
+        )
+        assert added["option_added"] is True
+        assert added["affected_views"]
+
+        _eventually(
+            lambda: _assert_select_option_name(client, workspace_id, database_id, first_name)
+        )
+
+        renamed = client.rename_select_option_collab(
+            workspace_id,
+            database_id,
+            option_id=option_id,
+            new_name=renamed_name,
+            dry_run=False,
+        )
+        assert renamed["renamed"] is True
+
+        _eventually(
+            lambda: _assert_select_option_name(client, workspace_id, database_id, renamed_name)
+        )
+
+        hidden = client.set_select_option_visibility_collab(
+            workspace_id,
+            database_id,
+            option_id=option_id,
+            visible=False,
+            dry_run=False,
+        )
+        assert hidden["affected_views"]
+
+        def assert_hidden() -> None:
+            visible_values = _group_visibility(
+                client.get_collab_json(workspace_id, database_id, collab_type="Database"),
+                option_id,
+            )
+            assert visible_values
+            assert all(value is False for value in visible_values)
+
+        _eventually(assert_hidden)
+
+        shown = client.set_select_option_visibility_collab(
+            workspace_id,
+            database_id,
+            option_id=option_id,
+            visible=True,
+            dry_run=False,
+        )
+        assert shown["affected_views"]
+
+        def assert_shown() -> None:
+            visible_values = _group_visibility(
+                client.get_collab_json(workspace_id, database_id, collab_type="Database"),
+                option_id,
+            )
+            assert visible_values
+            assert all(value is True for value in visible_values)
+
+        _eventually(assert_shown)
+
+
 def test_selfhosted_typed_scalar_field_lifecycle() -> None:
     workspace_id, database_id = _selfhosted_ids()
     suffix = time.time_ns()
@@ -877,6 +984,87 @@ def test_selfhosted_multi_task_lifecycle_with_updates_and_cleanup() -> None:
             created_row_ids.clear()
         finally:
             _delete_created(client, workspace_id, database_id, created_row_ids)
+
+
+def test_selfhosted_task_name_resolution_guards_ambiguous_writes() -> None:
+    workspace_id, database_id = _selfhosted_ids()
+    row_ids: list[str] = []
+
+    with AppFlowyClient() as client:
+        statuses = _status_options(client, workspace_id, database_id)
+        todo = _pick_status(statuses, "To Do")
+        done = _pick_status(statuses, "Done", 2)
+        suffix = str(time.time_ns())
+        unique_description = f"Name resolution unique {suffix}"
+        duplicate_description = f"Name resolution duplicate {suffix}"
+
+        try:
+            for task_key, description in [
+                (_task_key("selfhosted-name-unique"), unique_description),
+                (_task_key("selfhosted-name-dupe-a"), duplicate_description),
+                (_task_key("selfhosted-name-dupe-b"), duplicate_description),
+            ]:
+                created = client.create_task(
+                    workspace_id,
+                    database_id,
+                    task_key=task_key,
+                    description=description,
+                    status=todo,
+                    dry_run=False,
+                    include_blob_diff=False,
+                )
+                assert created["verification"]["verified"] is True
+                row_ids.append(created["verification"]["row_id"])
+
+            search = client.search_tasks_by_description(
+                workspace_id,
+                database_id,
+                "name resolution",
+                mode="contains",
+            )
+            assert set(row_ids).issubset({item["row_id"] for item in search["matches"]})
+
+            ambiguous = client.move_task_by_description(
+                workspace_id,
+                database_id,
+                duplicate_description,
+                status=done,
+                dry_run=False,
+            )
+            assert ambiguous["status"] == "ambiguous"
+            assert len(ambiguous["candidates"]) == 2
+
+            renamed = f"Name resolution renamed {suffix}"
+            updated = client.update_task_by_description(
+                workspace_id,
+                database_id,
+                unique_description,
+                new_description=renamed,
+                status=done,
+                dry_run=False,
+            )
+            assert updated["status"] == "updated"
+            unique_row_id = updated["resolution"]["match"]["row_id"]
+            _assert_row_cells(
+                client,
+                workspace_id,
+                database_id,
+                unique_row_id,
+                description=renamed,
+                status=done,
+            )
+
+            deleted = client.delete_task_by_description(
+                workspace_id,
+                database_id,
+                renamed,
+                dry_run=False,
+            )
+            assert deleted["status"] == "deleted"
+            _eventually(_row_deleted_assertion(client, workspace_id, database_id, unique_row_id))
+            row_ids.remove(unique_row_id)
+        finally:
+            _delete_created(client, workspace_id, database_id, row_ids)
 
 
 def test_selfhosted_invalid_status_is_rejected_without_mutation() -> None:

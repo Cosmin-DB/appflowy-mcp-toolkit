@@ -194,6 +194,12 @@ function childGroupId(group) {
   return undefined;
 }
 
+function childGroupVisible(group) {
+  if (group instanceof Y.Map) return group.get("visible");
+  if (group && typeof group === "object") return group.visible;
+  return undefined;
+}
+
 function normalizeGroupArray(array) {
   for (let i = 0; i < array.length; i++) {
     const item = array.get(i);
@@ -295,6 +301,146 @@ function addSelectOptionToDatabase(docStateBytes, input) {
   };
 }
 
+function getSelectOptionContent(database, input) {
+  const fields = database.get("fields");
+  if (!(fields instanceof Y.Map)) {
+    throw new Error("data.database.fields not found or not a YMap in collab doc");
+  }
+
+  const field = fields.get(input.field_id);
+  if (!(field instanceof Y.Map)) {
+    throw new Error("Field not found in database collab: " + input.field_id);
+  }
+  const typeOption = field.get("type_option");
+  if (!(typeOption instanceof Y.Map)) {
+    throw new Error("Field type_option not found or not a YMap for field: " + input.field_id);
+  }
+
+  const selectOption = typeOption.get(String(input.field_type));
+  if (!(selectOption instanceof Y.Map)) {
+    throw new Error("Select field type option not found for field type: " + input.field_type);
+  }
+
+  const rawContent = selectOption.get("content");
+  const content = rawContent ? JSON.parse(rawContent) : { options: [], disable_color: false };
+  if (!Array.isArray(content.options)) content.options = [];
+  return { field, selectOption, content };
+}
+
+function findOption(options, input) {
+  const optionId = input.option_id;
+  const optionName = input.option_name || input.name;
+  return options.find(
+    (option) =>
+      (optionId !== undefined && option.id === optionId) ||
+      (optionName !== undefined && option.name === optionName)
+  );
+}
+
+function renameSelectOptionInDatabase(docStateBytes, input) {
+  const doc = new Y.Doc();
+  Y.applyUpdate(doc, docStateBytes);
+
+  const svBefore = Y.encodeStateVector(doc);
+  const root = doc.getMap("data");
+  const database = root.get("database");
+  if (!(database instanceof Y.Map)) {
+    throw new Error("data.database not found or not a YMap in collab doc");
+  }
+
+  const { field, selectOption, content } = getSelectOptionContent(database, input);
+  const option = findOption(content.options, input);
+  if (!option) {
+    throw new Error("Select option not found");
+  }
+  const duplicate = content.options.find(
+    (candidate) => candidate.id !== option.id && candidate.name === input.new_name
+  );
+  if (duplicate) {
+    throw new Error("Select option name already exists: " + input.new_name);
+  }
+
+  const beforeName = option.name;
+  const now = Math.floor(Date.now() / 1000);
+  doc.transact(() => {
+    option.name = input.new_name;
+    selectOption.set("content", JSON.stringify(content));
+    field.set("last_modified", now);
+  });
+
+  const deltaUpdate = Y.encodeStateAsUpdate(doc, svBefore);
+  return {
+    optionId: option.id,
+    previousName: beforeName,
+    option,
+    renamed: beforeName !== input.new_name,
+    deltaUpdate,
+  };
+}
+
+function setSelectOptionVisibilityInDatabase(docStateBytes, input) {
+  const doc = new Y.Doc();
+  Y.applyUpdate(doc, docStateBytes);
+
+  const svBefore = Y.encodeStateVector(doc);
+  const root = doc.getMap("data");
+  const database = root.get("database");
+  if (!(database instanceof Y.Map)) {
+    throw new Error("data.database not found or not a YMap in collab doc");
+  }
+
+  const { content } = getSelectOptionContent(database, input);
+  const option = findOption(content.options, input);
+  if (!option) {
+    throw new Error("Select option not found");
+  }
+
+  const affectedViews = [];
+  const visibilityByView = {};
+  const views = database.get("views");
+  doc.transact(() => {
+    if (!(views instanceof Y.Map)) return;
+    for (const [viewId, viewData] of views.entries()) {
+      if (!(viewData instanceof Y.Map)) continue;
+      if (input.view_id && viewId !== input.view_id) continue;
+      const groups = viewData.get("groups");
+      if (!(groups instanceof Y.Array)) continue;
+      normalizeGroupArray(groups);
+
+      for (let i = 0; i < groups.length; i++) {
+        const group = groups.get(i);
+        if (!(group instanceof Y.Map) || group.get("field_id") !== input.field_id) continue;
+        const childGroups = group.get("groups");
+        if (!(childGroups instanceof Y.Array)) continue;
+        normalizeGroupArray(childGroups);
+
+        for (let j = 0; j < childGroups.length; j++) {
+          const child = childGroups.get(j);
+          if (childGroupId(child) !== option.id) continue;
+          const before = childGroupVisible(child);
+          if (child instanceof Y.Map) {
+            child.set("visible", input.visible);
+          } else {
+            childGroups.delete(j, 1);
+            childGroups.insert(j, [mapFromObject({ ...child, visible: input.visible })]);
+          }
+          affectedViews.push(viewId);
+          visibilityByView[viewId] = { before, after: input.visible };
+        }
+      }
+    }
+  });
+
+  const deltaUpdate = Y.encodeStateAsUpdate(doc, svBefore);
+  return {
+    option,
+    visible: input.visible,
+    affectedViews: [...new Set(affectedViews)],
+    visibilityByView,
+    deltaUpdate,
+  };
+}
+
 function main() {
   const chunks = [];
   process.stdin.on("data", (c) => chunks.push(c));
@@ -333,6 +479,29 @@ function main() {
           }
         }
         result = addSelectOptionToDatabase(new Uint8Array(doc_state), input);
+      } else if (operation === "rename_select_option") {
+        for (const key of ["field_id", "field_type", "new_name"]) {
+          if (input[key] === undefined || input[key] === null || input[key] === "") {
+            throw new Error("rename_select_option input must include " + key);
+          }
+        }
+        if (!input.option_id && !input.option_name) {
+          throw new Error("rename_select_option input must include option_id or option_name");
+        }
+        result = renameSelectOptionInDatabase(new Uint8Array(doc_state), input);
+      } else if (operation === "set_select_option_visibility") {
+        for (const key of ["field_id", "field_type", "visible"]) {
+          if (input[key] === undefined || input[key] === null || input[key] === "") {
+            throw new Error("set_select_option_visibility input must include " + key);
+          }
+        }
+        if (!input.option_id && !input.option_name) {
+          throw new Error("set_select_option_visibility input must include option_id or option_name");
+        }
+        if (typeof input.visible !== "boolean") {
+          throw new Error("set_select_option_visibility input visible must be boolean");
+        }
+        result = setSelectOptionVisibilityInDatabase(new Uint8Array(doc_state), input);
       } else {
         throw new Error("Unsupported operation: " + operation);
       }
@@ -359,6 +528,28 @@ function main() {
             option_added: result.optionAdded,
             option: result.option,
             affected_views: result.affectedViews,
+            delta_update: Array.from(result.deltaUpdate),
+          })
+        );
+      } else if (operation === "rename_select_option") {
+        process.stdout.write(
+          JSON.stringify({
+            ok: true,
+            option_id: result.optionId,
+            previous_name: result.previousName,
+            option: result.option,
+            renamed: result.renamed,
+            delta_update: Array.from(result.deltaUpdate),
+          })
+        );
+      } else if (operation === "set_select_option_visibility") {
+        process.stdout.write(
+          JSON.stringify({
+            ok: true,
+            option: result.option,
+            visible: result.visible,
+            affected_views: result.affectedViews,
+            visibility_by_view: result.visibilityByView,
             delta_update: Array.from(result.deltaUpdate),
           })
         );

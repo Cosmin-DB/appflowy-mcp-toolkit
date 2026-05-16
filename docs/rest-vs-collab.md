@@ -17,9 +17,13 @@ route.
   browser created it manually.
 - Use **collab delete** when removing a row from database views; there is no
   confirmed public REST delete-row endpoint.
-- Use **database collab** for board column creation. A board column is a select
-  option on the grouped field, usually `Status`, plus a visible group entry in
-  the board view.
+- Use **database collab** for board column lifecycle operations. A board column
+  is a select option on the grouped field, usually `Status`, plus a visible
+  group entry in the board view. The supported lifecycle today is add, rename,
+  hide and show.
+- Use **read-only database collab diagnostics** for view configuration. Filters,
+  sorts, board groups, field visibility/width and layout settings live on each
+  database view inside the Database collab document.
 
 ## Why This Is Confusing
 
@@ -69,7 +73,11 @@ collab row updates.
 | Update a row created manually in AppFlowy Web | `update-row-by-id` / `appflowy_update_database_row_by_id` | REST cannot target arbitrary existing row ids |
 | Move a manually-created task/card by row id | `move-task-by-id` / `appflowy_move_task_by_id` | Thin wrapper over collab row update for Status |
 | Add a board column/status option | `add-select-option` / `appflowy_add_select_option` | Board columns are stored in Database collab schema, not as rows |
+| Rename a board column/status option | `rename-select-option` / `appflowy_rename_select_option` | Renames the select option in Database collab |
+| Hide/show a board column/status option | `hide-select-option`, `show-select-option` / `appflowy_hide_select_option`, `appflowy_show_select_option` | Toggles board group visibility for the option |
+| Inspect filters/sorts/groups/field widths | `view-configs` / `appflowy_get_database_view_configs` | View settings are stored in Database collab JSON |
 | Delete a row/card | `delete-row` / `appflowy_delete_database_row` | AppFlowy Web deletion is collab row-order mutation |
+| Delete/remove a board column/status option | Not implemented | Unsafe until the toolkit can prove how rows using that option are reassigned or cleared |
 | Reorder cards precisely inside a view/column | Not implemented yet | Needs separate row_orders collab mutation design |
 
 ## Safety Gates
@@ -99,13 +107,36 @@ Implemented:
 - delete database row from view row orders
 - update existing `DatabaseRow` cells by `row_id`
 - move an existing/manual task by setting its Status field through `row_id`
-- add select options, including board Status columns, through Database collab
+- add, rename, hide and show select options, including board Status columns,
+  through Database collab
+- read-only extraction of Database view configuration: `layout_settings`,
+  `filters`, `sorts`, `group_settings`, `field_settings`,
+  `field_orders` and row-order counts
 
 Not implemented yet:
 
+- remove/delete select options or board columns; existing rows may still store
+  the removed option id, and AppFlowy Web's reassignment/cleanup behavior needs
+  its own Docker and browser proof before exposing a destructive schema write
 - exact card reorder inside a view/column
+- updates to filters, sorts, field visibility/width, or layout settings
 - generic document/block collab editing
 - broad arbitrary collab object mutation
+
+## Database View Configuration Shape
+
+Current AppFlowy source represents a `DatabaseView` with `layout_settings`,
+`filters`, `group_settings`, `sorts`, `row_orders`, `field_orders` and
+`field_settings` in the Database collab document. The cloud page-view creation
+path fills those same fields when creating board/grid/calendar views. Field
+settings use keys such as `visibility`, `width` and
+`wrap` (normalized by the toolkit as `wrap_cell_content`); board groups include a grouped `field_id`, `ty` field
+type and per-group `id`/visibility entries.
+
+The toolkit now exposes that shape as a read-only summary. It deliberately does
+not update filters/sorts/layout/field settings yet: those are structural Yjs
+view mutations and need a separate unit -> Docker/self-hosted -> disposable
+cloud proof before being offered as live writes.
 
 ## Practical Guidance
 

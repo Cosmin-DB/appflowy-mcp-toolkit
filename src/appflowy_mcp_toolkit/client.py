@@ -901,6 +901,218 @@ class AppFlowyClient:
         )
         return summary
 
+    def _select_field_metadata(
+        self, workspace_id: str, database_id: str, *, field_name: str
+    ) -> tuple[str, int]:
+        fields = self.list_database_fields(workspace_id, database_id)
+        field = next((item for item in fields if item.get("name") == field_name), None)
+        if field is None:
+            raise AppFlowyError(f"Field not found: {field_name}")
+        field_id = str(field.get("id") or "")
+        field_type_id = field.get("field_type_id")
+        if not field_id or not isinstance(field_type_id, int):
+            raise AppFlowySchemaError("Select field metadata is incomplete", payload=field)
+        if field_type_id not in {3, 4}:
+            raise AppFlowyError(
+                f"Field {field_name!r} is not a select field; field_type_id={field_type_id}"
+            )
+        return field_id, field_type_id
+
+    def _resolve_select_option_ref(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        field_name: str,
+        option_id: str | None = None,
+        option_name: str | None = None,
+    ) -> tuple[str | None, str | None, dict[str, Any]]:
+        if not option_id and not option_name:
+            raise AppFlowyError("Provide option_id or option_name")
+        options = self.list_select_options(workspace_id, database_id, field_name=field_name)
+        existing = next(
+            (
+                item
+                for item in options
+                if (option_id and item.get("id") == option_id)
+                or (option_name and item.get("name") == option_name)
+            ),
+            None,
+        )
+        if existing is None:
+            label = option_id if option_id else option_name
+            raise AppFlowyError(f"Select option not found: {label}")
+        return str(existing.get("id")), str(existing.get("name")), existing
+
+    def rename_select_option_collab(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        field_name: str = "Status",
+        new_name: str,
+        option_id: str | None = None,
+        option_name: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Rename a select option through Database collab. Dry-run by default."""
+        from appflowy_mcp_toolkit.collab.collab_delete import (
+            CollabHelperError,
+            allow_collab_writes,
+            invoke_yjs_rename_select_option,
+        )
+
+        field_id, field_type_id = self._select_field_metadata(
+            workspace_id, database_id, field_name=field_name
+        )
+        resolved_option_id, resolved_option_name, _option = self._resolve_select_option_ref(
+            workspace_id,
+            database_id,
+            field_name=field_name,
+            option_id=option_id,
+            option_name=option_name,
+        )
+        if not dry_run:
+            self._require_writes_enabled()
+            if not allow_collab_writes():
+                raise AppFlowyError(
+                    "Collab writes are disabled. "
+                    "Set APPFLOWY_ALLOW_COLLAB_WRITES=true to enable Yjs-based schema updates."
+                )
+
+        binary = self.get_binary_collab(workspace_id, database_id, collab_type="Database")
+        doc_state: list[int] = binary.get("doc_state", [])
+        if not doc_state:
+            raise AppFlowyError(
+                "Binary Database collab returned empty doc_state; cannot compute option delta."
+            )
+
+        try:
+            helper_result = invoke_yjs_rename_select_option(
+                doc_state,
+                field_id=field_id,
+                field_type=field_type_id,
+                option_id=resolved_option_id,
+                option_name=resolved_option_name,
+                new_name=new_name,
+            )
+        except CollabHelperError as exc:
+            raise AppFlowyError(str(exc)) from exc
+
+        summary: dict[str, Any] = {
+            "dry_run": dry_run,
+            "database_id": database_id,
+            "field_id": field_id,
+            "field_name": field_name,
+            "option_id": helper_result["option_id"],
+            "previous_name": helper_result["previous_name"],
+            "option": helper_result["option"],
+            "renamed": helper_result["renamed"],
+            "delta_update_bytes": len(helper_result["delta_update"]),
+            "path": f"/api/workspace/v1/{workspace_id}/collab/{database_id}/web-update",
+            "collab_type": _collab_type_int("Database"),
+        }
+        if dry_run:
+            return summary
+
+        post_data = self.request(
+            "POST",
+            f"/api/workspace/v1/{workspace_id}/collab/{database_id}/web-update",
+            json={
+                "doc_state": helper_result["delta_update"],
+                "collab_type": _collab_type_int("Database"),
+            },
+        )
+        summary["server_status"] = post_data.get("code")
+        summary["verified_options"] = self.list_select_options(
+            workspace_id, database_id, field_name=field_name
+        )
+        return summary
+
+    def set_select_option_visibility_collab(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        field_name: str = "Status",
+        visible: bool,
+        option_id: str | None = None,
+        option_name: str | None = None,
+        view_id: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Show or hide a select option in board view groups. Dry-run by default."""
+        from appflowy_mcp_toolkit.collab.collab_delete import (
+            CollabHelperError,
+            allow_collab_writes,
+            invoke_yjs_set_select_option_visibility,
+        )
+
+        field_id, field_type_id = self._select_field_metadata(
+            workspace_id, database_id, field_name=field_name
+        )
+        resolved_option_id, resolved_option_name, _option = self._resolve_select_option_ref(
+            workspace_id,
+            database_id,
+            field_name=field_name,
+            option_id=option_id,
+            option_name=option_name,
+        )
+        if not dry_run:
+            self._require_writes_enabled()
+            if not allow_collab_writes():
+                raise AppFlowyError(
+                    "Collab writes are disabled. "
+                    "Set APPFLOWY_ALLOW_COLLAB_WRITES=true to enable Yjs-based schema updates."
+                )
+
+        binary = self.get_binary_collab(workspace_id, database_id, collab_type="Database")
+        doc_state: list[int] = binary.get("doc_state", [])
+        if not doc_state:
+            raise AppFlowyError(
+                "Binary Database collab returned empty doc_state; cannot compute option delta."
+            )
+
+        try:
+            helper_result = invoke_yjs_set_select_option_visibility(
+                doc_state,
+                field_id=field_id,
+                field_type=field_type_id,
+                option_id=resolved_option_id,
+                option_name=resolved_option_name,
+                visible=visible,
+                view_id=view_id,
+            )
+        except CollabHelperError as exc:
+            raise AppFlowyError(str(exc)) from exc
+
+        summary: dict[str, Any] = {
+            "dry_run": dry_run,
+            "database_id": database_id,
+            "field_id": field_id,
+            "field_name": field_name,
+            "option": helper_result["option"],
+            "visible": helper_result["visible"],
+            "affected_views": helper_result["affected_views"],
+            "visibility_by_view": helper_result["visibility_by_view"],
+            "delta_update_bytes": len(helper_result["delta_update"]),
+            "path": f"/api/workspace/v1/{workspace_id}/collab/{database_id}/web-update",
+            "collab_type": _collab_type_int("Database"),
+        }
+        if dry_run:
+            return summary
+
+        post_data = self.request(
+            "POST",
+            f"/api/workspace/v1/{workspace_id}/collab/{database_id}/web-update",
+            json={
+                "doc_state": helper_result["delta_update"],
+                "collab_type": _collab_type_int("Database"),
+            },
+        )
+        summary["server_status"] = post_data.get("code")
+        return summary
+
     def list_database_row_ids(self, workspace_id: str, database_id: str) -> list[dict[str, Any]]:
         data = self.request("GET", f"/api/workspace/{workspace_id}/database/{database_id}/row")
         return self._extract_list(data)
@@ -1317,6 +1529,68 @@ class AppFlowyClient:
         rows = self.get_database_rows(workspace_id, database_id, row_ids, with_doc=with_doc)
         return {"row_ids": row_ids, "rows": rows}
 
+    def search_tasks_by_description(
+        self,
+        workspace_id: str,
+        database_id: str,
+        description: str,
+        *,
+        mode: str = "contains",
+        case_sensitive: bool = False,
+        with_doc: bool = False,
+    ) -> dict[str, Any]:
+        """Find task rows by human-visible Description text."""
+        if mode not in {"exact", "contains"}:
+            raise AppFlowyError("mode must be 'exact' or 'contains'")
+        tasks = self.list_tasks(workspace_id, database_id, with_doc=with_doc)
+        matches = []
+        needle = description if case_sensitive else description.casefold()
+        for row in tasks["rows"]:
+            text = self._task_description_text(row)
+            haystack = text if case_sensitive else text.casefold()
+            matched = haystack == needle if mode == "exact" else needle in haystack
+            if matched:
+                matches.append(self._task_candidate(row, description_text=text))
+        return {
+            "description": description,
+            "mode": mode,
+            "case_sensitive": case_sensitive,
+            "match_count": len(matches),
+            "matches": matches,
+        }
+
+    def resolve_task_by_description(
+        self,
+        workspace_id: str,
+        database_id: str,
+        description: str,
+        *,
+        mode: str = "exact",
+        case_sensitive: bool = False,
+    ) -> dict[str, Any]:
+        """Resolve a human task name only when it maps to exactly one row."""
+        search = self.search_tasks_by_description(
+            workspace_id,
+            database_id,
+            description,
+            mode=mode,
+            case_sensitive=case_sensitive,
+        )
+        matches = search["matches"]
+        if len(matches) == 1:
+            return {"status": "resolved", "match": matches[0], "search": search}
+        status = "not_found" if not matches else "ambiguous"
+        return {
+            "status": status,
+            "message": (
+                "No task matched the Description text."
+                if status == "not_found"
+                else "Multiple tasks matched the Description text; no action was taken."
+            ),
+            "candidates": matches,
+            "search": search,
+        }
+
     def create_task(
         self,
         workspace_id: str,
@@ -1382,6 +1656,86 @@ class AppFlowyClient:
             status=status,
             dry_run=dry_run,
         )
+
+    def update_task_by_description(
+        self,
+        workspace_id: str,
+        database_id: str,
+        description: str,
+        *,
+        new_description: str | None = None,
+        status: str | None = None,
+        match_mode: str = "exact",
+        case_sensitive: bool = False,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Update a task resolved by Description text, refusing duplicates."""
+        values: dict[str, Any] = {}
+        if new_description is not None:
+            values["Description"] = new_description
+        if status is not None:
+            values["Status"] = status
+        if not values:
+            raise AppFlowyError("At least one update value is required")
+        resolution = self.resolve_task_by_description(
+            workspace_id,
+            database_id,
+            description,
+            mode=match_mode,
+            case_sensitive=case_sensitive,
+        )
+        if resolution["status"] != "resolved":
+            return {**resolution, "dry_run": dry_run, "operation": "update_task_by_description"}
+        row_id = resolution["match"].get("row_id")
+        if not isinstance(row_id, str):
+            raise AppFlowySchemaError("Resolved task did not include a row id", payload=resolution)
+        return {
+            "status": "updated" if not dry_run else "resolved_dry_run",
+            "resolution": resolution,
+            "result": self.update_database_row_by_id_collab(
+                workspace_id,
+                database_id,
+                row_id,
+                values=values,
+                dry_run=dry_run,
+            ),
+        }
+
+    def move_task_by_description(
+        self,
+        workspace_id: str,
+        database_id: str,
+        description: str,
+        *,
+        status: str,
+        match_mode: str = "exact",
+        case_sensitive: bool = False,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Move a task resolved by Description text, refusing duplicates."""
+        resolution = self.resolve_task_by_description(
+            workspace_id,
+            database_id,
+            description,
+            mode=match_mode,
+            case_sensitive=case_sensitive,
+        )
+        if resolution["status"] != "resolved":
+            return {**resolution, "dry_run": dry_run, "operation": "move_task_by_description"}
+        row_id = resolution["match"].get("row_id")
+        if not isinstance(row_id, str):
+            raise AppFlowySchemaError("Resolved task did not include a row id", payload=resolution)
+        return {
+            "status": "moved" if not dry_run else "resolved_dry_run",
+            "resolution": resolution,
+            "result": self.move_task_by_row_id(
+                workspace_id,
+                database_id,
+                row_id,
+                status=status,
+                dry_run=dry_run,
+            ),
+        }
 
     def update_database_row_by_id_collab(
         self,
@@ -1499,6 +1853,82 @@ class AppFlowyClient:
             dry_run=dry_run,
         )
 
+    def delete_task_by_description(
+        self,
+        workspace_id: str,
+        database_id: str,
+        description: str,
+        *,
+        match_mode: str = "exact",
+        case_sensitive: bool = False,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Delete a task resolved by Description text, refusing duplicates."""
+        resolution = self.resolve_task_by_description(
+            workspace_id,
+            database_id,
+            description,
+            mode=match_mode,
+            case_sensitive=case_sensitive,
+        )
+        if resolution["status"] != "resolved":
+            return {**resolution, "dry_run": dry_run, "operation": "delete_task_by_description"}
+        row_id = resolution["match"].get("row_id")
+        if not isinstance(row_id, str):
+            raise AppFlowySchemaError("Resolved task did not include a row id", payload=resolution)
+        return {
+            "status": "deleted" if not dry_run else "resolved_dry_run",
+            "resolution": resolution,
+            "result": self.delete_task(
+                workspace_id,
+                database_id,
+                row_id,
+                dry_run=dry_run,
+            ),
+        }
+
+    @classmethod
+    def _task_candidate(cls, row: dict[str, Any], *, description_text: str) -> dict[str, Any]:
+        cells = row.get("cells") if isinstance(row.get("cells"), dict) else {}
+        return {
+            "row_id": row.get("id") or row.get("row_id"),
+            "description": description_text,
+            "status": cells.get("Status") if isinstance(cells, dict) else None,
+        }
+
+    @classmethod
+    def _task_description_text(cls, row: dict[str, Any]) -> str:
+        cells = row.get("cells")
+        if not isinstance(cells, dict):
+            return ""
+        return " ".join(cls._flatten_cell_text(cells.get("Description"))).strip()
+
+    @classmethod
+    def _flatten_cell_text(cls, value: Any) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, (bool, int, float)):
+            return [str(value)]
+        if isinstance(value, list):
+            parts: list[str] = []
+            for item in value:
+                parts.extend(cls._flatten_cell_text(item))
+            return parts
+        if isinstance(value, dict):
+            preferred: list[str] = []
+            for key in ("text", "content", "insert", "value", "data"):
+                if key in value:
+                    preferred.extend(cls._flatten_cell_text(value[key]))
+            if preferred:
+                return preferred
+            parts = []
+            for item in value.values():
+                parts.extend(cls._flatten_cell_text(item))
+            return parts
+        return [str(value)]
+
     def verify_database_row(
         self,
         workspace_id: str,
@@ -1604,6 +2034,22 @@ class AppFlowyClient:
         """
         collab = self.get_collab_json(workspace_id, database_id, collab_type="Database")
         return _extract_row_orders(collab)
+
+    def get_database_view_configs(
+        self,
+        workspace_id: str,
+        database_id: str,
+    ) -> list[dict[str, Any]]:
+        """Return normalized per-view database configuration from collab JSON.
+
+        AppFlowy stores database view configuration in the Database collab
+        document, not in the public row REST payload. This read-only helper
+        exposes the parts that are useful when assisting a human with a view:
+        layout, layout settings, filters, sorts, board/group settings and
+        field visibility/width settings.
+        """
+        collab = self.get_collab_json(workspace_id, database_id, collab_type="Database")
+        return _extract_view_configs(collab)
 
     def get_database_blob_diff_summary(
         self,
@@ -1940,6 +2386,40 @@ def _extract_row_id(create_result: dict[str, Any]) -> str | None:
     return None
 
 
+def _iter_database_view_items(collab: Any) -> list[tuple[str, dict[str, Any]]]:
+    """Return database view items from all observed collab JSON shapes."""
+    if not isinstance(collab, dict):
+        return []
+
+    def _views_to_items(views: Any) -> list[tuple[str, dict[str, Any]]]:
+        if not isinstance(views, dict):
+            return []
+        out: list[tuple[str, dict[str, Any]]] = []
+        for view_id, view_data in views.items():
+            if isinstance(view_data, dict):
+                out.append((str(view_id), view_data))
+        return out
+
+    nested_collab = collab.get("collab")
+    if isinstance(nested_collab, dict):
+        db = nested_collab.get("database")
+        if isinstance(db, dict):
+            results = _views_to_items(db.get("views"))
+            if results:
+                return results
+
+    results = _views_to_items(collab.get("views"))
+    if results:
+        return results
+
+    for key in ("database_inline_views", "inline_views"):
+        results = _views_to_items(collab.get(key))
+        if results:
+            return results
+
+    return []
+
+
 def _extract_row_orders(collab: Any) -> list[dict[str, Any]]:
     """Extract per-view row orders from a database collab JSON payload.
 
@@ -1972,41 +2452,44 @@ def _extract_row_orders(collab: Any) -> list[dict[str, Any]]:
 
         [{"view_id": "<id>", "row_orders": ["<row_id>", ...]}, ...]
     """
-    if not isinstance(collab, dict):
-        return []
+    return [
+        {"view_id": view_id, "row_orders": _coerce_row_orders(view_data.get("row_orders"))}
+        for view_id, view_data in _iter_database_view_items(collab)
+    ]
 
-    def _views_to_results(views: Any) -> list[dict[str, Any]]:
-        if not isinstance(views, dict):
-            return []
-        out = []
-        for view_id, view_data in views.items():
-            if not isinstance(view_data, dict):
-                continue
-            row_orders = _coerce_row_orders(view_data.get("row_orders"))
-            out.append({"view_id": str(view_id), "row_orders": row_orders})
-        return out
 
-    # 1. Live shape: collab.database.views
-    nested_collab = collab.get("collab")
-    if isinstance(nested_collab, dict):
-        db = nested_collab.get("database")
-        if isinstance(db, dict):
-            results = _views_to_results(db.get("views"))
-            if results:
-                return results
+def _extract_view_configs(collab: Any) -> list[dict[str, Any]]:
+    """Extract normalized database view configuration from collab JSON.
 
-    # 2. Flat shape: top-level "views" key
-    results = _views_to_results(collab.get("views"))
-    if results:
-        return results
-
-    # 3. Inline-views fallback
-    for key in ("database_inline_views", "inline_views"):
-        results = _views_to_results(collab.get(key))
-        if results:
-            return results
-
-    return []
+    The raw AppFlowy view object contains many fields. This helper keeps the
+    configuration surface relevant to humans: layout, layout settings, filters,
+    sorts, group settings, field settings, field order and row count.
+    """
+    out: list[dict[str, Any]] = []
+    for view_id, view_data in _iter_database_view_items(collab):
+        row_orders = _coerce_row_orders(view_data.get("row_orders"))
+        field_orders = _coerce_field_orders(view_data.get("field_orders"))
+        out.append(
+            {
+                "view_id": view_id,
+                "name": view_data.get("name"),
+                "database_id": view_data.get("database_id"),
+                "layout": view_data.get("layout"),
+                "layout_name": _layout_name(view_data.get("layout")),
+                "is_inline": view_data.get("is_inline"),
+                "layout_settings": _dict_or_empty(view_data.get("layout_settings")),
+                "filters": _list_or_empty(view_data.get("filters")),
+                "sorts": _list_or_empty(view_data.get("sorts")),
+                "group_settings": _normalise_group_settings(view_data.get("group_settings")),
+                "field_settings": _normalise_field_settings(view_data.get("field_settings")),
+                "field_orders": field_orders,
+                "field_order_count": len(field_orders),
+                "row_order_count": len(row_orders),
+                "created_at": view_data.get("created_at"),
+                "modified_at": view_data.get("modified_at"),
+            }
+        )
+    return out
 
 
 def _coerce_row_orders(raw: Any) -> list[str]:
@@ -2027,4 +2510,90 @@ def _coerce_row_orders(raw: Any) -> list[str]:
             row_id = item.get("id")
             if isinstance(row_id, str):
                 out.append(row_id)
+    return out
+
+
+def _coerce_field_orders(raw: Any) -> list[str]:
+    """Normalise field_orders to a flat list of field-id strings."""
+    if not isinstance(raw, list):
+        return []
+    out: list[str] = []
+    for item in raw:
+        if isinstance(item, str):
+            out.append(item)
+        elif isinstance(item, dict):
+            field_id = item.get("id") or item.get("field_id")
+            if isinstance(field_id, str):
+                out.append(field_id)
+    return out
+
+
+def _dict_or_empty(raw: Any) -> dict[str, Any]:
+    return raw if isinstance(raw, dict) else {}
+
+
+def _list_or_empty(raw: Any) -> list[Any]:
+    return raw if isinstance(raw, list) else []
+
+
+def _layout_name(raw: Any) -> str | None:
+    layout_id: int | None = None
+    if isinstance(raw, int):
+        layout_id = raw
+    elif isinstance(raw, str) and raw.isdigit():
+        layout_id = int(raw)
+    if layout_id is None:
+        return None
+    return {0: "Grid", 1: "Board", 2: "Calendar"}.get(layout_id)
+
+
+def _normalise_field_settings(raw: Any) -> dict[str, dict[str, Any]]:
+    """Return field settings keyed by field id with common knobs surfaced."""
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for field_id, settings in raw.items():
+        if not isinstance(settings, dict):
+            continue
+        out[str(field_id)] = {
+            "visibility": settings.get("visibility"),
+            "width": settings.get("width"),
+            "wrap_cell_content": settings.get("wrap_cell_content", settings.get("wrap")),
+            "raw": settings,
+        }
+    return out
+
+
+def _normalise_group_settings(raw: Any) -> list[dict[str, Any]]:
+    """Return board/group settings with group ids and visibility surfaced."""
+    if not isinstance(raw, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for setting in raw:
+        if not isinstance(setting, dict):
+            continue
+        groups = []
+        raw_groups = setting.get("groups")
+        if isinstance(raw_groups, list):
+            for group in raw_groups:
+                if isinstance(group, dict):
+                    groups.append(
+                        {
+                            "id": group.get("id"),
+                            "visible": group.get("visible"),
+                            "raw": group,
+                        }
+                    )
+                elif isinstance(group, str):
+                    groups.append({"id": group, "visible": None, "raw": group})
+        out.append(
+            {
+                "id": setting.get("id"),
+                "field_id": setting.get("field_id"),
+                "field_type": setting.get("ty", setting.get("field_type")),
+                "content": setting.get("content"),
+                "groups": groups,
+                "raw": setting,
+            }
+        )
     return out
