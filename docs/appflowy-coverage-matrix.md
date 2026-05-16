@@ -10,7 +10,8 @@ The matrix is intentionally split into three states:
 
 ## Current Summary
 
-The toolkit is strong for database-backed task boards, and now has a local self-hosted AppFlowy test rig. It is not yet a full AppFlowy administration MCP.
+The toolkit is strong for database-backed task boards, page/view organization, and local
+self-hosted AppFlowy smoke testing. It is not a full AppFlowy administration MCP.
 
 Approximate coverage by object family:
 
@@ -36,7 +37,7 @@ Approximate coverage by object family:
 |---|---|---|---|---|---|---|
 | Workspace | list/settings/members/usage implemented | create implemented, dry-run default | patch/open routes exist | delete/leave/member removal routes exist | partial | Keep destructive admin gated or deferred |
 | Space | folder tree shows spaces | create space implemented dry-run default | update space implemented dry-run default | via page/view trash/delete semantics | implemented except dedicated delete | Add self-hosted org-structure smoke next |
-| Folder/view/page tree | get folder/page-view implemented | folder-view/page-view create, duplicate, database-view implemented dry-run default | update/rename/favorite/reorder/move implemented dry-run default | trash/restore/delete-trashed and bulk trash ops implemented dry-run default | broad page/view surface implemented | Add self-hosted page lifecycle smoke next |
+| Folder/view/page tree | get folder/page-view implemented | folder-view/page-view create, duplicate, database-view implemented dry-run default | update/rename/favorite/reorder/move implemented dry-run default | trash/restore/delete-trashed and bulk trash ops implemented dry-run default | broad page/view surface implemented and self-hosted page lifecycle smoke added | Full browser UI automation remains separate |
 | Document/page body | row document text supported on row create/detail | append-block implemented dry-run default | collab/document updates are deeper | trash via page-view routes | partial | Defer full block editor |
 | Database list | list databases implemented | database-view route exists | view/layout routes likely collab-backed | page-view trash/delete | partial | Add database-view creation only after page/view work |
 | Database fields | list fields implemented | create field implemented dry-run default | no safe update/delete route confirmed from matrix yet | no safe delete route confirmed | partial | Add friendly field-type builders later; raw payload route exists now |
@@ -68,12 +69,12 @@ Approximate coverage by object family:
    - Search. **Done, AI summary deferred.**
 
 3. **Page/view management**
-   - Create/update space. **Done, dry-run default.**
-   - Create folder view. **Done, dry-run default.**
-   - Create page view. **Done, dry-run default.**
+   - Create/update space. **Done, dry-run default, self-hosted smoke covered.**
+   - Create folder view. **Implemented, dry-run default; current self-hosted 0.15.17 image returns 404 for this route despite the pinned source route existing.**
+   - Create page view. **Done, dry-run default, self-hosted smoke covered.**
    - Read/update page name/icon/extra. **Done, dry-run default for writes.**
-   - Move page. **Done, dry-run default.**
-   - Move to trash / restore from trash / delete from trash with gates. **Single-page and bulk routes done, dry-run default.**
+   - Move page. **Done, dry-run default, self-hosted smoke covered.**
+   - Move to trash / restore from trash / delete from trash with gates. **Single-page and bulk routes done, dry-run default; single-page path covered by self-hosted smoke.**
 
 4. **Database/field expansion**
    - Database view creation if payload is stable.
@@ -99,7 +100,11 @@ Approximate coverage by object family:
 
 ## Immediate Next Implementable Slice
 
-Add live/self-hosted smoke coverage for the newly exposed page-view and quick-note
-surfaces. The code surface is broad now; the next quality gain is proving those
-routes against disposable AppFlowy state instead of adding risky publishing/admin
-operations.
+The main implementation surface is now broad enough for a publishable pre-1.0 toolkit.
+Remaining finish work should focus on release evidence, not new risky feature families:
+
+- full gate battery from a clean checkout
+- package/build verification
+- secret/private-id scan
+- browser UI acceptance with Playwright or an allowed browser profile
+- docs pass that clearly marks deferred publishing/sharing/admin/import/AI surfaces

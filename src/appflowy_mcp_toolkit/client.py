@@ -1389,7 +1389,7 @@ class AppFlowyClient:
         if isinstance(payload, list):
             return [item for item in payload if isinstance(item, dict)]
         if isinstance(payload, dict):
-            for key in ("items", "rows", "databases", "workspaces", "members", "blobs"):
+            for key in ("items", "rows", "databases", "workspaces", "members", "blobs", "views"):
                 value = payload.get(key)
                 if isinstance(value, list):
                     return [item for item in value if isinstance(item, dict)]

@@ -34,6 +34,49 @@ def _selfhosted_ids() -> tuple[str, str]:
     return workspace_id, database_id
 
 
+def _extract_id(payload: Any, *keys: str) -> str:
+    if isinstance(payload, dict):
+        for key in keys:
+            value = payload.get(key)
+            if isinstance(value, str) and value:
+                return value
+        data = payload.get("data")
+        if isinstance(data, dict):
+            return _extract_id(data, *keys)
+    raise AssertionError(f"Could not extract id from payload: {payload!r}")
+
+
+def _find_first_view(
+    tree: dict[str, Any],
+    predicate: Callable[[dict[str, Any]], bool],
+) -> dict[str, Any] | None:
+    if predicate(tree):
+        return tree
+    children = tree.get("children")
+    if isinstance(children, list):
+        for child in children:
+            if isinstance(child, dict):
+                found = _find_first_view(child, predicate)
+                if found is not None:
+                    return found
+    return None
+
+
+def _find_view_by_id(tree: dict[str, Any], view_id: str) -> dict[str, Any] | None:
+    return _find_first_view(tree, lambda view: view.get("view_id") == view_id)
+
+
+def _require_space_id(client: AppFlowyClient, workspace_id: str) -> str:
+    folder = client.get_folder(workspace_id, depth=3)
+    space = _find_first_view(folder, lambda view: view.get("is_space") is True)
+    if space is None:
+        pytest.skip("self-hosted workspace does not contain a space view")
+    space_id = space.get("view_id")
+    if not isinstance(space_id, str) or not space_id:
+        pytest.skip("self-hosted space view did not include a view_id")
+    return space_id
+
+
 def _task_key(prefix: str) -> str:
     return f"{prefix}-{time.time_ns()}"
 
@@ -116,6 +159,14 @@ def _delete_created(
     for row_id in reversed(row_ids):
         with suppress(AppFlowyError):
             client.delete_task(workspace_id, database_id, row_id, dry_run=False)
+
+
+def _delete_views(client: AppFlowyClient, workspace_id: str, view_ids: list[str]) -> None:
+    for view_id in reversed(view_ids):
+        with suppress(AppFlowyError):
+            client.move_page_view_to_trash(workspace_id, view_id, dry_run=False)
+        with suppress(AppFlowyError):
+            client.delete_page_view_from_trash(workspace_id, view_id, dry_run=False)
 
 
 def _assert_row_absent_from_list(
@@ -235,6 +286,103 @@ def test_selfhosted_task_lifecycle_data_plane() -> None:
             assert moved["verified_row"][0]["cells"]["Status"] == "Doing"
         finally:
             _delete_created(client, workspace_id, database_id, [row_id])
+
+
+def test_selfhosted_organizational_structure_lifecycle() -> None:
+    workspace_id, _database_id = _selfhosted_ids()
+    suffix = time.time_ns()
+    created_view_ids: list[str] = []
+
+    with AppFlowyClient() as client:
+        parent_space_id = _require_space_id(client, workspace_id)
+
+        try:
+            created_space = client.create_space(
+                workspace_id,
+                name=f"MCP Space {suffix}",
+                space_icon="interface_essential/home-3",
+                space_icon_color="0xFFA34AFD",
+                dry_run=False,
+            )
+            space_id = _extract_id(created_space, "view_id", "id")
+            created_view_ids.append(space_id)
+
+            client.update_space(
+                workspace_id,
+                space_id,
+                name=f"MCP Space Renamed {suffix}",
+                space_icon="interface_essential/star",
+                space_icon_color="0xFF00AAFF",
+                dry_run=False,
+            )
+            folder = client.get_folder(workspace_id, depth=3)
+            updated_space = _find_view_by_id(folder, space_id)
+            assert updated_space is not None
+            assert updated_space.get("name") == f"MCP Space Renamed {suffix}"
+
+            try:
+                created_folder = client.create_folder_view(
+                    workspace_id,
+                    parent_view_id=parent_space_id,
+                    layout=0,
+                    name=f"MCP Folder {suffix}",
+                    dry_run=False,
+                )
+                folder_id = _extract_id(created_folder, "view_id", "id")
+                created_view_ids.append(folder_id)
+            except AppFlowyError as exc:
+                if exc.status_code != 404:
+                    raise
+                # The 0.15.17 self-hosted image currently returns 404 for
+                # /folder-view although the pinned source route exists. Keep
+                # the broader structure smoke running against page/space APIs.
+                folder_id = parent_space_id
+
+            created_page = client.create_page_view(
+                workspace_id,
+                parent_view_id=folder_id,
+                layout=0,
+                name=f"MCP Page {suffix}",
+                dry_run=False,
+            )
+            page_id = _extract_id(created_page, "view_id", "id")
+            created_view_ids.append(page_id)
+
+            client.update_page_name(
+                workspace_id,
+                page_id,
+                name=f"MCP Page Renamed {suffix}",
+                dry_run=False,
+            )
+            client.move_page_view(
+                workspace_id,
+                page_id,
+                new_parent_view_id=parent_space_id,
+                dry_run=False,
+            )
+            client.favorite_page_view(
+                workspace_id,
+                page_id,
+                is_favorite=True,
+                dry_run=False,
+            )
+            client.add_recent_pages(workspace_id, [page_id], dry_run=False)
+
+            folder = client.get_folder(workspace_id, depth=4)
+            moved_page = _find_view_by_id(folder, page_id)
+            assert moved_page is not None
+            assert moved_page.get("name") == f"MCP Page Renamed {suffix}"
+            assert moved_page.get("parent_view_id") == parent_space_id
+
+            client.move_page_view_to_trash(workspace_id, page_id, dry_run=False)
+            trash = client.list_trash_views(workspace_id)
+            assert any(item.get("view_id") == page_id for item in trash)
+
+            client.restore_page_view_from_trash(workspace_id, page_id, dry_run=False)
+            folder = client.get_folder(workspace_id, depth=4)
+            assert _find_view_by_id(folder, page_id) is not None
+        finally:
+            _delete_views(client, workspace_id, created_view_ids)
 
 
 def test_selfhosted_multi_task_lifecycle_with_updates_and_cleanup() -> None:

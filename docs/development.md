@@ -39,3 +39,19 @@ source .env.selfhosted.generated
 set +a
 APPFLOWY_SELFHOSTED_TESTS=true uv run pytest tests/selfhosted -q
 ```
+
+Pre-release local battery:
+
+```bash
+uv run pytest -q
+uv run ruff format --check .
+uv run ruff check .
+uv run mypy src tests
+uv build
+git diff --check
+```
+
+Browser/UI acceptance is tracked separately from API/collab truth. The local Docker
+stack can be smoke-rendered at `http://localhost/app`; a full browser acceptance pass
+should use Playwright or an allowed browser profile and follow
+`docs/browser-ui-acceptance.md`.

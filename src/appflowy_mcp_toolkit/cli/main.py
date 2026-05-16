@@ -642,9 +642,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 name=args.name,
                 field_type=args.field_type,
                 type_option_data=(
-                    json.loads(args.type_option_data_json)
-                    if args.type_option_data_json
-                    else None
+                    json.loads(args.type_option_data_json) if args.type_option_data_json else None
                 ),
                 dry_run=not args.execute,
             )

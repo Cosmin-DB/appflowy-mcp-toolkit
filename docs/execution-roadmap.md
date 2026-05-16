@@ -175,9 +175,12 @@ Exit criteria:
 
 ## Immediate next step
 
-Next small slice: automate or manually run browser/UI acceptance against the self-hosted
-AppFlowy Web container, keeping data-plane results separate from Board/Grid rendering.
-Do not publish until UI limitations, setup requirements, and release safety are reviewed.
+Next small slice: run the pre-release battery, package/build verification, and
+secret/private-ID scan from a clean checkout. Browser/UI acceptance remains a separate
+quality layer because the current OpenClaw browser policy blocks direct localhost
+navigation; local Chrome headless can render the AppFlowy web shell, but it is not a
+full login/UI lifecycle pass. Do not publish until UI limitations, setup requirements,
+and release safety are reviewed.
 
 ## Pre-Docker MCP Checklist — complete
 
@@ -249,6 +252,7 @@ Validated status from the latest full battery:
 
 Remaining work:
 
-- Browser/UI acceptance against the local web container.
+- Full browser/UI acceptance against the local web container with Playwright or an
+  allowed browser profile.
 - Secret/private-ID scan and release checklist before publication.
 - Public GitHub repo only after Cosmin confirms.

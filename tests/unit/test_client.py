@@ -295,9 +295,7 @@ def test_page_view_mutations_are_dry_run_by_default(make_client):
         "view1",
         prev_view_id="prev",
     )["json"] == {"prev_view_id": "prev"}
-    assert client.duplicate_page_view("ws", "view1", suffix=" copy")["json"] == {
-        "suffix": " copy"
-    }
+    assert client.duplicate_page_view("ws", "view1", suffix=" copy")["json"] == {"suffix": " copy"}
     assert client.create_page_database_view("ws", "view1", layout=1, name="Grid")["json"] == {
         "layout": 1,
         "name": "Grid",

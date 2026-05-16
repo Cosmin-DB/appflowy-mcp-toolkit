@@ -28,3 +28,27 @@ Expected current behavior:
 
 Future automation can wrap this checklist with Playwright/OpenClaw browser control, but it
 should keep two result channels: `data_plane` and `browser_rendering`.
+
+## 2026-05-16 Local Browser Smoke
+
+Current local evidence:
+
+- The self-hosted AppFlowy Web container serves the app shell at `http://localhost/app`.
+- A local headless Chrome smoke succeeded:
+
+  ```bash
+  google-chrome-stable --headless --no-sandbox --disable-gpu \
+    --window-size=1365,768 \
+    --screenshot=.local/browser-smoke/appflowy-local-app.png \
+    http://localhost/app
+  ```
+
+- The screenshot file was produced at `.local/browser-smoke/appflowy-local-app.png` with
+  size `1365x768`, proving the web app is reachable/renderable in the local Docker stack.
+- OpenClaw's browser tool blocked direct navigation to `localhost`/`127.0.0.1` in this
+  environment, so this is not yet a full CDP-driven login/UI lifecycle test.
+
+Next browser-quality step: run Playwright or an allowed browser profile against the local
+stack, sign into the seeded user, and execute the checklist above. Keep that as a
+separate browser acceptance layer; the automated self-hosted pytest suite already proves
+API/collab data-plane behavior.
