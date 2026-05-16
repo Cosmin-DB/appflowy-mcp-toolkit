@@ -158,6 +158,21 @@ class AppFlowyClient:
         data = self.request("GET", f"/api/workspace/{workspace_id}/database/{database_id}/row")
         return self._extract_list(data)
 
+    def list_updated_database_rows(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        after: str | None = None,
+    ) -> list[dict[str, Any]]:
+        params = {"after": after} if after else None
+        data = self.request(
+            "GET",
+            f"/api/workspace/{workspace_id}/database/{database_id}/row/updated",
+            params=params,
+        )
+        return self._extract_list(data)
+
     def get_database_rows(
         self,
         workspace_id: str,

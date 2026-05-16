@@ -39,6 +39,14 @@ def build_parser() -> argparse.ArgumentParser:
     rows.add_argument("--workspace-id", required=True)
     rows.add_argument("--database-id", required=True)
 
+    updated_rows = sub.add_parser("updated-rows")
+    updated_rows.add_argument("--workspace-id", required=True)
+    updated_rows.add_argument("--database-id", required=True)
+    updated_rows.add_argument(
+        "--after",
+        help="Optional RFC3339 timestamp. Defaults server-side to about one hour ago.",
+    )
+
     details = sub.add_parser("row-details")
     details.add_argument("--workspace-id", required=True)
     details.add_argument("--database-id", required=True)
@@ -235,6 +243,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = client.list_database_fields(args.workspace_id, args.database_id)
         elif args.command == "rows":
             result = client.list_database_row_ids(args.workspace_id, args.database_id)
+        elif args.command == "updated-rows":
+            result = client.list_updated_database_rows(
+                args.workspace_id,
+                args.database_id,
+                after=args.after,
+            )
         elif args.command == "row-details":
             ids = [part.strip() for part in args.ids.split(",") if part.strip()]
             result = client.get_database_rows(

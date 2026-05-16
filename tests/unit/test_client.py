@@ -48,6 +48,30 @@ def test_row_details_joins_ids(make_client):
     assert len(client.get_database_rows("ws", "db", ["row1", "row2"], with_doc=True)) == 2
 
 
+def test_list_updated_database_rows_passes_after(make_client):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/workspace/ws/database/db/row/updated"
+        assert request.url.params["after"] == "2026-05-16T10:00:00Z"
+        return json_response({"data": [{"row_id": "row1", "updated_at": "2026-05-16T10:01:00Z"}]})
+
+    client = make_client(handler)
+
+    result = client.list_updated_database_rows("ws", "db", after="2026-05-16T10:00:00Z")
+
+    assert result == [{"row_id": "row1", "updated_at": "2026-05-16T10:01:00Z"}]
+
+
+def test_list_updated_database_rows_can_use_server_default(make_client):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/workspace/ws/database/db/row/updated"
+        assert "after" not in request.url.params
+        return json_response({"data": []})
+
+    client = make_client(handler)
+
+    assert client.list_updated_database_rows("ws", "db") == []
+
+
 def test_auth_error_is_typed(make_client):
     def handler(_request: httpx.Request) -> httpx.Response:
         return json_response({"message": "bad token"}, status_code=401)

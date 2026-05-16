@@ -66,6 +66,7 @@ a separate AppFlowy Web cache/rendering concern.
 
 See [docs/collab-driver-plan.md](docs/collab-driver-plan.md).
 Execution plan: [docs/execution-roadmap.md](docs/execution-roadmap.md).
+Full AppFlowy coverage matrix: [docs/appflowy-coverage-matrix.md](docs/appflowy-coverage-matrix.md).
 
 ## Self-hosted AppFlowy Docker tests
 

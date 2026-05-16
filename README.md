@@ -40,6 +40,7 @@ appflowy-toolkit folder --workspace-id <workspace_id> --depth 2
 appflowy-toolkit databases --workspace-id <workspace_id>
 appflowy-toolkit fields --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit rows --workspace-id <workspace_id> --database-id <database_id>
+appflowy-toolkit updated-rows --workspace-id <workspace_id> --database-id <database_id> --after 2026-05-16T10:00:00Z
 appflowy-toolkit row-details --workspace-id <workspace_id> --database-id <database_id> --ids <row_id>
 appflowy-toolkit collab-json --workspace-id <workspace_id> --object-id <database_id> --collab-type Database
 appflowy-toolkit row-orders --workspace-id <workspace_id> --database-id <database_id>
@@ -72,6 +73,7 @@ Read-only tools:
 - `appflowy_list_databases`
 - `appflowy_get_database_schema`
 - `appflowy_list_database_row_ids`
+- `appflowy_list_updated_database_rows`
 - `appflowy_get_database_rows`
 - `appflowy_list_select_options`
 - `appflowy_get_collab_json`

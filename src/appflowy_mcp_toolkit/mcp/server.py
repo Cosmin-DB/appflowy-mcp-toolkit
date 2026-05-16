@@ -65,6 +65,23 @@ def appflowy_list_database_row_ids(workspace_id: str, database_id: str) -> str:
         return compact(client.list_database_row_ids(workspace_id, database_id))
 
 
+@mcp.tool(name="appflowy_list_updated_database_rows", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_list_updated_database_rows(
+    workspace_id: str,
+    database_id: str,
+    after: str | None = None,
+) -> str:
+    """List database rows updated after an optional RFC3339 timestamp."""
+    with _client() as client:
+        return compact(
+            client.list_updated_database_rows(
+                workspace_id,
+                database_id,
+                after=after,
+            )
+        )
+
+
 @mcp.tool(name="appflowy_get_database_rows", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
 def appflowy_get_database_rows(
     workspace_id: str,

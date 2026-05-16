@@ -102,6 +102,32 @@ def test_cli_row_orders(monkeypatch, capsys):
     assert parsed[0]["row_orders"] == ["row_aaa", "row_bbb"]
 
 
+def test_cli_updated_rows(monkeypatch, capsys):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/workspace/ws_001/database/db_001/row/updated"
+        assert request.url.params["after"] == "2026-05-16T10:00:00Z"
+        return httpx.Response(200, json={"data": [{"row_id": "row_aaa"}]})
+
+    _patch_client(monkeypatch, handler)
+
+    assert (
+        main(
+            [
+                "updated-rows",
+                "--workspace-id",
+                "ws_001",
+                "--database-id",
+                "db_001",
+                "--after",
+                "2026-05-16T10:00:00Z",
+            ]
+        )
+        == 0
+    )
+    parsed = json.loads(capsys.readouterr().out)
+    assert parsed == [{"row_id": "row_aaa"}]
+
+
 def test_cli_blob_diff(monkeypatch, capsys):
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/workspace/ws_001/database/db_001/blob/diff"

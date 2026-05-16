@@ -18,6 +18,7 @@ EXPECTED_READ_TOOLS = {
     "appflowy_list_databases",
     "appflowy_get_database_schema",
     "appflowy_list_database_row_ids",
+    "appflowy_list_updated_database_rows",
     "appflowy_get_database_rows",
     "appflowy_list_select_options",
     "appflowy_get_collab_json",
@@ -101,3 +102,33 @@ def test_health_check_tool_returns_ok_json() -> None:
     assert len(content_blocks) == 1
     parsed = json.loads(content_blocks[0].text)
     assert parsed == fake_result
+
+
+def test_updated_rows_tool_delegates_to_client() -> None:
+    fake_result = [{"id": "row-1"}]
+
+    with patch(
+        "appflowy_mcp_toolkit.mcp.server.AppFlowyClient",
+        autospec=True,
+    ) as MockClient:
+        instance = MockClient.return_value.__enter__.return_value
+        instance.list_updated_database_rows.return_value = fake_result
+
+        raw: Any = asyncio.run(
+            mcp.call_tool(
+                "appflowy_list_updated_database_rows",
+                {
+                    "workspace_id": "ws",
+                    "database_id": "db",
+                    "after": "2026-05-16T10:00:00Z",
+                },
+            )
+        )
+
+    instance.list_updated_database_rows.assert_called_once_with(
+        "ws",
+        "db",
+        after="2026-05-16T10:00:00Z",
+    )
+    content_blocks = raw[0]
+    assert json.loads(content_blocks[0].text) == fake_result
