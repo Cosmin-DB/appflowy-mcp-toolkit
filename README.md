@@ -2,8 +2,10 @@
 
 A local-first, read-first MCP toolkit for AppFlowy Cloud and self-hosted AppFlowy.
 
-Status: local draft with verified task-facing tools and optional live/self-hosted
-acceptance tests. Not ready for public release yet.
+Status: pre-1.0 release candidate for local/public review. Core task, page/view,
+metadata, diagnostic, and guarded write paths are implemented with offline,
+live, self-hosted, and browser smoke coverage. Publication still requires an
+explicit final review/approval.
 
 ## Goals
 
@@ -102,6 +104,19 @@ appflowy-toolkit delete-row ... --execute  # live write; also needs APPFLOWY_ALL
 ```bash
 appflowy-mcp-server
 ```
+
+## For AI Agents
+
+Start with these files:
+
+- `AGENTS.md` - working rules, safety boundaries, and test gates for agents.
+- `README.md` - user-facing install, CLI, MCP tools, and known limitations.
+- `docs/appflowy-coverage-matrix.md` - implemented, candidate, and deferred AppFlowy areas.
+- `docs/browser-ui-acceptance.md` - why browser rendering is tested separately from API/collab truth.
+- `docs/self-hosted-test-plan.md` - how to run disposable local AppFlowy for destructive tests.
+
+Do not use a real/private AppFlowy workspace for write tests. Use either an explicit
+disposable official workspace or the self-hosted Docker stack.
 
 Read-only tools:
 
@@ -257,6 +272,20 @@ Self-hosted tests are destructive and must only target the local disposable stac
 The workflow has been validated against the pinned Docker stack; see
 [`docs/self-hosted-test-plan.md`](docs/self-hosted-test-plan.md) for current pins,
 seed behavior, and remaining UI/browser work.
+
+Optional browser smoke against the local stack:
+
+```bash
+set -a
+source .env.selfhosted.generated
+set +a
+APPFLOWY_BROWSER_TESTS=true uv run --extra browser pytest tests/browser -q -s
+```
+
+Current browser expectation is `1 passed, 1 xfailed`: login/Grid rendering passes;
+MCP-created rows are verified through REST/collab/blob-diff, but this AppFlowy Web
+build may still fail to render the verified row in Board/Grid during the browser pass.
+That is recorded as browser-rendering evidence, not hidden.
 
 ## Development
 
