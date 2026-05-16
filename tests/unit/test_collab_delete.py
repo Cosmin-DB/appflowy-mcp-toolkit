@@ -296,7 +296,7 @@ def test_delete_row_live_requires_allow_collab_writes(monkeypatch: pytest.Monkey
 
 
 def test_delete_row_live_posts_delta_and_verifies(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Live mode posts delta and returns server_status + collab_verified."""
+    """Live mode posts delta and reports both row-list and row-detail verification."""
     monkeypatch.setenv("APPFLOWY_ALLOW_COLLAB_WRITES", "true")
 
     requests_seen: list[httpx.Request] = []
@@ -318,6 +318,8 @@ def test_delete_row_live_posts_delta_and_verifies(monkeypatch: pytest.MonkeyPatc
             return json_response({"code": 0, "message": "ok"})
         if request.url.path.endswith("/json"):
             return httpx.Response(200, json=collab_after)
+        if "detail" in request.url.path:
+            return json_response({"data": [{"id": "row-target"}]})
         if "/row" in request.url.path and "detail" not in request.url.path:
             return json_response({"data": [{"id": "row-other"}]})
         # binary collab endpoint
@@ -338,6 +340,9 @@ def test_delete_row_live_posts_delta_and_verifies(monkeypatch: pytest.MonkeyPatc
     assert result["row_found"] is True
     assert "server_status" in result
     assert "collab_verified" in result
+    assert result["rest_row_list_verified"] is True
+    assert result["rest_verified"] is True
+    assert result["row_detail_still_resolvable"] is True
     # Verify that web-update was called
     assert any("web-update" in r.url.path for r in requests_seen)
 

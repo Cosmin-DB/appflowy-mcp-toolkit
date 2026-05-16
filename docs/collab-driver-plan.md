@@ -76,8 +76,11 @@ driver for delete and positional moves.
 
 Prototype result: a local Node.js helper using the MIT-licensed `yjs` package fetched the
 binary database collab document, removed a row id from every view's `row_orders`, produced
-an incremental lib0-v1 update, and posted it to `web-update`. One live disposable-row delete
-was verified through binary collab and REST reads. The prototype lives under
+an incremental lib0-v1 update, and posted it to `web-update`. Live disposable-row deletes
+were verified through binary collab and REST row-list reads. Important nuance: explicit
+row-detail lookup by id may still return the row object after it has been removed from all
+view `row_orders`; current delete semantics are therefore remove from database views/cards,
+not guaranteed physical row-collab purge. The prototype lives under
 `.local/prototypes/yrs-delete-mutator/`.
 
 Integration result: the prototype was wrapped as a tracked helper under
@@ -87,11 +90,40 @@ helper is still possible, but it is not required for the current experimental ba
 
 ### M6.4 End-to-End Disposable Workspace Proof
 
+- [x] Create a task through the current REST/MCP path and inspect REST/collab state.
 - [ ] Create a task that appears in AppFlowy Web.
 - [ ] Move it between board groups.
 - [ ] Edit its title/description/status.
 - [x] Delete a disposable row through the local Yjs prototype.
 - [ ] Verify after each step through AppFlowy Web and collab/REST reads.
+
+Create proof result, 2026-05-16:
+
+- Live target was the disposable `MCP Toolkit Test 2026-05-15 15:36 UTC` workspace.
+- `appflowy-toolkit create-row --execute` returned a successful row id.
+- REST row detail immediately contained:
+  - `Description = MCP M6.4 CREATE PROOF 20260516T072707Z`
+  - `Status = To Do`
+  - `has_doc = true`
+- Database collab JSON included the new row id at the end of all three observed
+  `row_orders` arrays: inline grid, named `Grid`, and board view.
+- The new row's `DatabaseRow` collab contained field-id keyed cells:
+  `phVRgL` for `Description`, `SqwRg1` with option id `CEZD` for `To Do`.
+- AppFlowy Web at `appflowy.com/app/<workspace>/<board-view>` still rendered all
+  board columns with count `0` after reload and after clearing the browser's AppFlowy
+  IndexedDB caches.
+- Cleaning up that proof row through the integrated `delete-row --execute` path removed it
+  from all three view `row_orders` and from the REST row-list endpoint. Explicit
+  `row/detail?ids=<row_id>` still returned the row object, so the implementation now reports
+  row-list verification separately from row-detail resolvability.
+- Therefore the current REST create path is **not proven web-board-visible**. More
+  importantly, REST success plus database `row_orders` membership is insufficient
+  evidence for a real AppFlowy Web board card.
+
+Next investigation slice: compare the browser's row-loading/sync path against the
+REST-created row state. Do not promote REST create into a high-level
+`appflowy_create_task` tool until AppFlowy Web renders the card or the limitation is
+explicitly accepted.
 
 ### M6.5 MCP Integration (partial — experimental gate only)
 

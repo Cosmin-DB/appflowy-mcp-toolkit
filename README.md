@@ -81,7 +81,9 @@ Experimental write tool (dry-run by default; requires `APPFLOWY_ALLOW_WRITES=tru
 - `appflowy_delete_database_row` — deletes a row from all views via Yjs collab
   mutation. This is the only confirmed delete path; AppFlowy Web does not expose
   a REST row-delete endpoint. **Not yet proven for all board create/edit/move
-  scenarios.** See `docs/collab-driver-plan.md` for the full M6 status.
+  scenarios.** The current verification means absent from database view row lists;
+  explicit row-detail lookup by id may still resolve the old row object. See
+  `docs/collab-driver-plan.md` for the full M6 status.
 
 Current API limitation: public AppFlowy REST does not expose a confirmed row-delete
 endpoint. Row/card deletion in AppFlowy Web is a collab/Yjs update. The `appflowy_delete_database_row`

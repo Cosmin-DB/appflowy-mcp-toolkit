@@ -359,6 +359,12 @@ class AppFlowyClient:
           - ``delta_update_bytes`` (int) — size of the incremental update
           - ``server_status`` (int | None) — HTTP status from web-update (live only)
           - ``collab_verified`` (bool | None) — post-delete verification (live only)
+          - ``rest_row_list_verified`` (bool | None) — whether row list omits the row
+            after deletion (live only)
+          - ``rest_verified`` (bool | None) — backward-compatible alias for
+            ``rest_row_list_verified``
+          - ``row_detail_still_resolvable`` (bool | None) — whether AppFlowy still
+            returns row detail by explicit id after row-order removal (live only)
         """
         from appflowy_mcp_toolkit.collab.collab_delete import (
             CollabHelperError,
@@ -429,9 +435,21 @@ class AppFlowyClient:
 
         try:
             rest_rows = self.list_database_row_ids(workspace_id, database_id)
-            summary["rest_verified"] = not any(r.get("id") == row_id for r in rest_rows)
+            rest_row_list_verified = not any(r.get("id") == row_id for r in rest_rows)
+            summary["rest_row_list_verified"] = rest_row_list_verified
+            # Backward-compatible key kept for callers that already consume the
+            # experimental output. It means "absent from the row list", not
+            # necessarily "row collab object was physically purged".
+            summary["rest_verified"] = rest_row_list_verified
         except AppFlowyError:
+            summary["rest_row_list_verified"] = None
             summary["rest_verified"] = None
+
+        try:
+            row_detail = self.get_database_rows(workspace_id, database_id, [row_id])
+            summary["row_detail_still_resolvable"] = bool(row_detail)
+        except AppFlowyError:
+            summary["row_detail_still_resolvable"] = None
 
         return summary
 

@@ -80,7 +80,9 @@ The toolkit implements this through a two-layer design:
 
 **Status:** live-tested against a disposable workspace (M6.3).  Not yet proven for
 all board create/edit/move scenarios.  Not recommended for production until M6.4
-(end-to-end verification) passes.
+(end-to-end verification) passes.  Current delete verification means the row is
+removed from database view row lists; explicit row-detail lookup by id may still
+return the old row object.
 
 ## pre_hash and MCP-managed task upserts
 
