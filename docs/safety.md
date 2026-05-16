@@ -28,7 +28,7 @@ Write tools are available but **disabled by default**. They require explicit opt
 ## Experimental: Yjs-based row delete
 
 `appflowy_delete_database_row` / `delete-row` CLI / `delete_database_row_collab()` are
-experimental (M6.3). They require **two** opt-in flags:
+experimental. They require **two** opt-in flags:
 
 - `APPFLOWY_ALLOW_WRITES=true`
 - `APPFLOWY_ALLOW_COLLAB_WRITES=true`
@@ -40,8 +40,8 @@ cd src/appflowy_mcp_toolkit/collab && npm install
 ```
 
 This is the only confirmed-correct delete path (AppFlowy Web does not expose a REST
-row-delete endpoint). The implementation has been live-tested against a disposable
-official and self-hosted disposable workspaces as part of the task lifecycle, but it is
+row-delete endpoint). The implementation has been live-tested against disposable
+self-hosted workspaces as part of the task lifecycle, but it is
 not recommended for production use. The current verification means removal from database
 view row lists and REST row lists; explicit row-detail lookup by id may still return the
 old row object on some AppFlowy deployments. All defaults are dry-run.
@@ -66,5 +66,7 @@ No broad destructive, admin, or invite tools are included. Specifically:
 
 - Row delete is available only via the experimental Yjs path (`appflowy_delete_database_row`),
   gated by two explicit env flags and Node.js.
-- No view/page delete or bulk operations.
+- Page/view trash, restore, and delete-from-trash are available behind the normal
+  dry-run/write gates.
+- No bulk destructive operations.
 - No workspace admin or member management.

@@ -135,7 +135,7 @@ appflowy-toolkit quick-notes --workspace-id <workspace_id> --search-term "apple"
 appflowy-toolkit create-quick-note --workspace-id <workspace_id> --data-json '[{"type":"paragraph","delta":{"insert":"Note"}}]'
 appflowy-toolkit update-quick-note --workspace-id <workspace_id> --quick-note-id <quick_note_id> --data-json '[{"type":"paragraph","delta":{"insert":"Updated"}}]'
 appflowy-toolkit delete-quick-note --workspace-id <workspace_id> --quick-note-id <quick_note_id>
-appflowy-toolkit search --workspace-id <workspace_id> --query "roadmap" --limit 5
+appflowy-toolkit search --workspace-id <workspace_id> --query "project plan" --limit 5
 appflowy-toolkit row-details --workspace-id <workspace_id> --database-id <database_id> --ids <row_id>
 appflowy-toolkit collab-json --workspace-id <workspace_id> --object-id <database_id> --collab-type Database
 appflowy-toolkit row-orders --workspace-id <workspace_id> --database-id <database_id>
@@ -170,7 +170,7 @@ Start with these files:
 - `README.md` - user-facing install, CLI, MCP tools, and known limitations.
 - `docs/appflowy-coverage-matrix.md` - implemented, candidate, and deferred AppFlowy areas.
 - `docs/browser-ui-acceptance.md` - why browser rendering is tested separately from API/collab truth.
-- `docs/multifield-coverage-plan.md` - typed field/cell coverage status for richer task cards.
+- `docs/typed-field-coverage.md` - typed field/cell coverage status for richer task cards.
 - `docs/self-hosted-test-plan.md` - how to run disposable local AppFlowy for destructive tests.
 - `docs/release-checklist.md` - final checks before publishing or external handoff.
 

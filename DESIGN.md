@@ -52,7 +52,7 @@ The toolkit includes read-only collab inspection helpers for database documents:
 These diagnostics exist because AppFlowy Web board operations are backed by Yjs/AppFlowy
 collab state. They are intentionally read-only and do not perform binary collab writes.
 
-## Experimental: Yjs-based row delete (M6.3)
+## Experimental: Yjs-based row delete
 
 AppFlowy Web does not expose a REST row-delete endpoint. Deletion is a Yjs collab
 mutation: the row ID is removed from every view's `row_orders` YArray in one transaction,
@@ -81,7 +81,7 @@ The toolkit implements this through a two-layer design:
 (AGPL-3.0) is *not* a dependency.
 
 **Status:** live-tested as part of the task data-plane lifecycle against disposable
-official and self-hosted AppFlowy workspaces.  Current delete verification means the row
+self-hosted AppFlowy workspaces.  Current delete verification means the row
 is removed from database view row lists and REST row lists; explicit row-detail lookup by
 id may still return the old row object on some AppFlowy deployments. Browser Board
 rendering is not treated as authoritative because of the known AppFlowy Web Board/Grid
@@ -129,5 +129,4 @@ OpenAPI spec.
 404; it is not implemented. Other `/api/v1/...` row and view endpoints
 (row/create, row/update, row/delete, view/delete, view/update) are also not implemented:
 they are absent from the official public OpenAPI and require official documentation plus
-independent live verification before any implementation is attempted. See ROADMAP for the
-deferred note.
+independent live verification before any implementation is attempted.

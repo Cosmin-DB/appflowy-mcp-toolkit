@@ -257,7 +257,7 @@ def test_quick_note_tools_delegate_to_client() -> None:
 
 
 def test_search_documents_tool_delegates_to_client() -> None:
-    fake_result = [{"object_id": "page-1", "preview": "roadmap"}]
+    fake_result = [{"object_id": "page-1", "preview": "project plan"}]
 
     with patch(
         "appflowy_mcp_toolkit.mcp.server.AppFlowyClient",
@@ -271,7 +271,7 @@ def test_search_documents_tool_delegates_to_client() -> None:
                 "appflowy_search_documents",
                 {
                     "workspace_id": "ws",
-                    "query": "roadmap",
+                    "query": "project plan",
                     "limit": 5,
                     "preview_size": 120,
                     "score": 0.4,
@@ -281,7 +281,7 @@ def test_search_documents_tool_delegates_to_client() -> None:
 
     instance.search_documents.assert_called_once_with(
         "ws",
-        "roadmap",
+        "project plan",
         limit=5,
         preview_size=120,
         score=0.4,

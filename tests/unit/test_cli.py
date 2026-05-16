@@ -353,7 +353,7 @@ def test_cli_quick_note_mutations_are_dry_run(monkeypatch, capsys):
 def test_cli_search(monkeypatch, capsys):
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/search/ws_001"
-        assert request.url.params["query"] == "roadmap"
+        assert request.url.params["query"] == "project plan"
         assert request.url.params["limit"] == "3"
         assert request.url.params["preview_size"] == "80"
         assert request.url.params["score"] == "0.3"
@@ -368,7 +368,7 @@ def test_cli_search(monkeypatch, capsys):
                 "--workspace-id",
                 "ws_001",
                 "--query",
-                "roadmap",
+                "project plan",
                 "--limit",
                 "3",
                 "--preview-size",

@@ -1,4 +1,4 @@
-# Multi-Field Coverage Plan
+# Typed Field Coverage
 
 Goal: make database row/card tools comfortable for AI agents, not just technically
 possible through raw `cells-json`.
@@ -65,7 +65,7 @@ typed row, reads it back from AppFlowy, and verifies the returned cell shapes.
 
 ## Implemented Work
 
-### M1. Schema Introspection Helpers
+### Schema Introspection Helpers
 
 Implemented in `src/appflowy_mcp_toolkit/typed_fields.py`:
 
@@ -80,7 +80,7 @@ Coverage:
 - unit tests in `tests/unit/test_typed_fields.py`
 - self-hosted smoke confirms seeded field metadata and writes parse correctly
 
-### M2. Cell Builders For Common Writable Types
+### Cell Builders For Common Writable Types
 
 Implemented builders accept human-friendly values and emit AppFlowy-compatible cell
 values:
@@ -102,7 +102,7 @@ Coverage:
 - unit tests for valid and invalid values
 - no network required for builder tests
 
-### M3. Typed Row APIs
+### Typed Row APIs
 
 Implemented higher-level row tools without removing raw `cells-json`:
 
@@ -130,7 +130,7 @@ Coverage:
 - write paths keep the existing `--execute` gate
 - verified create/upsert returns normalized cells after the write
 
-### M4. Docker Multi-Field Smoke
+### Docker Multi-Field Smoke
 
 Implemented for the existing self-hosted To-dos board:
 
@@ -147,7 +147,7 @@ Coverage:
 - included in `scripts/test_all_local.sh`
 - no AppFlowy official cloud required
 
-### M5. Deferred Complex Types
+### Deferred Complex Types
 
 Keep these out of the first multi-field release unless explicitly needed:
 

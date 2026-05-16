@@ -573,7 +573,7 @@ def test_quick_note_mutations_execute_when_enabled():
 def test_search_documents_passes_stable_query_params(make_client):
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/search/ws"
-        assert request.url.params["query"] == "roadmap"
+        assert request.url.params["query"] == "project plan"
         assert request.url.params["limit"] == "5"
         assert request.url.params["preview_size"] == "120"
         assert request.url.params["score"] == "0.4"
@@ -598,7 +598,7 @@ def test_search_documents_passes_stable_query_params(make_client):
 
     result = client.search_documents(
         "ws",
-        "roadmap",
+        "project plan",
         limit=5,
         preview_size=120,
         score=0.4,
@@ -610,7 +610,7 @@ def test_search_documents_passes_stable_query_params(make_client):
 def test_search_documents_can_use_server_defaults(make_client):
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/search/ws"
-        assert request.url.params["query"] == "roadmap"
+        assert request.url.params["query"] == "project plan"
         assert "limit" not in request.url.params
         assert "preview_size" not in request.url.params
         assert "score" not in request.url.params
@@ -618,7 +618,7 @@ def test_search_documents_can_use_server_defaults(make_client):
 
     client = make_client(handler)
 
-    assert client.search_documents("ws", "roadmap") == []
+    assert client.search_documents("ws", "project plan") == []
 
 
 def test_create_database_field_is_dry_run_by_default(make_client):
