@@ -31,8 +31,8 @@ def main() -> int:
         and validate_generated_env(existing)
     ):
         print(f"Reusing valid {GENERATED_ENV}")
-        print(f"workspace_id={existing['APPFLOWY_LIVE_WORKSPACE_ID']}")
-        print(f"database_id={existing['APPFLOWY_LIVE_DATABASE_ID']}")
+        print(f"workspace_id={existing['APPFLOWY_TEST_WORKSPACE_ID']}")
+        print(f"database_id={existing['APPFLOWY_TEST_DATABASE_ID']}")
         return 0
 
     email = os.getenv("APPFLOWY_TEST_EMAIL", "mcp-test@example.test")
@@ -87,8 +87,8 @@ def validate_generated_env(values: dict[str, str]) -> bool:
     required = (
         "APPFLOWY_BASE_URL",
         "APPFLOWY_ACCESS_TOKEN",
-        "APPFLOWY_LIVE_WORKSPACE_ID",
-        "APPFLOWY_LIVE_DATABASE_ID",
+        "APPFLOWY_TEST_WORKSPACE_ID",
+        "APPFLOWY_TEST_DATABASE_ID",
     )
     if any(not values.get(key) for key in required):
         return False
@@ -101,8 +101,8 @@ def validate_generated_env(values: dict[str, str]) -> bool:
     try:
         with AppFlowyClient(config) as client:
             client.list_database_fields(
-                values["APPFLOWY_LIVE_WORKSPACE_ID"],
-                values["APPFLOWY_LIVE_DATABASE_ID"],
+                values["APPFLOWY_TEST_WORKSPACE_ID"],
+                values["APPFLOWY_TEST_DATABASE_ID"],
             )
     except Exception:
         return False
@@ -201,10 +201,9 @@ def write_generated_env(
         "APPFLOWY_REFRESH_TOKEN": tokens.get("refresh_token", ""),
         "APPFLOWY_ALLOW_WRITES": "true",
         "APPFLOWY_ALLOW_COLLAB_WRITES": "true",
-        "APPFLOWY_LIVE_WORKSPACE_ID": workspace_id,
-        "APPFLOWY_LIVE_DATABASE_ID": database_id,
+        "APPFLOWY_TEST_WORKSPACE_ID": workspace_id,
+        "APPFLOWY_TEST_DATABASE_ID": database_id,
         "APPFLOWY_SELFHOSTED_TESTS": "true",
-        "APPFLOWY_LIVE_TESTS": "true",
         "APPFLOWY_BROWSER_EMAIL": email,
         "APPFLOWY_BROWSER_PASSWORD": password,
     }

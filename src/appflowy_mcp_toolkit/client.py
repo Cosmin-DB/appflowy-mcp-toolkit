@@ -1467,7 +1467,7 @@ def _extract_row_orders(collab: Any) -> list[dict[str, Any]]:
     The AppFlowy Cloud ``/json`` endpoint returns (after ``_extract_data``) a
     dict whose shape depends on the server version:
 
-    **Live shape** (beta.appflowy.cloud, observed 2026-05):
+    **Observed AppFlowy response shape** (2026-05):
 
     .. code-block:: json
 

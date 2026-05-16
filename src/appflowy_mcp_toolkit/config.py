@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class AppFlowyConfig:
-    base_url: str = "https://beta.appflowy.cloud"
+    base_url: str = "http://localhost"
     access_token: str | None = None
     refresh_token: str | None = None
     timeout_seconds: float = 30.0

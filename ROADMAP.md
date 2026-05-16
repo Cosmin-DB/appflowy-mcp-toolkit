@@ -52,7 +52,7 @@
 - [x] Prototype AppFlowy-compatible collab mutation for task delete.
 - [x] Integrate experimental Yjs row-delete into MCP/CLI/client (gated, dry-run default).
 - [x] Prove create/edit/move/delete at the AppFlowy data plane against a disposable
-  official workspace.
+  workspace.
 - [x] Integrate verified task operations into MCP behind explicit write gates.
 - [x] Add opt-in browser smoke against local AppFlowy Web.
 - [ ] Prove direct Browser Board rendering for MCP-created rows without AppFlowy Web
@@ -62,9 +62,9 @@ Current status: task-facing tools (`appflowy_list_tasks`, `appflowy_create_task`
 `appflowy_update_task`, `appflowy_move_task`, `appflowy_delete_task`) are integrated.
 They are dry-run by default and require explicit write gates for mutation. Yjs delete is
 integrated as an experimental path behind `APPFLOWY_ALLOW_WRITES` +
-`APPFLOWY_ALLOW_COLLAB_WRITES` and a Node.js runtime requirement. Official live smoke
-covers the create/update/move/delete data-plane lifecycle. Browser Board rendering remains
-a separate AppFlowy Web cache/rendering concern.
+`APPFLOWY_ALLOW_COLLAB_WRITES` and a Node.js runtime requirement. The self-hosted Docker
+suite covers the create/update/move/delete data-plane lifecycle. Browser Board rendering
+remains a separate AppFlowy Web cache/rendering concern.
 
 See [docs/collab-driver-plan.md](docs/collab-driver-plan.md).
 Execution plan: [docs/execution-roadmap.md](docs/execution-roadmap.md).
@@ -81,8 +81,8 @@ The pre-Docker MCP-side checklist is complete:
 - [x] Keep low-level row/collab tools as diagnostics, not the main public workflow.
 - [x] Add one browser/UI acceptance skeleton for Grid/Board rendering, documenting the
   known AppFlowy Web Board refresh/cache bug separately from data-plane correctness.
-- [x] Align README, DESIGN, ROADMAP and collab-driver docs with the verified live smoke.
-- [x] Re-run unit gates and the official opt-in live smoke.
+- [x] Align README, DESIGN, ROADMAP and collab-driver docs with the verified data-plane smoke.
+- [x] Re-run unit gates and self-hosted/browser Docker smoke.
 
 The Docker/self-hosted phase now exists and has been validated:
 
@@ -93,7 +93,7 @@ The Docker/self-hosted phase now exists and has been validated:
   discovers a workspace/database, and emits `.env.selfhosted.generated`.
 - [x] Opt-in destructive self-hosted task lifecycle test under `tests/selfhosted/`.
 - [x] Full local validation: stack health, web redirect, seed reuse, self-hosted
-  lifecycle, offline suite, lint, format, typecheck, and official live smoke.
+  lifecycle, browser smoke, offline suite, lint, format, typecheck, and build.
 
 Remaining Docker/UI work: full visual parity. The opt-in browser smoke can log in and
 render Grid, but MCP-created rows are currently verified at the REST/collab/blob-diff
@@ -103,8 +103,8 @@ Detailed Docker/self-hosted testing plan: [docs/self-hosted-test-plan.md](docs/s
 
 ### Deferred
 
-- `/api/v1/workspace/get_folder`: live-tested against `beta.appflowy.cloud` and returned
-  404. Not implemented.
+- `/api/v1/workspace/get_folder`: tested during early API mapping and returned 404.
+  Not implemented.
 - `/api/v1/` row/create, row/update, row/delete, view/delete, view/update: not
   implemented; absent from official public OpenAPI (which documents only the
   `/api/workspace/...` namespace). Require official documentation and independent

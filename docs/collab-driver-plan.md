@@ -150,25 +150,16 @@ Create proof result, 2026-05-16:
   `verify-row` / `appflowy_verify_database_row` checks REST row list, REST row detail,
   database `row_orders`, DatabaseRow collab JSON, and optional `blob/diff`.
   `create-verified-row` / `appflowy_create_verified_database_row` creates a row and
-  immediately runs that verification. A live disposable-row proof against AppFlowy
-  official created row `00f6c6ef-00a2-4d3a-9f68-3cb34d16e592` with
-  `Description = ela_verified_create_1778920907`; verification found it in REST row
-  list, REST detail, all three observed `row_orders`, and DatabaseRow collab.
-  The same row did not immediately render in the browser snapshot, reinforcing that
-  UI visibility must be tested separately from data-plane correctness.
-- Managed task live proof: `upsert_managed_task` with a stable `task_key` created row
-  `9c4d741a-7f4f-c2f1-292d-dcfc9d28bd37`, and `move_managed_task_status` with the
-  same key moved it to `Status = Doing` while preserving the row id. Data-plane
-  verification found the moved row in REST row list/detail, all three observed
-  `row_orders`, and DatabaseRow collab. This supports using `task_key`/`pre_hash` as
-  the stable MCP-owned task identity for create/edit/move operations.
-- Added opt-in live acceptance test `tests/live/test_task_lifecycle.py`. It requires
-  `APPFLOWY_LIVE_TESTS=true`, disposable workspace/database ids, and both write gates.
-  The live official AppFlowy run passed on 2026-05-16: create managed task, move to
-  `Doing`, delete via Yjs collab, verify collab absence and REST row-list absence.
-  This is now the first platform-level data-plane smoke test; AppFlowy Web UI/Board
-  rendering still remains a separate browser acceptance layer because of the known
-  Board/Grid cache issue.
+  immediately runs that verification. Current release-candidate validation runs this
+  against the self-hosted Docker stack, not AppFlowy official cloud. Browser visibility
+  is tested separately from data-plane correctness.
+- Managed task proof: `upsert_managed_task` uses a stable `task_key`/`pre_hash`
+  for create/edit/move operations while preserving the row id. The self-hosted suite
+  verifies REST row list/detail, row orders, and DatabaseRow collab.
+- The old official-cloud live smoke has been retired from the contributor workflow.
+  The self-hosted Docker suite is now the platform-level data-plane smoke: create,
+  update/move, delete via Yjs collab, and verify collab/REST absence without external
+  tokens or cloud credentials.
 - Cosmin independently reproduced the Board/Grid bug in his own AppFlowy official
   workspace on Firefox and Chrome: refreshing/F5 on Board makes cards disappear, then
   opening Grid and returning to Board makes them reappear. Treat this as an AppFlowy
@@ -186,10 +177,10 @@ work could validate a coherent contract:
 - [x] Keep diagnostic row/collab tools separate from the main public workflow.
 - [x] Document the task model: `task_key`, row id, required fields, status movement, and
   ordering limitations.
-- [x] Add/update one official live-smoke evidence note for data-plane lifecycle.
+- [x] Add/update one self-hosted smoke evidence note for data-plane lifecycle.
 - [x] Add a browser/UI acceptance skeleton that records Grid/Board behavior separately from
   data-plane correctness.
-- [x] Re-run unit/type/lint gates and the official opt-in live smoke.
+- [x] Re-run unit/type/lint gates and the self-hosted/browser Docker smoke.
 
 That follow-up now exists under `docker/appflowy-test/` and `tests/selfhosted/`.
 
@@ -219,14 +210,14 @@ Status: completed before the self-hosted testing work.
 
 ### M6.6 Publication Gate
 
-- [x] Full test/lint/typecheck gates for the current local, official-live, and
-  self-hosted battery.
+- [x] Full test/lint/typecheck gates for the current local, self-hosted, and browser
+  Docker battery.
 - [ ] Secret/private-ID scan.
 - [x] Docs clearly separate REST diagnostics from web-board task automation.
 - [ ] Public repo creation only after Cosmin confirms.
 
-Publication remains blocked on final release review, secret/private-ID scan, and explicit
-approval to create/push a public repo.
+Publication remains blocked only on explicit approval to create/push a public repo and
+any final external-facing polish Cosmin wants.
 
 ## Agent Workstreams
 

@@ -179,8 +179,8 @@ Tasks:
    - `APPFLOWY_BASE_URL=http://localhost`
    - `APPFLOWY_ACCESS_TOKEN=...`
    - `APPFLOWY_REFRESH_TOKEN=...`
-   - `APPFLOWY_LIVE_WORKSPACE_ID=...`
-   - `APPFLOWY_LIVE_DATABASE_ID=...`
+   - `APPFLOWY_TEST_WORKSPACE_ID=...`
+   - `APPFLOWY_TEST_DATABASE_ID=...`
    - write gates enabled only for this test env.
 
 Stop conditions:
@@ -194,8 +194,8 @@ Purpose: run the same task lifecycle smoke against local AppFlowy.
 
 Tasks:
 
-1. Reuse/adapt `tests/live/test_task_lifecycle.py`.
-2. Run create -> update/move -> delete.
+1. Run create -> update/move -> delete against the local Docker stack.
+2. Keep the lifecycle self-contained; do not require AppFlowy official cloud.
 3. Verify:
    - REST row list
    - REST row detail
@@ -241,7 +241,7 @@ Deliverables:
 - `tests/selfhosted/README.md`
 - README section explaining:
   - normal tests
-  - official live tests
+  - local self-hosted tests
   - self-hosted Docker tests
   - expected runtime/resources
   - cleanup command

@@ -27,7 +27,7 @@ explicit final review/approval.
 Copy `.env.example` outside or to `.env` locally. Do not commit real secrets.
 
 ```bash
-APPFLOWY_BASE_URL=https://beta.appflowy.cloud
+APPFLOWY_BASE_URL=http://localhost
 APPFLOWY_ACCESS_TOKEN=...
 APPFLOWY_REFRESH_TOKEN=...
 ```
@@ -116,8 +116,8 @@ Start with these files:
 - `docs/self-hosted-test-plan.md` - how to run disposable local AppFlowy for destructive tests.
 - `docs/release-checklist.md` - final checks before publishing or external handoff.
 
-Do not use a real/private AppFlowy workspace for write tests. Use either an explicit
-disposable official workspace or the self-hosted Docker stack.
+Do not use a real/private AppFlowy workspace for write tests. Use the self-hosted
+Docker stack for the normal contributor test workflow.
 
 Read-only tools:
 
@@ -209,7 +209,7 @@ Experimental write tool (dry-run by default; requires `APPFLOWY_ALLOW_WRITES=tru
 Current API limitation: public AppFlowy REST does not expose a confirmed row-delete
 endpoint. Row/card deletion in AppFlowy Web is a collab/Yjs update. The
 `appflowy_delete_database_row` tool implements this path experimentally; it has been
-live-tested against disposable official and self-hosted workspaces, but remains
+tested against disposable self-hosted workspaces, but remains
 opt-in and is not yet recommended for production use.
 
 Board-rendering investigation: AppFlowy Web also calls a binary `blob/diff` endpoint
@@ -228,29 +228,10 @@ delete, and raw blob download endpoints are intentionally not implemented in thi
 slice.
 
 Known AppFlowy Web limitation: Board rendering can be stale even when a row is already
-present in REST and collab state. In live AppFlowy official testing, refreshing Board
-could show empty/missing cards until the Grid tab was opened and the Board revisited.
+present in REST and collab state. In local browser testing, verified rows can still
+fail to render in AppFlowy Web during the browser pass.
 Use `verify-row` / `appflowy_verify_database_row` for data-plane verification; use
-browser/live tests separately for UI rendering.
-
-## Live Acceptance Tests
-
-Unit tests are offline and run by default. Real AppFlowy tests are opt-in because they
-mutate a disposable database:
-
-```bash
-APPFLOWY_LIVE_TESTS=true \
-APPFLOWY_LIVE_WORKSPACE_ID=<disposable_workspace_id> \
-APPFLOWY_LIVE_DATABASE_ID=<disposable_database_id> \
-APPFLOWY_ALLOW_WRITES=true \
-APPFLOWY_ALLOW_COLLAB_WRITES=true \
-uv run pytest tests/live -q
-```
-
-These tests verify the API/collab data plane. They do not treat AppFlowy Web Board
-rendering as authoritative because Board may be stale until Grid/refresh warm-up.
-Browser acceptance is tracked separately in
-[`docs/browser-ui-acceptance.md`](docs/browser-ui-acceptance.md).
+browser tests separately for UI rendering.
 
 ## Self-Hosted AppFlowy Tests
 

@@ -11,7 +11,7 @@ Included:
 - Read coverage for server/user/workspace/folder/page/database/row/search/file metadata.
 - Guarded writes for task rows, page/view organization, fields, quick notes, and trash flows.
 - Experimental Yjs row delete behind explicit write + collab write gates.
-- Optional official-live, self-hosted Docker, and browser smoke tests.
+- Optional self-hosted Docker and browser smoke tests.
 
 Deferred:
 

@@ -15,20 +15,6 @@ python -m ruff check .
 python -m mypy src tests
 ```
 
-Live AppFlowy tests are intentionally not part of the default suite. They are opt-in,
-write-gated, and must never run in public CI without explicit disposable credentials.
-
-Official live smoke:
-
-```bash
-APPFLOWY_LIVE_TESTS=true \
-APPFLOWY_LIVE_WORKSPACE_ID=<disposable_workspace_id> \
-APPFLOWY_LIVE_DATABASE_ID=<disposable_database_id> \
-APPFLOWY_ALLOW_WRITES=true \
-APPFLOWY_ALLOW_COLLAB_WRITES=true \
-uv run pytest tests/live -q
-```
-
 Self-hosted Docker smoke:
 
 ```bash

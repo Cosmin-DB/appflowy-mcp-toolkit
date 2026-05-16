@@ -5,9 +5,8 @@ task-board MCP without depending on large, ambiguous work packets.
 
 ## Current baseline
 
-The repo has advanced past the cleanup and pre-Docker baseline. Latest committed
-checkpoint observed during this docs audit is `43aba93`
-(`Make self-hosted seed idempotent`).
+The repo is now a pre-1.0 release candidate with a self-contained Docker-based
+validation workflow.
 
 Implemented:
 
@@ -19,8 +18,8 @@ Implemented:
   DatabaseRow collab JSON, and optional blob/diff diagnostics.
 - Verified create path exposed through CLI/client/MCP for controlled task-row proof.
 - Task-facing CLI/MCP tools for list/create/update/move/delete.
-- Opt-in live acceptance test for the managed task lifecycle data plane against a
-  disposable real AppFlowy database.
+- Opt-in self-hosted acceptance tests for the managed task lifecycle data plane
+  against a disposable local AppFlowy database.
 - Experimental Yjs row delete through client, CLI, and MCP.
 - Safety gates for writes and collab writes.
 - Optional self-hosted Docker test workflow using pinned AppFlowy-Cloud/AppFlowy Web
@@ -31,8 +30,8 @@ Not yet proven:
 
 - Direct board-load behavior for created rows without a Grid warm-up.
 - Full browser-rendered edit/move/delete equivalence with AppFlowy Web board behavior.
-- Automated browser/UI acceptance against the self-hosted AppFlowy Web container.
-- Public release readiness.
+- Full AppFlowy Web visual parity for MCP-created rows. The current browser smoke records
+  this as xfail when the data plane verifies but AppFlowy Web does not render the row.
 
 ## Development rule
 
@@ -116,7 +115,7 @@ Rules:
 Exit criteria:
 
 - Unit tests for each tool.
-- Disposable live smoke tests for the full task lifecycle.
+- Disposable self-hosted smoke tests for the full task lifecycle.
 - MCP tool annotations reviewed.
 
 ## Phase 4 - Hardening and packaging — partial
@@ -185,8 +184,7 @@ and release safety are reviewed.
 ## Pre-Docker MCP Checklist — complete
 
 These MCP-side items were completed before the local AppFlowy Docker rig was added.
-The goal was to avoid using Docker to discover problems already definable against the
-official instance.
+They are historical planning notes; the current contributor workflow is Docker-first.
 
 1. **Freeze the task-board contract** — done
    - Decide the public task identity: `task_key` as the MCP-owned stable id.
@@ -203,10 +201,10 @@ official instance.
    - Keep lower-level row/collab tools available as diagnostics.
    - Keep dry-run defaults and write/collab gates.
 
-3. **Complete one official-instance task lifecycle evidence note** — done
-   - Record create/update/move/delete data-plane results from the live smoke.
-   - Record what the AppFlowy Web UI does separately from data-plane verification.
-   - Explicitly mark the known Board/Grid refresh bug as upstream UI behavior.
+3. **Complete one disposable task lifecycle evidence note** — done
+   - Record create/update/move/delete data-plane results from disposable smoke.
+   - Record AppFlowy Web rendering separately from data-plane verification.
+   - Explicitly mark Board/Grid rendering gaps as UI behavior unless data-plane checks fail.
 
 4. **Add browser/UI acceptance skeleton** — done
    - Add a documented manual or opt-in browser check for Grid/Board rendering.
@@ -216,14 +214,14 @@ official instance.
    - README says what is stable, experimental, and known-limited.
    - DESIGN documents the task model and verification model.
    - ROADMAP no longer says M6.4 is pending if the data-plane lifecycle is already
-     covered by live tests.
+    covered by self-hosted tests.
 
 6. **Run the current gates before starting Docker work** — done
    - `uv run ruff format .`
    - `uv run ruff check .`
    - `uv run mypy src`
    - `uv run pytest -q`
-   - Opt-in official live smoke with disposable ids.
+   - Opt-in self-hosted smoke with disposable local ids.
 
 This checklist was completed before the self-hosted rig was added.
 
@@ -246,13 +244,13 @@ Validated status from the latest full battery:
 - Docker stack health OK and AppFlowy Web redirects to `/app`.
 - Seed reuse is idempotent for the one-seat local license behavior.
 - Self-hosted lifecycle test passed.
-- Full pytest: 61 passed.
-- Offline pytest: 59 passed + 2 skipped.
-- Ruff format/check, mypy, and official live smoke passed.
+- Self-hosted tests: 4 passed + 1 skipped.
+- Browser smoke: 1 passed + 1 xfailed.
+- Offline pytest: 98 passed + 8 skipped.
+- Ruff format/check, mypy, build, and diff check passed.
 
 Remaining work:
 
-- Full browser/UI acceptance against the local web container with Playwright or an
-  allowed browser profile.
-- Secret/private-ID scan and release checklist before publication.
+- Full visual parity for MCP-created rows in AppFlowy Web.
+- Secret/private-ID scan before publication.
 - Public GitHub repo only after Cosmin confirms.

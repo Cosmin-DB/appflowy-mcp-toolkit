@@ -25,10 +25,10 @@ def _selfhosted_ids() -> tuple[str, str]:
     base_url = os.getenv("APPFLOWY_BASE_URL", "")
     if "appflowy.cloud" in base_url:
         pytest.fail("browser tests must not target AppFlowy official cloud")
-    workspace_id = os.getenv("APPFLOWY_LIVE_WORKSPACE_ID")
-    database_id = os.getenv("APPFLOWY_LIVE_DATABASE_ID")
+    workspace_id = os.getenv("APPFLOWY_TEST_WORKSPACE_ID")
+    database_id = os.getenv("APPFLOWY_TEST_DATABASE_ID")
     if not workspace_id or not database_id:
-        pytest.skip("APPFLOWY_LIVE_WORKSPACE_ID and APPFLOWY_LIVE_DATABASE_ID are required")
+        pytest.skip("APPFLOWY_TEST_WORKSPACE_ID and APPFLOWY_TEST_DATABASE_ID are required")
     return workspace_id, database_id
 
 

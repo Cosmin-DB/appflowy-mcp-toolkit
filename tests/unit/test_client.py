@@ -990,7 +990,7 @@ _COLLAB_VIEWS_FLAT: dict = {
     }
 }
 
-# Live-shape fixture: the actual response from beta.appflowy.cloud
+# Observed AppFlowy response-shape fixture.
 # after _extract_data strips the outer {"data": ...} envelope.
 # Shape: collab.database.views.<view_id>.row_orders
 _COLLAB_VIEWS_LIVE: dict = {

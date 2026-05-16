@@ -125,8 +125,8 @@ Web can show stale Board cards until Grid/refresh warm-up.
 The toolkit targets the `/api/workspace/...` endpoints documented in the public AppFlowy
 OpenAPI spec.
 
-`POST /api/v1/workspace/get_folder` was live-tested against `beta.appflowy.cloud` and
-returned 404; it is not implemented. Other `/api/v1/...` row and view endpoints
+`POST /api/v1/workspace/get_folder` was tested during early API mapping and returned
+404; it is not implemented. Other `/api/v1/...` row and view endpoints
 (row/create, row/update, row/delete, view/delete, view/update) are also not implemented:
 they are absent from the official public OpenAPI and require official documentation plus
 independent live verification before any implementation is attempted. See ROADMAP for the
