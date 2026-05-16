@@ -87,6 +87,8 @@ appflowy-toolkit row-orders --workspace-id <workspace_id> --database-id <databas
 appflowy-toolkit blob-diff --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit verify-row --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id>
 appflowy-toolkit create-verified-row --workspace-id <workspace_id> --database-id <database_id> --cells-json '{"Description":"Test"}'
+appflowy-toolkit create-typed-row --workspace-id <workspace_id> --database-id <database_id> --values-json '{"Description":"Test","Status":"Doing","Multiselect":["fast"]}'
+appflowy-toolkit upsert-typed-row --workspace-id <workspace_id> --database-id <database_id> --pre-hash <stable_key> --values-json '{"Description":"Updated","Status":"Done"}'
 appflowy-toolkit tasks --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit create-task --workspace-id <workspace_id> --database-id <database_id> --task-key <stable_key> --description "Test"
 appflowy-toolkit update-task --workspace-id <workspace_id> --database-id <database_id> --task-key <stable_key> --status "Doing"
@@ -171,6 +173,7 @@ Write tools exist for controlled testing, but dry-run by default and require
 
 - `appflowy_create_database_row`
 - `appflowy_create_verified_database_row`
+- `appflowy_create_typed_database_row`
 - `appflowy_create_database_field`
 - `appflowy_create_space`
 - `appflowy_update_space`
@@ -199,6 +202,7 @@ Write tools exist for controlled testing, but dry-run by default and require
 - `appflowy_update_quick_note`
 - `appflowy_delete_quick_note`
 - `appflowy_upsert_database_row`
+- `appflowy_upsert_typed_database_row`
 - `appflowy_upsert_managed_task`
 - `appflowy_upsert_verified_managed_task`
 - `appflowy_move_managed_task_status`

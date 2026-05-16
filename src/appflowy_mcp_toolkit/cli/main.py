@@ -301,6 +301,24 @@ def build_parser() -> argparse.ArgumentParser:
         "--execute", action="store_true", help="Actually create it; default is dry-run"
     )
 
+    create_typed_row = sub.add_parser("create-typed-row")
+    create_typed_row.add_argument("--workspace-id", required=True)
+    create_typed_row.add_argument("--database-id", required=True)
+    create_typed_row.add_argument(
+        "--values-json",
+        required=True,
+        help="Human-friendly field values keyed by AppFlowy field name or id",
+    )
+    create_typed_row.add_argument("--document")
+    create_typed_row.add_argument(
+        "--skip-blob-diff",
+        action="store_true",
+        help="Skip blob/diff verification; useful while AppFlowy Web reports pending live rows",
+    )
+    create_typed_row.add_argument(
+        "--execute", action="store_true", help="Actually create it; default is dry-run"
+    )
+
     verify_row = sub.add_parser("verify-row")
     verify_row.add_argument("--workspace-id", required=True)
     verify_row.add_argument("--database-id", required=True)
@@ -318,6 +336,20 @@ def build_parser() -> argparse.ArgumentParser:
     upsert_row.add_argument("--cells-json", default="{}")
     upsert_row.add_argument("--document")
     upsert_row.add_argument(
+        "--execute", action="store_true", help="Actually upsert it; default is dry-run"
+    )
+
+    upsert_typed_row = sub.add_parser("upsert-typed-row")
+    upsert_typed_row.add_argument("--workspace-id", required=True)
+    upsert_typed_row.add_argument("--database-id", required=True)
+    upsert_typed_row.add_argument("--pre-hash")
+    upsert_typed_row.add_argument(
+        "--values-json",
+        required=True,
+        help="Human-friendly field values keyed by AppFlowy field name or id",
+    )
+    upsert_typed_row.add_argument("--document")
+    upsert_typed_row.add_argument(
         "--execute", action="store_true", help="Actually upsert it; default is dry-run"
     )
 
@@ -712,6 +744,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                 dry_run=not args.execute,
                 include_blob_diff=not args.skip_blob_diff,
             )
+        elif args.command == "create-typed-row":
+            result = client.create_typed_database_row_verified(
+                args.workspace_id,
+                args.database_id,
+                values=json.loads(args.values_json),
+                document=args.document,
+                dry_run=not args.execute,
+                include_blob_diff=not args.skip_blob_diff,
+            )
         elif args.command == "verify-row":
             result = client.verify_database_row(
                 args.workspace_id,
@@ -725,6 +766,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.database_id,
                 pre_hash=args.pre_hash,
                 cells=json.loads(args.cells_json),
+                document=args.document,
+                dry_run=not args.execute,
+            )
+        elif args.command == "upsert-typed-row":
+            result = client.upsert_typed_database_row(
+                args.workspace_id,
+                args.database_id,
+                pre_hash=args.pre_hash,
+                values=json.loads(args.values_json),
                 document=args.document,
                 dry_run=not args.execute,
             )

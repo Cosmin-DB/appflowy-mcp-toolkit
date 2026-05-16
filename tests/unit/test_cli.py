@@ -533,6 +533,84 @@ def test_cli_create_verified_row_dry_run(monkeypatch, capsys):
     )
 
 
+def test_cli_create_typed_row_dry_run(monkeypatch, capsys):
+    from unittest.mock import patch as _patch
+
+    dry_run_result = {
+        "typed_cells": {"Description": "Test"},
+        "result": {"dry_run": True},
+    }
+
+    monkeypatch.setenv("APPFLOWY_BASE_URL", "https://example.test")
+    monkeypatch.setenv("APPFLOWY_ACCESS_TOKEN", "test-token")
+
+    with _patch(
+        "appflowy_mcp_toolkit.client.AppFlowyClient.create_typed_database_row_verified",
+        return_value=dry_run_result,
+    ) as mock_method:
+        rc = main(
+            [
+                "create-typed-row",
+                "--workspace-id",
+                "ws_001",
+                "--database-id",
+                "db_001",
+                "--values-json",
+                '{"Description":"Test"}',
+                "--skip-blob-diff",
+            ]
+        )
+
+    assert rc == 0
+    parsed = json.loads(capsys.readouterr().out)
+    assert parsed["typed_cells"]["Description"] == "Test"
+    mock_method.assert_called_once_with(
+        "ws_001",
+        "db_001",
+        values={"Description": "Test"},
+        document=None,
+        dry_run=True,
+        include_blob_diff=False,
+    )
+
+
+def test_cli_upsert_typed_row_dry_run(monkeypatch, capsys):
+    from unittest.mock import patch as _patch
+
+    monkeypatch.setenv("APPFLOWY_BASE_URL", "https://example.test")
+    monkeypatch.setenv("APPFLOWY_ACCESS_TOKEN", "test-token")
+
+    with _patch(
+        "appflowy_mcp_toolkit.client.AppFlowyClient.upsert_typed_database_row",
+        return_value={"typed_cells": {"Description": "Test"}},
+    ) as mock_method:
+        rc = main(
+            [
+                "upsert-typed-row",
+                "--workspace-id",
+                "ws_001",
+                "--database-id",
+                "db_001",
+                "--pre-hash",
+                "task-1",
+                "--values-json",
+                '{"Description":"Test"}',
+            ]
+        )
+
+    assert rc == 0
+    parsed = json.loads(capsys.readouterr().out)
+    assert parsed["typed_cells"]["Description"] == "Test"
+    mock_method.assert_called_once_with(
+        "ws_001",
+        "db_001",
+        pre_hash="task-1",
+        values={"Description": "Test"},
+        document=None,
+        dry_run=True,
+    )
+
+
 def test_cli_managed_task_verified_dry_run(monkeypatch, capsys):
     from unittest.mock import patch as _patch
 

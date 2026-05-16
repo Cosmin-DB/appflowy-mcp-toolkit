@@ -777,6 +777,69 @@ def test_create_database_row_verified_executes_then_verifies():
     assert result["verification"]["verified"] is True
 
 
+def test_create_typed_database_row_normalizes_against_schema(make_client):
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if request.url.path.endswith("/fields"):
+            return json_response(
+                {
+                    "data": [
+                        {"id": "desc", "name": "Description", "field_type": "RichText"},
+                        {
+                            "id": "status",
+                            "name": "Status",
+                            "field_type": "SingleSelect",
+                            "type_option": {
+                                "content": {"options": [{"id": "doing", "name": "Doing"}]}
+                            },
+                        },
+                    ]
+                }
+            )
+        raise AssertionError(str(request.url))
+
+    client = make_client(handler)
+
+    result = client.create_typed_database_row(
+        "ws",
+        "db",
+        values={"Description": "Typed", "Status": "doing"},
+    )
+
+    assert result["typed_cells"] == {"Description": "Typed", "Status": "Doing"}
+    assert result["result"]["dry_run"] is True
+    assert result["result"]["json"]["cells"] == result["typed_cells"]
+    assert seen[0].url.path == "/api/workspace/ws/database/db/fields"
+
+
+def test_upsert_typed_database_row_normalizes_against_schema(make_client):
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/fields"):
+            return json_response(
+                {
+                    "data": [
+                        {"id": "desc", "name": "Description", "field_type": "RichText"},
+                    ]
+                }
+            )
+        raise AssertionError(str(request.url))
+
+    client = make_client(handler)
+
+    result = client.upsert_typed_database_row(
+        "ws",
+        "db",
+        pre_hash="task-1",
+        values={"desc": "Typed"},
+    )
+
+    assert result["typed_cells"] == {"Description": "Typed"}
+    assert result["result"]["json"]["pre_hash"] == "task-1"
+    assert result["result"]["json"]["cells"] == {"Description": "Typed"}
+
+
 def test_list_select_options_extracts_status_options(make_client):
     def handler(_request: httpx.Request) -> httpx.Response:
         return json_response(

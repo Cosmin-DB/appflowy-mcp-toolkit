@@ -510,6 +510,67 @@ def test_selfhosted_quick_note_lifecycle() -> None:
                     client.delete_quick_note(workspace_id, note_id, dry_run=False)
 
 
+def test_selfhosted_typed_multifield_row_lifecycle() -> None:
+    workspace_id, database_id = _selfhosted_ids()
+    suffix = time.time_ns()
+    created_row_ids: list[str] = []
+
+    with AppFlowyClient() as client:
+        try:
+            created = client.create_typed_database_row_verified(
+                workspace_id,
+                database_id,
+                values={
+                    "Description": f"Typed multi-field {suffix}",
+                    "Status": "To Do",
+                    "Multiselect": ["fast", "open source"],
+                    "Tasks": [
+                        {"name": "Write typed builder", "checked": True},
+                        {"name": "Run Docker smoke", "checked": False},
+                    ],
+                },
+                dry_run=False,
+                include_blob_diff=False,
+            )
+            row_id = created["result"]["verification"]["row_id"]
+            created_row_ids.append(row_id)
+            assert created["typed_cells"]["Status"] == "To Do"
+            assert created["typed_cells"]["Multiselect"] == ["fast", "open source"]
+
+            row = _row_by_id(client, workspace_id, database_id, row_id, with_doc=True)
+            cells = row["cells"]
+            assert cells["Description"] == f"Typed multi-field {suffix}"
+            assert cells["Status"] == "To Do"
+            assert cells["Multiselect"] == ["fast", "open source"]
+            assert cells["Tasks"]["selected_option_ids"] == ["item_0"]
+
+            updated = client.upsert_typed_database_row(
+                workspace_id,
+                database_id,
+                pre_hash=f"typed-multifield-{suffix}",
+                values={
+                    "Description": f"Typed multi-field updated {suffix}",
+                    "Status": "Doing",
+                    "Multiselect": ["Q&A", "news"],
+                    "Tasks": [
+                        {"name": "Write typed builder", "checked": True},
+                        {"name": "Run Docker smoke", "checked": True},
+                    ],
+                },
+                dry_run=False,
+            )
+            updated_row_id = updated["result"]["data"]
+            created_row_ids.append(updated_row_id)
+            row = _row_by_id(client, workspace_id, database_id, updated_row_id, with_doc=True)
+            cells = row["cells"]
+            assert cells["Description"] == f"Typed multi-field updated {suffix}"
+            assert cells["Status"] == "Doing"
+            assert cells["Multiselect"] == ["Q&A", "news"]
+            assert cells["Tasks"]["selected_option_ids"] == ["item_0", "item_1"]
+        finally:
+            _delete_created(client, workspace_id, database_id, created_row_ids)
+
+
 def test_selfhosted_multi_task_lifecycle_with_updates_and_cleanup() -> None:
     workspace_id, database_id = _selfhosted_ids()
     created_row_ids: list[str] = []

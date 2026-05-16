@@ -8,6 +8,7 @@ import httpx
 from .blob_diff import decode_database_blob_diff_response, encode_database_blob_diff_request
 from .config import AppFlowyConfig
 from .errors import AppFlowyError, AppFlowySchemaError, classify_http_error
+from .typed_fields import build_cells
 
 
 class AppFlowyClient:
@@ -800,6 +801,48 @@ class AppFlowyClient:
             ),
         }
 
+    def create_typed_database_row(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        values: dict[str, Any],
+        document: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        fields = self.list_database_fields(workspace_id, database_id)
+        cells = build_cells(fields, values)
+        result = self.create_database_row(
+            workspace_id,
+            database_id,
+            cells=cells,
+            document=document,
+            dry_run=dry_run,
+        )
+        return {"typed_cells": cells, "result": result}
+
+    def create_typed_database_row_verified(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        values: dict[str, Any],
+        document: str | None = None,
+        dry_run: bool = True,
+        include_blob_diff: bool = True,
+    ) -> dict[str, Any]:
+        fields = self.list_database_fields(workspace_id, database_id)
+        cells = build_cells(fields, values)
+        result = self.create_database_row_verified(
+            workspace_id,
+            database_id,
+            cells=cells,
+            document=document,
+            dry_run=dry_run,
+            include_blob_diff=include_blob_diff,
+        )
+        return {"typed_cells": cells, "result": result}
+
     def upsert_database_row(
         self,
         workspace_id: str,
@@ -822,6 +865,28 @@ class AppFlowyClient:
             return {"dry_run": True, "method": "PUT", "path": path, "json": payload}
         self._require_writes_enabled()
         return self.request("PUT", path, json=payload)
+
+    def upsert_typed_database_row(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        values: dict[str, Any],
+        pre_hash: str | None = None,
+        document: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        fields = self.list_database_fields(workspace_id, database_id)
+        cells = build_cells(fields, values)
+        result = self.upsert_database_row(
+            workspace_id,
+            database_id,
+            pre_hash=pre_hash,
+            cells=cells,
+            document=document,
+            dry_run=dry_run,
+        )
+        return {"typed_cells": cells, "result": result}
 
     def upsert_managed_task(
         self,

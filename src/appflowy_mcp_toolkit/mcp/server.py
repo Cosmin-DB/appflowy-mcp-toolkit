@@ -856,6 +856,34 @@ def appflowy_create_verified_database_row(
         )
 
 
+@mcp.tool(name="appflowy_create_typed_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_create_typed_database_row(
+    workspace_id: str,
+    database_id: str,
+    values: dict[str, object],
+    document: str | None = None,
+    dry_run: bool = True,
+    include_blob_diff: bool = True,
+) -> str:
+    """Create one row from human-friendly typed field values.
+
+    Values are keyed by AppFlowy field name or id and normalized against the
+    live database schema. Dry-run by default; real writes require
+    APPFLOWY_ALLOW_WRITES=true.
+    """
+    with _client() as client:
+        return compact(
+            client.create_typed_database_row_verified(
+                workspace_id,
+                database_id,
+                values=values,
+                document=document,
+                dry_run=dry_run,
+                include_blob_diff=include_blob_diff,
+            )
+        )
+
+
 @mcp.tool(name="appflowy_upsert_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
 def appflowy_upsert_database_row(
     workspace_id: str,
@@ -876,6 +904,34 @@ def appflowy_upsert_database_row(
                 database_id,
                 pre_hash=pre_hash,
                 cells=cells,
+                document=document,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_upsert_typed_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_upsert_typed_database_row(
+    workspace_id: str,
+    database_id: str,
+    values: dict[str, object],
+    pre_hash: str | None = None,
+    document: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Upsert one row from human-friendly typed field values.
+
+    Values are keyed by AppFlowy field name or id and normalized against the
+    live database schema. Dry-run by default; real writes require
+    APPFLOWY_ALLOW_WRITES=true.
+    """
+    with _client() as client:
+        return compact(
+            client.upsert_typed_database_row(
+                workspace_id,
+                database_id,
+                pre_hash=pre_hash,
+                values=values,
                 document=document,
                 dry_run=dry_run,
             )
