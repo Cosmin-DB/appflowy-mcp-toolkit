@@ -76,9 +76,10 @@ collab row updates.
 | Rename a board column/status option | `rename-select-option` / `appflowy_rename_select_option` | Renames the select option in Database collab |
 | Hide/show a board column/status option | `hide-select-option`, `show-select-option` / `appflowy_hide_select_option`, `appflowy_show_select_option` | Toggles board group visibility for the option |
 | Inspect filters/sorts/groups/field widths | `view-configs` / `appflowy_get_database_view_configs` | View settings are stored in Database collab JSON |
+| Reorder a row/card inside a view or board column | `reorder-row` / `appflowy_reorder_database_row` | Row order is stored in row_orders YArray in Database collab; safe delete-and-reinsert mutation |
+| Reorder a board column (status group) inside a view | `reorder-column` / `appflowy_reorder_database_column` | Column order is stored in groups[field_id].groups YArray in Database collab; safe delete-and-reinsert mutation |
 | Delete a row/card | `delete-row` / `appflowy_delete_database_row` | AppFlowy Web deletion is collab row-order mutation |
 | Delete/remove a board column/status option | Not implemented | Unsafe until the toolkit can prove how rows using that option are reassigned or cleared |
-| Reorder cards precisely inside a view/column | Not implemented yet | Needs separate row_orders collab mutation design |
 
 ## Safety Gates
 
@@ -109,6 +110,8 @@ Implemented:
 - move an existing/manual task by setting its Status field through `row_id`
 - add, rename, hide and show select options, including board Status columns,
   through Database collab
+- reorder rows/cards inside a database view (row_orders YArray mutation)
+- reorder board columns (status groups) inside a database view (groups[field_id].groups YArray mutation)
 - read-only extraction of Database view configuration: `layout_settings`,
   `filters`, `sorts`, `group_settings`, `field_settings`,
   `field_orders` and row-order counts
@@ -118,7 +121,6 @@ Not implemented yet:
 - remove/delete select options or board columns; existing rows may still store
   the removed option id, and AppFlowy Web's reassignment/cleanup behavior needs
   its own Docker and browser proof before exposing a destructive schema write
-- exact card reorder inside a view/column
 - updates to filters, sorts, field visibility/width, or layout settings
 - generic document/block collab editing
 - broad arbitrary collab object mutation

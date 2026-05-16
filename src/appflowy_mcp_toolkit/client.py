@@ -2247,6 +2247,193 @@ class AppFlowyClient:
 
         return summary
 
+    def reorder_database_row_collab(
+        self,
+        workspace_id: str,
+        database_id: str,
+        view_id: str,
+        row_id: str,
+        *,
+        before_row_id: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Reorder a row/card inside a board/grid view via Yjs collab mutation.
+
+        Moves ``row_id`` to the position immediately before ``before_row_id``
+        in ``view_id``'s ``row_orders``.  Pass ``before_row_id=None`` to
+        move the row to the end of the view.
+
+        Dry-run by default.  Live writes require both
+        ``APPFLOWY_ALLOW_WRITES=true`` and
+        ``APPFLOWY_ALLOW_COLLAB_WRITES=true``.
+
+        Parameters
+        ----------
+        workspace_id:
+            AppFlowy workspace UUID string.
+        database_id:
+            AppFlowy database UUID string (the collab object that owns views).
+        view_id:
+            The specific database view whose row order to change.
+        row_id:
+            The row to reposition.
+        before_row_id:
+            Insert the row before this row id.  ``None`` appends to the end.
+        dry_run:
+            If ``True`` (default), compute and return the mutation summary
+            without posting to the server.
+
+        Returns
+        -------
+        dict with keys: ``dry_run``, ``moved``, ``from_index``, ``to_index``,
+        ``delta_update_bytes``, ``server_status`` (live only).
+        """
+        from .collab.collab_delete import (
+            allow_collab_writes,
+            invoke_yjs_reorder_row,
+        )
+
+        if not dry_run:
+            self._require_writes_enabled()
+            if not allow_collab_writes():
+                raise AppFlowyError(
+                    "APPFLOWY_ALLOW_COLLAB_WRITES is not set. "
+                    "Set APPFLOWY_ALLOW_COLLAB_WRITES=true to enable collab writes."
+                )
+
+        binary = self.get_binary_collab(workspace_id, database_id, collab_type="Database")
+        doc_state: list[int] = binary.get("doc_state", [])
+        if not doc_state:
+            raise AppFlowyError(
+                "Binary Database collab returned empty doc_state; cannot compute reorder delta."
+            )
+        result = invoke_yjs_reorder_row(
+            doc_state,
+            view_id=view_id,
+            row_id=row_id,
+            before_row_id=before_row_id,
+        )
+
+        summary: dict[str, Any] = {
+            "dry_run": dry_run,
+            "moved": result.get("moved"),
+            "from_index": result.get("from_index"),
+            "to_index": result.get("to_index"),
+            "delta_update_bytes": len(result.get("delta_update", [])),
+            "server_status": None,
+        }
+
+        if not dry_run:
+            post_data = self.request(
+                "POST",
+                f"/api/workspace/v1/{workspace_id}/collab/{database_id}/web-update",
+                json={
+                    "doc_state": result["delta_update"],
+                    "collab_type": _collab_type_int("Database"),
+                },
+            )
+            summary["server_status"] = post_data.get("code")
+
+        return summary
+
+    def reorder_database_column_collab(
+        self,
+        workspace_id: str,
+        database_id: str,
+        view_id: str,
+        field_id: str,
+        group_id: str,
+        *,
+        before_group_id: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Reorder a board column (group) inside a database view via Yjs collab mutation.
+
+        Moves the column identified by ``group_id`` (a Status option id for
+        Status-grouped boards) to the position immediately before
+        ``before_group_id``.  Pass ``before_group_id=None`` to move the
+        column to the end.
+
+        ``field_id`` must be the id of the field used to group the board view
+        (typically the Status field id, obtainable from
+        :meth:`list_database_fields`).
+
+        Dry-run by default.  Live writes require both
+        ``APPFLOWY_ALLOW_WRITES=true`` and
+        ``APPFLOWY_ALLOW_COLLAB_WRITES=true``.
+
+        Parameters
+        ----------
+        workspace_id:
+            AppFlowy workspace UUID string.
+        database_id:
+            AppFlowy database UUID string.
+        view_id:
+            The specific database view whose column order to change.
+        field_id:
+            The grouping field id (e.g. Status field id).
+        group_id:
+            The column to reposition — this is the select option id.
+        before_group_id:
+            Insert the column before this group id.  ``None`` appends.
+        dry_run:
+            If ``True`` (default), compute and return the mutation summary
+            without posting to the server.
+
+        Returns
+        -------
+        dict with keys: ``dry_run``, ``moved``, ``from_index``, ``to_index``,
+        ``delta_update_bytes``, ``server_status`` (live only).
+        """
+        from .collab.collab_delete import (
+            allow_collab_writes,
+            invoke_yjs_reorder_column,
+        )
+
+        if not dry_run:
+            self._require_writes_enabled()
+            if not allow_collab_writes():
+                raise AppFlowyError(
+                    "APPFLOWY_ALLOW_COLLAB_WRITES is not set. "
+                    "Set APPFLOWY_ALLOW_COLLAB_WRITES=true to enable collab writes."
+                )
+
+        binary = self.get_binary_collab(workspace_id, database_id, collab_type="Database")
+        doc_state: list[int] = binary.get("doc_state", [])
+        if not doc_state:
+            raise AppFlowyError(
+                "Binary Database collab returned empty doc_state; cannot compute reorder delta."
+            )
+        result = invoke_yjs_reorder_column(
+            doc_state,
+            view_id=view_id,
+            field_id=field_id,
+            group_id=group_id,
+            before_group_id=before_group_id,
+        )
+
+        summary: dict[str, Any] = {
+            "dry_run": dry_run,
+            "moved": result.get("moved"),
+            "from_index": result.get("from_index"),
+            "to_index": result.get("to_index"),
+            "delta_update_bytes": len(result.get("delta_update", [])),
+            "server_status": None,
+        }
+
+        if not dry_run:
+            post_data = self.request(
+                "POST",
+                f"/api/workspace/v1/{workspace_id}/collab/{database_id}/web-update",
+                json={
+                    "doc_state": result["delta_update"],
+                    "collab_type": _collab_type_int("Database"),
+                },
+            )
+            summary["server_status"] = post_data.get("code")
+
+        return summary
+
     def health_check(self) -> dict[str, Any]:
         try:
             self.request("GET", "/api/workspace")

@@ -200,6 +200,37 @@ function childGroupVisible(group) {
   return undefined;
 }
 
+/**
+ * Snapshot a single Y.Array/Y.Map/plain item to a plain-JS value before
+ * a transaction so it can be safely deep-cloned back into the document.
+ * Must be called BEFORE the item is deleted from its parent.
+ */
+function itemToJson(item) {
+  if (item instanceof Y.Map) return item.toJSON();
+  if (item instanceof Y.Array) return item.toArray().map(itemToJson);
+  if (item && typeof item === "object") return JSON.parse(JSON.stringify(item));
+  return item;
+}
+
+/**
+ * Rebuild a fresh Yjs value (Y.Map / Y.Array / primitive) from a plain-JS
+ * snapshot produced by itemToJson.  Primitives are returned as-is.
+ */
+function cloneFromJson(json) {
+  if (json === null || json === undefined) return json;
+  if (Array.isArray(json)) {
+    const arr = new Y.Array();
+    if (json.length > 0) arr.insert(0, json.map(cloneFromJson));
+    return arr;
+  }
+  if (typeof json === "object") {
+    const m = new Y.Map();
+    for (const [k, v] of Object.entries(json)) m.set(k, cloneFromJson(v));
+    return m;
+  }
+  return json;
+}
+
 function normalizeGroupArray(array) {
   for (let i = 0; i < array.length; i++) {
     const item = array.get(i);
@@ -441,6 +472,171 @@ function setSelectOptionVisibilityInDatabase(docStateBytes, input) {
   };
 }
 
+/**
+ * Reorder a row inside a specific database view's row_orders.
+ *
+ * Input:
+ *   operation: "reorder_row"
+ *   doc_state: [...]
+ *   view_id: "<uuid>"          // required: target view
+ *   row_id:  "<uuid>"          // row to move
+ *   before_row_id: "<uuid>" | null  // insert before this row; null = append to end
+ */
+function reorderRowInView(docStateBytes, input) {
+  const doc = new Y.Doc();
+  Y.applyUpdate(doc, docStateBytes);
+
+  const svBefore = Y.encodeStateVector(doc);
+  const root = doc.getMap("data");
+  const database = root.get("database");
+  if (!(database instanceof Y.Map)) {
+    throw new Error("data.database not found or not a YMap in collab doc");
+  }
+  const views = database.get("views");
+  if (!(views instanceof Y.Map)) {
+    throw new Error("data.database.views not found or not a YMap in collab doc");
+  }
+
+  const viewData = views.get(input.view_id);
+  if (!(viewData instanceof Y.Map)) {
+    throw new Error("View not found in collab doc: " + input.view_id);
+  }
+  const ro = viewData.get("row_orders");
+  if (!(ro instanceof Y.Array)) {
+    throw new Error("row_orders not found or not a YArray for view: " + input.view_id);
+  }
+
+  const items = ro.toArray();
+  const fromIndex = items.findIndex((item) => getRowId(item) === input.row_id);
+  if (fromIndex === -1) {
+    throw new Error("row_id not found in row_orders for view: " + input.row_id);
+  }
+
+  let toIndex;
+  if (input.before_row_id === null || input.before_row_id === undefined) {
+    // append to end
+    toIndex = items.length - 1;
+  } else {
+    toIndex = items.findIndex((item) => getRowId(item) === input.before_row_id);
+    if (toIndex === -1) {
+      throw new Error("before_row_id not found in row_orders: " + input.before_row_id);
+    }
+    // If moving forward, the target shifts by one after removal
+    if (fromIndex < toIndex) toIndex -= 1;
+  }
+
+  if (fromIndex === toIndex) {
+    // No-op
+    const deltaUpdate = Y.encodeStateAsUpdate(doc, svBefore);
+    return { moved: false, from_index: fromIndex, to_index: toIndex, deltaUpdate };
+  }
+
+  // Snapshot BEFORE the transaction so the YMap is still readable.
+  const movingSnapshot = itemToJson(items[fromIndex]);
+  doc.transact(() => {
+    ro.delete(fromIndex, 1);
+    const insertAt = Math.min(toIndex, ro.length);
+    ro.insert(insertAt, [cloneFromJson(movingSnapshot)]);
+  });
+
+  const deltaUpdate = Y.encodeStateAsUpdate(doc, svBefore);
+  return { moved: true, from_index: fromIndex, to_index: toIndex, deltaUpdate };
+}
+
+/**
+ * Reorder a board column (child group under the grouped field's group entry)
+ * inside a specific database view.
+ *
+ * This reorders entries in the view's groups[field_id].groups (child groups),
+ * which controls board column order for Status-grouped boards.
+ *
+ * Input:
+ *   operation:      "reorder_column"
+ *   doc_state:      [...]
+ *   view_id:        "<uuid>"           // required: target view
+ *   field_id:       "<uuid>"           // grouping field id (e.g. Status field)
+ *   group_id:       "<uuid>"           // child group (column) to move
+ *   before_group_id: "<uuid>" | null   // insert before this group; null = append
+ */
+function reorderColumnInView(docStateBytes, input) {
+  const doc = new Y.Doc();
+  Y.applyUpdate(doc, docStateBytes);
+
+  const svBefore = Y.encodeStateVector(doc);
+  const root = doc.getMap("data");
+  const database = root.get("database");
+  if (!(database instanceof Y.Map)) {
+    throw new Error("data.database not found or not a YMap in collab doc");
+  }
+  const views = database.get("views");
+  if (!(views instanceof Y.Map)) {
+    throw new Error("data.database.views not found or not a YMap in collab doc");
+  }
+
+  const viewData = views.get(input.view_id);
+  if (!(viewData instanceof Y.Map)) {
+    throw new Error("View not found in collab doc: " + input.view_id);
+  }
+
+  const groups = viewData.get("groups");
+  if (!(groups instanceof Y.Array)) {
+    throw new Error("groups not found or not a YArray for view: " + input.view_id);
+  }
+  normalizeGroupArray(groups);
+
+  // Find the top-level group entry for this field
+  let fieldGroupEntry = null;
+  for (let i = 0; i < groups.length; i++) {
+    const g = groups.get(i);
+    if (g instanceof Y.Map && g.get("field_id") === input.field_id) {
+      fieldGroupEntry = g;
+      break;
+    }
+  }
+  if (!fieldGroupEntry) {
+    throw new Error("No group entry found for field_id: " + input.field_id + " in view: " + input.view_id);
+  }
+
+  const childGroups = fieldGroupEntry.get("groups");
+  if (!(childGroups instanceof Y.Array)) {
+    throw new Error("groups[field_id].groups not a YArray for field: " + input.field_id);
+  }
+  normalizeGroupArray(childGroups);
+
+  const childItems = childGroups.toArray();
+  const fromIndex = childItems.findIndex((item) => childGroupId(item) === input.group_id);
+  if (fromIndex === -1) {
+    throw new Error("group_id not found in child groups: " + input.group_id);
+  }
+
+  let toIndex;
+  if (input.before_group_id === null || input.before_group_id === undefined) {
+    toIndex = childItems.length - 1;
+  } else {
+    toIndex = childItems.findIndex((item) => childGroupId(item) === input.before_group_id);
+    if (toIndex === -1) {
+      throw new Error("before_group_id not found in child groups: " + input.before_group_id);
+    }
+    if (fromIndex < toIndex) toIndex -= 1;
+  }
+
+  if (fromIndex === toIndex) {
+    const deltaUpdate = Y.encodeStateAsUpdate(doc, svBefore);
+    return { moved: false, from_index: fromIndex, to_index: toIndex, deltaUpdate };
+  }
+
+  // Snapshot BEFORE the transaction so the YMap is still readable.
+  const movingSnapshot = itemToJson(childItems[fromIndex]);
+  doc.transact(() => {
+    childGroups.delete(fromIndex, 1);
+    const insertAt = Math.min(toIndex, childGroups.length);
+    childGroups.insert(insertAt, [cloneFromJson(movingSnapshot)]);
+  });
+
+  const deltaUpdate = Y.encodeStateAsUpdate(doc, svBefore);
+  return { moved: true, from_index: fromIndex, to_index: toIndex, deltaUpdate };
+}
+
 function main() {
   const chunks = [];
   process.stdin.on("data", (c) => chunks.push(c));
@@ -502,6 +698,20 @@ function main() {
           throw new Error("set_select_option_visibility input visible must be boolean");
         }
         result = setSelectOptionVisibilityInDatabase(new Uint8Array(doc_state), input);
+      } else if (operation === "reorder_row") {
+        for (const key of ["view_id", "row_id"]) {
+          if (input[key] === undefined || input[key] === null || input[key] === "") {
+            throw new Error("reorder_row input must include " + key);
+          }
+        }
+        result = reorderRowInView(new Uint8Array(doc_state), input);
+      } else if (operation === "reorder_column") {
+        for (const key of ["view_id", "field_id", "group_id"]) {
+          if (input[key] === undefined || input[key] === null || input[key] === "") {
+            throw new Error("reorder_column input must include " + key);
+          }
+        }
+        result = reorderColumnInView(new Uint8Array(doc_state), input);
       } else {
         throw new Error("Unsupported operation: " + operation);
       }
@@ -550,6 +760,16 @@ function main() {
             visible: result.visible,
             affected_views: result.affectedViews,
             visibility_by_view: result.visibilityByView,
+            delta_update: Array.from(result.deltaUpdate),
+          })
+        );
+      } else if (operation === "reorder_row" || operation === "reorder_column") {
+        process.stdout.write(
+          JSON.stringify({
+            ok: true,
+            moved: result.moved,
+            from_index: result.from_index,
+            to_index: result.to_index,
             delta_update: Array.from(result.deltaUpdate),
           })
         );

@@ -13,9 +13,10 @@ ambiguous choices behind heuristics.
 - Implement safe Status option deletion only after Docker proves the policy for
   rows that still reference the deleted option. Likely choices: reject when used,
   or require an explicit replacement Status.
-- Add row/card reordering inside a board column, with a narrow Yjs mutation and
-  Docker/browser proof.
-- Add board column reordering, again only after local Yjs/browser proof.
+- [DONE] Add row/card reordering inside a board column, with a narrow Yjs mutation.
+  Docker/browser proof still pending; unit tests and offline Yjs helper integration tests cover the mutation behavior.
+- [DONE] Add board column reordering via Yjs childGroups mutation.
+  Docker/browser proof still pending; unit tests and offline Yjs helper integration tests cover the mutation behavior.
 - Keep task operations explicit. Search may return exact/contains matches, but
   the calling AI must choose among candidates unless exactly one match exists.
 

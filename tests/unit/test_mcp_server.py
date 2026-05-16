@@ -95,6 +95,8 @@ EXPECTED_WRITE_TOOLS = {
     "appflowy_upsert_verified_managed_task",
     "appflowy_move_managed_task_status",
     "appflowy_delete_database_row",
+    "appflowy_reorder_database_row",
+    "appflowy_reorder_database_column",
 }
 
 EXPECTED_ALL_TOOLS = EXPECTED_READ_TOOLS | EXPECTED_WRITE_TOOLS

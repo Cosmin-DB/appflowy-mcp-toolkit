@@ -1372,6 +1372,77 @@ def appflowy_delete_database_row(
         )
 
 
+@mcp.tool(name="appflowy_reorder_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_reorder_database_row(
+    workspace_id: str,
+    database_id: str,
+    view_id: str,
+    row_id: str,
+    before_row_id: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Reorder a row/card inside a board or grid view.
+
+    Moves ``row_id`` immediately before ``before_row_id`` in ``view_id``.
+    Pass ``before_row_id=None`` (or omit it) to move the row to the end.
+
+    Dry-run by default. Real writes require APPFLOWY_ALLOW_WRITES=true
+    and APPFLOWY_ALLOW_COLLAB_WRITES=true.
+
+    Use ``appflowy_get_database_row_orders`` to inspect current row order
+    before calling this tool.
+    """
+    with _client() as client:
+        return compact(
+            client.reorder_database_row_collab(
+                workspace_id,
+                database_id,
+                view_id,
+                row_id,
+                before_row_id=before_row_id,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_reorder_database_column", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_reorder_database_column(
+    workspace_id: str,
+    database_id: str,
+    view_id: str,
+    field_id: str,
+    group_id: str,
+    before_group_id: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Reorder a board column (status group) inside a database view.
+
+    Moves the column identified by ``group_id`` (the Status option id)
+    immediately before ``before_group_id``.  Pass ``before_group_id=None``
+    (or omit it) to move the column to the end.
+
+    ``field_id`` is the grouping field id (e.g. the Status field id);
+    obtain it from ``appflowy_list_database_fields``.
+    ``group_id`` is the select option id for the column;
+    obtain it from ``appflowy_get_database_view_configs``.
+
+    Dry-run by default. Real writes require APPFLOWY_ALLOW_WRITES=true
+    and APPFLOWY_ALLOW_COLLAB_WRITES=true.
+    """
+    with _client() as client:
+        return compact(
+            client.reorder_database_column_collab(
+                workspace_id,
+                database_id,
+                view_id,
+                field_id,
+                group_id,
+                before_group_id=before_group_id,
+                dry_run=dry_run,
+            )
+        )
+
+
 def main() -> None:
     mcp.run()
 

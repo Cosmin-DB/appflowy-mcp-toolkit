@@ -323,6 +323,50 @@ def invoke_yjs_set_select_option_visibility(
     return _invoke_yjs_helper(payload)
 
 
+def invoke_yjs_reorder_row(
+    doc_state: list[int],
+    *,
+    view_id: str,
+    row_id: str,
+    before_row_id: str | None,
+) -> dict[str, Any]:
+    """Call the Yjs helper to reorder a row inside a database view's row_orders.
+
+    ``before_row_id=None`` moves the row to the end of the view.
+    """
+    payload: dict[str, Any] = {
+        "operation": "reorder_row",
+        "doc_state": doc_state,
+        "view_id": view_id,
+        "row_id": row_id,
+        "before_row_id": before_row_id,
+    }
+    return _invoke_yjs_helper(payload)
+
+
+def invoke_yjs_reorder_column(
+    doc_state: list[int],
+    *,
+    view_id: str,
+    field_id: str,
+    group_id: str,
+    before_group_id: str | None,
+) -> dict[str, Any]:
+    """Call the Yjs helper to reorder a board column inside a database view.
+
+    ``before_group_id=None`` moves the column to the end.
+    """
+    payload: dict[str, Any] = {
+        "operation": "reorder_column",
+        "doc_state": doc_state,
+        "view_id": view_id,
+        "field_id": field_id,
+        "group_id": group_id,
+        "before_group_id": before_group_id,
+    }
+    return _invoke_yjs_helper(payload)
+
+
 def allow_collab_writes() -> bool:
     """Return True if APPFLOWY_ALLOW_COLLAB_WRITES is set to a truthy value."""
     return os.getenv("APPFLOWY_ALLOW_COLLAB_WRITES", "false").lower() in {
