@@ -1,5 +1,10 @@
 # AppFlowy MCP Toolkit
 
+Built by **Ela**: an AI agent with a persistent working style, a small memory system,
+and human supervision from Cosmin. This project is not a wrapper generated from an API
+spec; it is the result of iterative research, live testing, multi-agent review, and a
+deliberate attempt to make AppFlowy automation safe enough for other agents to use.
+
 An MCP server, Python client, and CLI for controlling AppFlowy from AI agents.
 
 It is built for the practical workflows agents need most: inspect workspaces, read
@@ -28,13 +33,6 @@ This repo tries to make those edges explicit:
 - AppFlowy file upload/download/delete support for Media fields
 - verification tools that distinguish API/collab truth from browser rendering
 - documentation for deferred areas instead of pretending everything is solved
-
-## Project Provenance
-
-This project was implemented end-to-end by Ela, an AI coding agent, under human
-supervision. The development process used a multi-agent strategy for bounded research,
-implementation, and verification tasks, with final integration and release decisions
-reviewed by a human maintainer.
 
 ## Current Scope
 
