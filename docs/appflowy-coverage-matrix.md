@@ -105,12 +105,15 @@ Approximate coverage by object family:
 - Browser UI acceptance is required for user-visible page/view/task flows.
 - Data-plane verification remains separate from AppFlowy Web rendering.
 - Human-name task mutations must resolve to exactly one Description match; duplicates return candidates and do not write.
+- The MCP should expose bounded tools, not replace the calling AI's reasoning.
+  Avoid fuzzy intent resolution and broad internal-JSON mutation endpoints.
 
 ## Immediate Next Implementable Slice
 
 The main implementation surface is now broad enough for a publishable pre-1.0 toolkit.
 Remaining finish work should focus on release evidence, not new risky feature families:
 
+- see `TODO.md` for the current task-board-first backlog and deferred page/document work
 - full gate battery from a clean checkout
 - package/build verification
 - secret/private-id scan

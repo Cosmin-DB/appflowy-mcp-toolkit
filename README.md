@@ -290,6 +290,11 @@ take no action. These operations are still dry-run by default; real row-id
 collab updates/deletes require the same write gates as the underlying row-id
 tools.
 
+These helpers are intentionally not fuzzy planners. They do not decide what the
+user meant, choose among similar cards, or clean a board autonomously. The
+calling AI should list/search, inspect candidates, and then call an explicit
+operation with an explicit target.
+
 Experimental collab write tools (dry-run by default; require `APPFLOWY_ALLOW_WRITES=true` **and**
 `APPFLOWY_ALLOW_COLLAB_WRITES=true`; requires Node.js 18+ with `npm install` in
 `src/appflowy_mcp_toolkit/collab/`):
