@@ -145,6 +145,25 @@ rendering as authoritative because Board may be stale until Grid/refresh warm-up
 Browser acceptance is tracked separately in
 [`docs/browser-ui-acceptance.md`](docs/browser-ui-acceptance.md).
 
+## Self-Hosted AppFlowy Tests
+
+The repo includes an optional self-hosted test workflow under
+[`docker/appflowy-test/`](docker/appflowy-test/). It uses the official
+`AppFlowy-IO/AppFlowy-Cloud` compose project at a pinned revision instead of vendoring
+AppFlowy into this repo.
+
+```bash
+scripts/appflowy_test_env_up.sh
+python scripts/appflowy_test_seed.py
+set -a
+source .env.selfhosted.generated
+set +a
+APPFLOWY_SELFHOSTED_TESTS=true uv run pytest tests/selfhosted -q
+scripts/appflowy_test_env_down.sh --volumes
+```
+
+Self-hosted tests are destructive and must only target the local disposable stack.
+
 ## Development
 
 ```bash

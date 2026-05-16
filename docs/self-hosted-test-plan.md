@@ -3,8 +3,9 @@
 Goal: provide a reproducible local AppFlowy environment that can run destructive MCP
 integration tests without touching AppFlowy official cloud or Cosmin's real workspaces.
 
-This is a planning document, not the implementation. Build this only after the MCP-side
-task-board contract is frozen and the official live smoke remains green.
+This plan now has an initial implementation: `docker/appflowy-test/`,
+`scripts/appflowy_test_env_up.sh`, `scripts/appflowy_test_env_down.sh`,
+`scripts/appflowy_test_seed.py`, and `tests/selfhosted/`.
 
 ## Goal
 
@@ -247,7 +248,11 @@ Deliverables:
 
 ## Open Questions
 
-- Which upstream AppFlowy-Cloud revision/image tags should be pinned?
+- Initial source pin selected: AppFlowy-Cloud tag `0.9.64`,
+  commit `ecf8c031d3c955508a0d3887acd61d970022db79`.
+- Initial Docker image pins selected from published Docker Hub tags:
+  `appflowy_cloud`/`appflowy_worker`/`gotrue`/`admin_frontend` `0.15.17`,
+  `appflowy_web` `0.13.3`, and `appflowy_ai` `0.15.10`.
 - Can AI/admin/search services be disabled for MCP task lifecycle tests?
 - Is AppFlowy Web required for seed, or can seed be fully API-driven?
 - What is the most reliable non-interactive auth flow for GoTrue in this stack?
@@ -255,17 +260,17 @@ Deliverables:
   as AppFlowy official cloud?
 - Does the Board/Grid refresh bug reproduce in self-hosted `appflowy_web`?
 
-## Recommended Next Action
+## Current Implementation Status
 
-Do not implement Docker yet.
+The MCP-side checklist in `docs/execution-roadmap.md` is complete. The repo now contains
+the first self-hosted test workflow scaffold. It cannot be validated on a machine without
+Docker; when Docker is available, the next verification step is:
 
-First finish the MCP-side checklist in `docs/execution-roadmap.md`:
-
-1. Freeze task contract.
-2. Add final task-facing tool names.
-3. Keep row/collab tools as diagnostics.
-4. Add browser/UI acceptance skeleton.
-5. Align docs and gates.
-
-Then start Phase D1 as a separate branch/commit.
-
+```bash
+scripts/appflowy_test_env_up.sh
+python scripts/appflowy_test_seed.py
+set -a
+source .env.selfhosted.generated
+set +a
+APPFLOWY_SELFHOSTED_TESTS=true uv run pytest tests/selfhosted -q
+```
