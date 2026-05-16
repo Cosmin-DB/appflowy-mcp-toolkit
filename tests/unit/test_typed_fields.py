@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, time
 from typing import Any
 
 import pytest
@@ -53,6 +53,9 @@ FIELDS: list[dict[str, Any]] = [
     {"id": "link_id", "name": "Link", "field_type": 6},
     {"id": "due_id", "name": "Due", "field_type": 2},
     {"id": "time_id", "name": "Start time", "field_type": 13},
+    {"id": "media_id", "name": "Attachments", "field_type": 14},
+    {"id": "summary_id", "name": "Summary", "field_type": 11},
+    {"id": "translate_id", "name": "Translate", "field_type": 12},
     {"id": "modified_id", "name": "Last modified", "field_type": 8},
     {"id": "relation_id", "name": "Related", "field_type": 10},
 ]
@@ -157,6 +160,7 @@ def test_build_cells_validates_select_options() -> None:
 
 def test_build_cells_supports_simple_scalar_types() -> None:
     now = datetime(2026, 5, 16, 12, 30)
+    start = time(9, 15, 30)
 
     assert build_cells(
         FIELDS,
@@ -165,15 +169,50 @@ def test_build_cells_supports_simple_scalar_types() -> None:
             "Blocked": False,
             "Link": "https://example.test/task",
             "Due": now,
+            "Start time": start,
+            "Summary": "manual summary",
         },
     ) == {
         "Points": 13.5,
         "Blocked": False,
         "Link": "https://example.test/task",
         "Due": "2026-05-16T12:30:00",
+        "Start time": 33330,
+        "Summary": "manual summary",
     }
 
-    assert build_cells(FIELDS, {"Due": "2026-05-16"}) == {"Due": "2026-05-16"}
+    assert build_cells(FIELDS, {"Due": "2026-05-16", "Start time": "09:15"}) == {
+        "Due": "2026-05-16",
+        "Start time": 33300,
+    }
+
+
+def test_build_cells_supports_relation_and_media_shapes() -> None:
+    assert build_cells(
+        FIELDS,
+        {
+            "Attachments": [
+                {
+                    "name": "Spec",
+                    "url": "https://example.test/spec.txt",
+                    "upload_type": "Network",
+                    "file_type": "Text",
+                }
+            ],
+        },
+    ) == {
+        "Attachments": {
+            "files": [
+                {
+                    "id": "media_0",
+                    "name": "Spec",
+                    "url": "https://example.test/spec.txt",
+                    "upload_type": "Network",
+                    "file_type": "Text",
+                }
+            ]
+        },
+    }
 
 
 @pytest.mark.parametrize(
@@ -186,6 +225,10 @@ def test_build_cells_supports_simple_scalar_types() -> None:
         ("Link", 123, "expects a URL string"),
         ("Link", "not-a-url", "expects an absolute URL"),
         ("Due", "not-a-date", "expects an ISO date/datetime string"),
+        ("Start time", "25:99", "expects seconds since midnight or HH:MM"),
+        ("Start time", 90000, "expects seconds in the range"),
+        ("Summary", 123, "expects a string"),
+        ("Attachments", [{"url": "not-a-url"}], "expects an absolute URL"),
     ],
 )
 def test_build_cells_validates_simple_scalar_types(field: str, value: object, message: str) -> None:
@@ -198,10 +241,10 @@ def test_build_cells_rejects_read_only_and_deferred_fields() -> None:
         build_cells(FIELDS, {"Last modified": "2026-05-16T12:00:00Z"})
 
     with pytest.raises(TypedFieldError, match="not supported yet"):
-        build_cells(FIELDS, {"Related": "row_123"})
+        build_cells(FIELDS, {"Translate": "manual translation"})
 
     with pytest.raises(TypedFieldError, match="not supported yet"):
-        build_cells(FIELDS, {"Start time": "09:15"})
+        build_cells(FIELDS, {"Related": ["row_123"]})
 
 
 def test_schema_rejects_unsupported_field_type() -> None:

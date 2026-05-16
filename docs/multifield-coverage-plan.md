@@ -32,12 +32,13 @@ The current AppFlowy `FieldType` enum in the upstream source is:
 - 7 Checklist: supported for checklist items and selected/completed state.
 - 8 LastEditedTime: read-only/auto-managed; rejected for writes.
 - 9 CreatedTime: read-only/auto-managed; rejected for writes.
-- 10 Relation: deferred; needs linked database semantics.
-- 11 Summary: deferred; AI/product-specific.
+- 10 Relation: deferred; the source shape is `{row_ids: [...]}`, but Docker REST reads omit
+  the written relation cell, matching upstream unsupported-field test behavior.
+- 11 Summary: supported for explicit/manual string values and proven against Docker.
 - 12 Translate: deferred; AI/product-specific.
-- 13 Time: deferred; the pinned self-hosted server accepted a Time field but returned null
-  for a simple HH:MM:SS write, so this needs source-level cell-shape work before exposing.
-- 14 Media: deferred; depends on file upload/storage semantics.
+- 13 Time: supported as seconds since midnight or HH:MM / HH:MM:SS and proven against Docker.
+- 14 Media: supported for network URL media entries and proven against Docker; file upload is
+  still outside this typed-cell layer.
 
 User-facing docs also mention email/phone-like field concepts in some contexts, but the
 current upstream enum does not expose separate Email/Phone variants in the inspected
@@ -58,9 +59,9 @@ The Docker smoke test now creates and upserts rows with `Description`, `Status`,
 rows afterwards. This is enough to prove the typed writer path against a real AppFlowy
 server without touching AppFlowy official cloud.
 
-The Docker smoke test also creates/reuses disposable scalar fields on the seeded
-database for `Number`, `DateTime`, `URL`, and `Checkbox`, writes a typed row, reads it
-back from AppFlowy, and verifies the returned cell shapes.
+The Docker smoke test also creates/reuses disposable fields on the seeded database for
+`Number`, `DateTime`, `URL`, `Checkbox`, `Time`, `Summary`, and `Media`, writes a
+typed row, reads it back from AppFlowy, and verifies the returned cell shapes.
 
 ## Implemented Work
 
@@ -92,7 +93,9 @@ values:
 - Checkbox: bool
 - URL: absolute URL string
 - Checklist: item list or structured options with selected/completed state
-- Time: deferred until the correct persisted cell shape is confirmed
+- Time: integer seconds since midnight, `HH:MM`, `HH:MM:SS`, or Python `time`
+- Summary: explicit/manual string value
+- Media: network URL media objects, or URL strings normalized to network media
 
 Coverage:
 
@@ -133,7 +136,7 @@ Implemented for the existing self-hosted To-dos board:
 
 - create a row with Description, Status, Multiselect, Checklist
 - upsert another row with Description, Status, Multiselect, Checklist
-- create/reuse scalar Docker fields for Number, DateTime, URL, Checkbox
+- create/reuse scalar Docker fields for Number, DateTime, URL, Checkbox, Time, Summary, Media
 - create a typed scalar row and verify AppFlowy's returned cell shapes
 - verify returned cells match normalized values
 - delete both rows and verify absence through the existing lifecycle cleanup path
@@ -148,9 +151,12 @@ Coverage:
 
 Keep these out of the first multi-field release unless explicitly needed:
 
-- Relation: needs creating or discovering a linked database and stable relation cell shape.
-- Media: needs file upload/download/delete workflow and storage safety rules.
-- Summary/Translate: depends on AppFlowy AI services and product configuration.
+- Relation: the source shape is `{row_ids: [...]}`, but Docker REST reads omit the written
+  relation cell, so the public typed API still rejects it.
+- Translate: the source writer accepts strings, but Docker REST reads return an empty value
+  for manual writes, so this needs product/AI flow investigation before exposing.
+- Media uploads: network media entries are supported; actual upload/download/delete workflow
+  belongs to the file-storage layer.
 - CreatedTime/LastEditedTime: read-only verification only.
 
 ## Remaining Next Slice
@@ -158,12 +164,11 @@ Keep these out of the first multi-field release unless explicitly needed:
 The typed API is usable for real task-card work now. The remaining completeness work is
 limited to deferred/high-complexity field families:
 
-- Time
 - Relation
-- Media
-- Summary
 - Translate
+- Media upload/download/delete workflows
 
-Time is listed here because the local Docker proof showed that a naive time-string
-write currently reads back as `null`; exposing it as supported would create false
-confidence.
+Relation is listed here because local Docker accepted the field but did not return a
+written relation cell through the REST row-detail path. Translate is listed here because
+manual writes read back empty; it likely needs the AppFlowy AI/product route rather than
+a normal row cell write.

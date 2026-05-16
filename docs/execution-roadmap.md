@@ -244,9 +244,9 @@ Validated status from the latest full battery:
 - Docker stack health OK and AppFlowy Web redirects to `/app`.
 - Seed reuse is idempotent for the one-seat local license behavior.
 - Self-hosted integration tests: 9 passed.
-- Browser smoke: 2 passed in the latest run; the row-rendering test may still record
-  an expected xfail on stale AppFlowy Web rendering builds.
-- Offline unit pytest: 117 passed.
+- Browser smoke: login/Grid passes; the MCP-created row rendering test may pass or record
+  an expected xfail depending on AppFlowy Web cache/rendering state.
+- Offline unit pytest: 122 passed.
 - Ruff format/check, mypy, build, and diff check passed.
 
 Remaining work:

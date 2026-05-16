@@ -99,6 +99,7 @@ def _ensure_database_field(
     *,
     name: str,
     field_type: int,
+    type_option_data: dict[str, Any] | None = None,
 ) -> None:
     def field_exists() -> bool:
         return any(
@@ -113,6 +114,7 @@ def _ensure_database_field(
         database_id,
         name=name,
         field_type=field_type,
+        type_option_data=type_option_data,
         dry_run=False,
     )
 
@@ -612,6 +614,9 @@ def test_selfhosted_typed_scalar_field_lifecycle() -> None:
             ("MCP DateTime", 2),
             ("MCP URL", 6),
             ("MCP Checkbox", 5),
+            ("MCP Time", 13),
+            ("MCP Summary", 11),
+            ("MCP Media", 14),
         ):
             _ensure_database_field(
                 client,
@@ -620,7 +625,6 @@ def test_selfhosted_typed_scalar_field_lifecycle() -> None:
                 name=name,
                 field_type=field_type,
             )
-
         try:
             created = client.create_typed_database_row_verified(
                 workspace_id,
@@ -632,6 +636,16 @@ def test_selfhosted_typed_scalar_field_lifecycle() -> None:
                     "MCP DateTime": "2026-05-16T13:00:00+00:00",
                     "MCP URL": "https://example.test/task",
                     "MCP Checkbox": True,
+                    "MCP Time": "09:15:30",
+                    "MCP Summary": "manual summary",
+                    "MCP Media": [
+                        {
+                            "name": "Spec",
+                            "url": "https://example.test/spec.txt",
+                            "upload_type": "Network",
+                            "file_type": "Text",
+                        }
+                    ],
                 },
                 dry_run=False,
                 include_blob_diff=False,
@@ -640,6 +654,7 @@ def test_selfhosted_typed_scalar_field_lifecycle() -> None:
             created_row_ids.append(row_id)
             assert created["typed_cells"]["MCP Number"] == 42.5
             assert created["typed_cells"]["MCP Checkbox"] is True
+            assert created["typed_cells"]["MCP Time"] == 33330
 
             row = _row_by_id(client, workspace_id, database_id, row_id, with_doc=True)
             cells = row["cells"]
@@ -648,6 +663,10 @@ def test_selfhosted_typed_scalar_field_lifecycle() -> None:
             assert cells["MCP DateTime"]["start"] == "2026-05-16T13:00:00+00:00"
             assert cells["MCP URL"] == "https://example.test/task"
             assert cells["MCP Checkbox"] is True
+            assert cells["MCP Time"] == 33330
+            assert cells["MCP Summary"] == "manual summary"
+            assert cells["MCP Media"]["files"][0]["url"] == "https://example.test/spec.txt"
+            assert cells["MCP Media"]["files"][0]["upload_type"] == 1
         finally:
             _delete_created(client, workspace_id, database_id, created_row_ids)
 

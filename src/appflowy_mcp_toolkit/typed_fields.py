@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, time
 from enum import Enum
 from typing import Any
 from urllib.parse import urlparse
@@ -65,13 +65,7 @@ FIELD_TYPE_NAMES = {
 }
 
 READ_ONLY_TYPES = {FieldType.LAST_EDITED_TIME, FieldType.CREATED_TIME}
-DEFERRED_TYPES = {
-    FieldType.RELATION,
-    FieldType.MEDIA,
-    FieldType.SUMMARY,
-    FieldType.TRANSLATE,
-    FieldType.TIME,
-}
+DEFERRED_TYPES = {FieldType.RELATION, FieldType.TRANSLATE}
 
 
 @dataclass(frozen=True)
@@ -221,12 +215,18 @@ def _build_cell(field: Field, value: Any) -> Any:
         case FieldType.URL:
             if not isinstance(value, str):
                 raise TypedFieldError(f"Field {field.name!r} expects a URL string")
-            parsed = urlparse(value)
-            if not parsed.scheme or not parsed.netloc:
-                raise TypedFieldError(f"Field {field.name!r} expects an absolute URL")
+            _validate_absolute_url(field, value)
             return value
         case FieldType.CHECKLIST:
             return _build_checklist(field, value)
+        case FieldType.TIME:
+            return _build_time(field, value)
+        case FieldType.SUMMARY:
+            if not isinstance(value, str):
+                raise TypedFieldError(f"Field {field.name!r} expects a string")
+            return value
+        case FieldType.MEDIA:
+            return _build_media(field, value)
         case _:
             _ensure_writable(field)
             raise TypedFieldError(f"Unsupported field type for field {field.name!r}: {field.type}")
@@ -319,6 +319,68 @@ def _checklist_option_from_item(field: Field, item: Any, index: int) -> dict[str
     raise TypedFieldError(f"Field {field.name!r} checklist items must be strings or objects")
 
 
+def _build_time(field: Field, value: Any) -> int:
+    if isinstance(value, bool):
+        raise TypedFieldError(f"Field {field.name!r} expects seconds since midnight or HH:MM")
+    if isinstance(value, int):
+        return _validate_seconds_since_midnight(field, value)
+    if isinstance(value, time):
+        return value.hour * 3600 + value.minute * 60 + value.second
+    if isinstance(value, str):
+        text = value.strip()
+        try:
+            parsed = time.fromisoformat(text)
+        except ValueError as exc:
+            raise TypedFieldError(
+                f"Field {field.name!r} expects seconds since midnight or HH:MM"
+            ) from exc
+        return parsed.hour * 3600 + parsed.minute * 60 + parsed.second
+    raise TypedFieldError(f"Field {field.name!r} expects seconds since midnight or HH:MM")
+
+
+def _validate_seconds_since_midnight(field: Field, value: int) -> int:
+    if value < 0 or value >= 24 * 3600:
+        raise TypedFieldError(f"Field {field.name!r} expects seconds in the range 0..86399")
+    return value
+
+
+def _build_media(field: Field, value: Any) -> dict[str, Any]:
+    files_value = value.get("files") if isinstance(value, Mapping) else value
+    files = _require_sequence(field, files_value, "media files")
+    return {
+        "files": [_media_file_from_item(field, item, index) for index, item in enumerate(files)]
+    }
+
+
+def _media_file_from_item(field: Field, item: Any, index: int) -> dict[str, Any]:
+    if isinstance(item, str):
+        _validate_absolute_url(field, item)
+        return {
+            "name": item.rsplit("/", 1)[-1] or f"media_{index}",
+            "url": item,
+            "upload_type": "Network",
+            "file_type": "Link",
+        }
+    if isinstance(item, Mapping):
+        url = _first_str(item, ("url", "href"))
+        if url is None:
+            raise TypedFieldError(f"Field {field.name!r} media item is missing a URL")
+        _validate_absolute_url(field, url)
+        name = (
+            _first_str(item, ("name", "title", "label"))
+            or url.rsplit("/", 1)[-1]
+            or f"media_{index}"
+        )
+        return {
+            "id": _first_str(item, ("id", "file_id")) or f"media_{index}",
+            "name": name,
+            "url": url,
+            "upload_type": _first_str(item, ("upload_type", "uploadType")) or "Network",
+            "file_type": _first_str(item, ("file_type", "fileType", "type")) or "Link",
+        }
+    raise TypedFieldError(f"Field {field.name!r} media files must be URLs or objects")
+
+
 def _ensure_writable(field: Field) -> None:
     if field.field_type in READ_ONLY_TYPES:
         raise TypedFieldError(
@@ -353,6 +415,12 @@ def _maybe_existing_option(field: Field, value: str) -> FieldOption | None:
         if value == option.name or value == option.id:
             return option
     return None
+
+
+def _validate_absolute_url(field: Field, value: str) -> None:
+    parsed = urlparse(value)
+    if not parsed.scheme or not parsed.netloc:
+        raise TypedFieldError(f"Field {field.name!r} expects an absolute URL")
 
 
 def _unique_index(fields: Sequence[Field], attr: str) -> dict[str, Field]:

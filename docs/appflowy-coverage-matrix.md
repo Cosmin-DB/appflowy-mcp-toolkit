@@ -22,7 +22,7 @@ Approximate coverage by object family:
 | Folder/view/page read | high | high for tree/page read, medium for mutations |
 | Database schema/rows/tasks | high | high for task lifecycle data plane |
 | Database fields | medium | read/create done, field-type payloads are caller supplied |
-| Database typed fields | high | common task-card and scalar fields covered; Time/relation/media/AI deferred |
+| Database typed fields | high | most task-card/scalar fields covered; relation/translate and media uploads deferred |
 | Collab diagnostics/delete | medium | high for diagnostics/delete, low for arbitrary mutations |
 | Files/blobs | read metadata/usage | high for metadata, writes deferred |
 | Trash/favorites/recent | read implemented | high |
@@ -43,7 +43,7 @@ Approximate coverage by object family:
 | Database list | list databases implemented | database-view route exists | view/layout routes likely collab-backed | page-view trash/delete | partial | Add database-view creation only after page/view work |
 | Database fields | list fields implemented | create field implemented dry-run default | no safe update/delete route confirmed from matrix yet | no safe delete route confirmed | partial | Add friendly field-type builders later; raw payload route exists now |
 | Database rows | list ids/details implemented | create/upsert implemented | upsert/update, status move implemented | no REST delete; Yjs row-order delete implemented | high | Add updated-row listing and broader field type tests |
-| Typed row cells | schema parsing implemented | typed create/upsert implemented | typed upsert implemented | delete via row delete path | common + scalar fields Docker-proven | Investigate Time cell shape; defer relation/media/AI fields |
+| Typed row cells | schema parsing implemented | typed create/upsert implemented | typed upsert implemented | delete via row delete path | common + scalar + network media fields Docker-proven | Investigate relation/translate and media upload workflows |
 | Task board | list/create/update/move/delete implemented | implemented | implemented | implemented via Yjs row-order delete | high for data plane | Add browser UI acceptance for Grid/Board |
 | Row/card ordering | row_orders read implemented | n/a | reorder requires Yjs mutation | n/a | diagnostic only | Defer until browser behavior is mapped |
 | Collab documents | JSON/raw/blob diff read implemented | create collab route exists | web-update used only for row delete | delete collab route exists but dangerous | partial | Keep generic collab writes private/diagnostic; do not expose broad destructive collab delete |
