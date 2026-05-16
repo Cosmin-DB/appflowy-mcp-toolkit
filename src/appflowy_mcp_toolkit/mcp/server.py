@@ -137,6 +137,29 @@ def appflowy_get_database_blob_diff(
         )
 
 
+@mcp.tool(name="appflowy_verify_database_row", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_verify_database_row(
+    workspace_id: str,
+    database_id: str,
+    row_id: str,
+    include_blob_diff: bool = True,
+) -> str:
+    """Verify one row through REST, row_orders and row collab signals.
+
+    This is a data-plane verification. AppFlowy Web Board may still need a
+    Grid/refresh warm-up before it renders the card.
+    """
+    with _client() as client:
+        return compact(
+            client.verify_database_row(
+                workspace_id,
+                database_id,
+                row_id,
+                include_blob_diff=include_blob_diff,
+            )
+        )
+
+
 @mcp.tool(name="appflowy_create_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
 def appflowy_create_database_row(
     workspace_id: str,
@@ -157,6 +180,32 @@ def appflowy_create_database_row(
                 cells=cells,
                 document=document,
                 dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_create_verified_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_create_verified_database_row(
+    workspace_id: str,
+    database_id: str,
+    cells: dict[str, object],
+    document: str | None = None,
+    dry_run: bool = True,
+    include_blob_diff: bool = True,
+) -> str:
+    """Create one row and verify API/collab visibility after the write.
+
+    Dry-run by default; real writes require APPFLOWY_ALLOW_WRITES=true.
+    """
+    with _client() as client:
+        return compact(
+            client.create_database_row_verified(
+                workspace_id,
+                database_id,
+                cells=cells,
+                document=document,
+                dry_run=dry_run,
+                include_blob_diff=include_blob_diff,
             )
         )
 

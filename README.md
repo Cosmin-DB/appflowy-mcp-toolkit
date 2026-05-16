@@ -42,6 +42,8 @@ appflowy-toolkit row-details --workspace-id <workspace_id> --database-id <databa
 appflowy-toolkit collab-json --workspace-id <workspace_id> --object-id <database_id> --collab-type Database
 appflowy-toolkit row-orders --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit blob-diff --workspace-id <workspace_id> --database-id <database_id>
+appflowy-toolkit verify-row --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id>
+appflowy-toolkit create-verified-row --workspace-id <workspace_id> --database-id <database_id> --cells-json '{"Description":"Test"}'
 
 # Experimental: Yjs-based row delete (requires Node.js 18+ and npm install in collab/)
 appflowy-toolkit delete-row --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id>
@@ -67,11 +69,13 @@ Initial tools are read-only:
 - `appflowy_get_collab_json`
 - `appflowy_get_database_row_orders`
 - `appflowy_get_database_blob_diff`
+- `appflowy_verify_database_row`
 
 Write tools exist for controlled testing, but dry-run by default and require
 `APPFLOWY_ALLOW_WRITES=true` for real mutations:
 
 - `appflowy_create_database_row`
+- `appflowy_create_verified_database_row`
 - `appflowy_upsert_database_row`
 - `appflowy_upsert_managed_task`
 - `appflowy_move_managed_task_status`
@@ -97,6 +101,12 @@ to seed row documents before rendering database views. `blob-diff` /
 `appflowy_get_database_blob_diff` decodes that response into a safe summary (row ids,
 operation types, RID values and doc-state byte counts) without exposing raw row document
 state. This is diagnostic only; it does not mutate AppFlowy.
+
+Known AppFlowy Web limitation: Board rendering can be stale even when a row is already
+present in REST and collab state. In live AppFlowy official testing, refreshing Board
+could show empty/missing cards until the Grid tab was opened and the Board revisited.
+Use `verify-row` / `appflowy_verify_database_row` for data-plane verification; use
+browser/live tests separately for UI rendering.
 
 ## Development
 

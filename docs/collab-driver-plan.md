@@ -142,6 +142,21 @@ Create proof result, 2026-05-16:
   appear in AppFlowy Web Grid and then Board after row-document preload. What remains
   unproven is reliable direct board rendering without requiring a manual Grid warm-up,
   plus the full edit/move/delete lifecycle.
+- Follow-up implementation added a data-plane verification layer:
+  `verify-row` / `appflowy_verify_database_row` checks REST row list, REST row detail,
+  database `row_orders`, DatabaseRow collab JSON, and optional `blob/diff`.
+  `create-verified-row` / `appflowy_create_verified_database_row` creates a row and
+  immediately runs that verification. A live disposable-row proof against AppFlowy
+  official created row `00f6c6ef-00a2-4d3a-9f68-3cb34d16e592` with
+  `Description = ela_verified_create_1778920907`; verification found it in REST row
+  list, REST detail, all three observed `row_orders`, and DatabaseRow collab.
+  The same row did not immediately render in the browser snapshot, reinforcing that
+  UI visibility must be tested separately from data-plane correctness.
+- Cosmin independently reproduced the Board/Grid bug in his own AppFlowy official
+  workspace on Firefox and Chrome: refreshing/F5 on Board makes cards disappear, then
+  opening Grid and returning to Board makes them reappear. Treat this as an AppFlowy
+  Web Board cache/preload/rendering issue and not an MCP data-write failure unless a
+  future data-plane check contradicts it.
 
 Next investigation slice: verify whether REST-created rows reliably appear in Grid and
 Board after refresh/warm-up, then test edit and move semantics. Do not promote REST create

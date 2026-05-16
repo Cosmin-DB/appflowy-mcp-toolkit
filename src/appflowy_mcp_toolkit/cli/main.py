@@ -53,6 +53,30 @@ def build_parser() -> argparse.ArgumentParser:
         "--execute", action="store_true", help="Actually create it; default is dry-run"
     )
 
+    create_verified_row = sub.add_parser("create-verified-row")
+    create_verified_row.add_argument("--workspace-id", required=True)
+    create_verified_row.add_argument("--database-id", required=True)
+    create_verified_row.add_argument("--cells-json", default="{}")
+    create_verified_row.add_argument("--document")
+    create_verified_row.add_argument(
+        "--skip-blob-diff",
+        action="store_true",
+        help="Skip blob/diff verification; useful while AppFlowy Web reports pending live rows",
+    )
+    create_verified_row.add_argument(
+        "--execute", action="store_true", help="Actually create it; default is dry-run"
+    )
+
+    verify_row = sub.add_parser("verify-row")
+    verify_row.add_argument("--workspace-id", required=True)
+    verify_row.add_argument("--database-id", required=True)
+    verify_row.add_argument("--row-id", required=True)
+    verify_row.add_argument(
+        "--skip-blob-diff",
+        action="store_true",
+        help="Skip blob/diff verification; useful while AppFlowy Web reports pending live rows",
+    )
+
     upsert_row = sub.add_parser("upsert-row")
     upsert_row.add_argument("--workspace-id", required=True)
     upsert_row.add_argument("--database-id", required=True)
@@ -158,6 +182,22 @@ def main(argv: Sequence[str] | None = None) -> int:
                 cells=json.loads(args.cells_json),
                 document=args.document,
                 dry_run=not args.execute,
+            )
+        elif args.command == "create-verified-row":
+            result = client.create_database_row_verified(
+                args.workspace_id,
+                args.database_id,
+                cells=json.loads(args.cells_json),
+                document=args.document,
+                dry_run=not args.execute,
+                include_blob_diff=not args.skip_blob_diff,
+            )
+        elif args.command == "verify-row":
+            result = client.verify_database_row(
+                args.workspace_id,
+                args.database_id,
+                args.row_id,
+                include_blob_diff=not args.skip_blob_diff,
             )
         elif args.command == "upsert-row":
             result = client.upsert_database_row(

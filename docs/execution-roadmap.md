@@ -5,8 +5,8 @@ task-board MCP without depending on large, ambiguous work packets.
 
 ## Current baseline
 
-The repo has advanced past the cleanup baseline. Latest committed checkpoint before the
-current follow-up verification is `ab75669` (`Add AppFlowy blob diff inspector`).
+The repo has advanced past the cleanup baseline. Latest committed checkpoint is
+`0f4997a` (`Correct AppFlowy web visibility findings`).
 
 Implemented:
 
@@ -14,6 +14,9 @@ Implemented:
 - Guarded REST row creation/upsert/status operations.
 - Read-only collab JSON and row-order inspection.
 - Read-only blob/diff inspection for AppFlowy Web row-document seed diagnostics.
+- Data-plane row verification through REST row list/detail, database `row_orders`,
+  DatabaseRow collab JSON, and optional blob/diff diagnostics.
+- Verified create path exposed through CLI/client/MCP for controlled task-row proof.
 - Experimental Yjs row delete through client, CLI, and MCP.
 - Safety gates for writes and collab writes.
 
@@ -167,5 +170,6 @@ Exit criteria:
 
 ## Immediate next step
 
-Start Phase 1, item 1 only: create proof for one disposable task. Do not start edit,
-move, delete, packaging, or publication until that evidence is written down.
+Finish Phase 1, item 1 by recording the verified-create evidence and the observed
+AppFlowy Web Board/Grid rendering limitation. Do not start edit, move, delete,
+packaging, or publication until that evidence is written down.

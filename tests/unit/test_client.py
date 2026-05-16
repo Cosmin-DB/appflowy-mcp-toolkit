@@ -153,6 +153,121 @@ def test_create_database_row_executes_when_enabled():
     assert seen[0].url.path == "/api/workspace/ws_demo_001/database/db_demo_001/row"
 
 
+def test_create_database_row_verified_dry_run_describes_checks(make_client):
+    client = make_client(lambda _request: json_response({"data": "unused"}))
+
+    result = client.create_database_row_verified(
+        "ws_demo_001",
+        "db_demo_001",
+        cells={"Description": "Test"},
+    )
+
+    assert result["dry_run"] is True
+    assert "REST row list" in result["verification"]["would_check"]
+    assert "database row_orders" in result["verification"]["would_check"]
+
+
+def test_verify_database_row_uses_data_plane_signals():
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        path = request.url.path
+        if path == "/api/workspace/ws/database/db/row":
+            return json_response({"data": [{"id": "row-target"}]})
+        if path == "/api/workspace/ws/database/db/row/detail":
+            return json_response({"data": [{"id": "row-target", "cells": {"Description": "T"}}]})
+        if path == "/api/workspace/v1/ws/collab/db/json":
+            return json_response(
+                {
+                    "data": {
+                        "collab": {
+                            "database": {
+                                "views": {
+                                    "view_board": {
+                                        "row_orders": [{"id": "row-target"}],
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            )
+        if path == "/api/workspace/v1/ws/collab/row-target/json":
+            return json_response({"data": {"collab": {"database_row": {"data": {}}}}})
+        raise AssertionError(path)
+
+    config = AppFlowyConfig(
+        base_url="https://example.test",
+        access_token="test-token",
+    )
+    from appflowy_mcp_toolkit.client import AppFlowyClient
+
+    client = AppFlowyClient(
+        config,
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    result = client.verify_database_row("ws", "db", "row-target", include_blob_diff=False)
+
+    assert result["verified"] is True
+    assert result["rest_row_list_present"] is True
+    assert result["rest_row_detail_present"] is True
+    assert result["row_orders_present"] is True
+    assert result["views_containing_row"] == ["view_board"]
+    assert result["database_row_collab_present"] is True
+    assert any(request.url.params.get("collab_type") == "4" for request in seen)
+
+
+def test_create_database_row_verified_executes_then_verifies():
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if request.method == "POST" and path == "/api/workspace/ws/database/db/row":
+            return json_response({"data": "row-created", "code": 0})
+        if request.method == "GET" and path == "/api/workspace/ws/database/db/row":
+            return json_response({"data": [{"id": "row-created"}]})
+        if path == "/api/workspace/ws/database/db/row/detail":
+            return json_response({"data": [{"id": "row-created"}]})
+        if path == "/api/workspace/v1/ws/collab/db/json":
+            return json_response(
+                {
+                    "data": {
+                        "views": {
+                            "view_001": {
+                                "row_orders": ["row-created"],
+                            }
+                        }
+                    }
+                }
+            )
+        if path == "/api/workspace/v1/ws/collab/row-created/json":
+            return json_response({"data": {"collab": {"database_row": {}}}})
+        raise AssertionError(path)
+
+    config = AppFlowyConfig(
+        base_url="https://example.test",
+        access_token="test-token",
+        allow_writes=True,
+    )
+    from appflowy_mcp_toolkit.client import AppFlowyClient
+
+    client = AppFlowyClient(
+        config,
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    result = client.create_database_row_verified(
+        "ws",
+        "db",
+        cells={"Description": "Created"},
+        dry_run=False,
+        include_blob_diff=False,
+    )
+
+    assert result["create"]["data"] == "row-created"
+    assert result["verification"]["verified"] is True
+
+
 def test_list_select_options_extracts_status_options(make_client):
     def handler(_request: httpx.Request) -> httpx.Response:
         return json_response(

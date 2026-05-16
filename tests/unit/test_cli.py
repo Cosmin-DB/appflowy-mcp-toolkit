@@ -88,6 +88,86 @@ def test_cli_blob_diff(monkeypatch, capsys):
     assert parsed["counts"]["rows"] == 0
 
 
+def test_cli_verify_row(monkeypatch, capsys):
+    from unittest.mock import patch as _patch
+
+    verify_result = {
+        "row_id": "row-abc",
+        "verified": True,
+        "rest_row_list_present": True,
+    }
+
+    monkeypatch.setenv("APPFLOWY_BASE_URL", "https://example.test")
+    monkeypatch.setenv("APPFLOWY_ACCESS_TOKEN", "test-token")
+
+    with _patch(
+        "appflowy_mcp_toolkit.client.AppFlowyClient.verify_database_row",
+        return_value=verify_result,
+    ) as mock_method:
+        rc = main(
+            [
+                "verify-row",
+                "--workspace-id",
+                "ws_001",
+                "--database-id",
+                "db_001",
+                "--row-id",
+                "row-abc",
+                "--skip-blob-diff",
+            ]
+        )
+
+    assert rc == 0
+    parsed = json.loads(capsys.readouterr().out)
+    assert parsed["verified"] is True
+    mock_method.assert_called_once_with(
+        "ws_001",
+        "db_001",
+        "row-abc",
+        include_blob_diff=False,
+    )
+
+
+def test_cli_create_verified_row_dry_run(monkeypatch, capsys):
+    from unittest.mock import patch as _patch
+
+    dry_run_result = {
+        "dry_run": True,
+        "verification": {"would_check": ["REST row list"]},
+    }
+
+    monkeypatch.setenv("APPFLOWY_BASE_URL", "https://example.test")
+    monkeypatch.setenv("APPFLOWY_ACCESS_TOKEN", "test-token")
+
+    with _patch(
+        "appflowy_mcp_toolkit.client.AppFlowyClient.create_database_row_verified",
+        return_value=dry_run_result,
+    ) as mock_method:
+        rc = main(
+            [
+                "create-verified-row",
+                "--workspace-id",
+                "ws_001",
+                "--database-id",
+                "db_001",
+                "--cells-json",
+                '{"Description":"Test"}',
+            ]
+        )
+
+    assert rc == 0
+    parsed = json.loads(capsys.readouterr().out)
+    assert parsed["dry_run"] is True
+    mock_method.assert_called_once_with(
+        "ws_001",
+        "db_001",
+        cells={"Description": "Test"},
+        document=None,
+        dry_run=True,
+        include_blob_diff=True,
+    )
+
+
 def test_cli_delete_row_dry_run(monkeypatch, capsys):
     """delete-row dry-run: patches the client method directly, no real subprocess."""
     from unittest.mock import patch as _patch

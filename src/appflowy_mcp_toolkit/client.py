@@ -196,6 +196,60 @@ class AppFlowyClient:
         self._require_writes_enabled()
         return self.request("POST", path, json=payload)
 
+    def create_database_row_verified(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        cells: dict[str, Any] | None = None,
+        document: str | None = None,
+        dry_run: bool = True,
+        include_blob_diff: bool = True,
+    ) -> dict[str, Any]:
+        """Create one row and verify server-side visibility after the write.
+
+        AppFlowy Web Board can render stale/empty state even when the row is
+        already present in REST and collab state. This helper makes that
+        distinction explicit: it verifies the data-plane signals we can trust
+        programmatically, and leaves UI rendering to live/browser tests.
+        """
+        create_result = self.create_database_row(
+            workspace_id,
+            database_id,
+            cells=cells,
+            document=document,
+            dry_run=dry_run,
+        )
+        if dry_run:
+            return {
+                **create_result,
+                "verification": {
+                    "would_check": [
+                        "REST row list",
+                        "REST row detail",
+                        "database row_orders",
+                        "DatabaseRow collab JSON",
+                        *(["database blob/diff"] if include_blob_diff else []),
+                    ],
+                },
+            }
+
+        row_id = _extract_row_id(create_result)
+        if row_id is None:
+            raise AppFlowySchemaError(
+                "Create row response did not include a row id", payload=create_result
+            )
+
+        return {
+            "create": create_result,
+            "verification": self.verify_database_row(
+                workspace_id,
+                database_id,
+                row_id,
+                include_blob_diff=include_blob_diff,
+            ),
+        }
+
     def upsert_database_row(
         self,
         workspace_id: str,
@@ -274,6 +328,69 @@ class AppFlowyClient:
                 "verified_row": self.get_database_rows(workspace_id, database_id, [row_id]),
             }
         return result
+
+    def verify_database_row(
+        self,
+        workspace_id: str,
+        database_id: str,
+        row_id: str,
+        *,
+        include_blob_diff: bool = True,
+    ) -> dict[str, Any]:
+        """Verify one row through AppFlowy's API/collab data-plane signals."""
+        row_list = self.list_database_row_ids(workspace_id, database_id)
+        row_detail = self.get_database_rows(workspace_id, database_id, [row_id], with_doc=True)
+        row_orders = self.get_database_row_orders(workspace_id, database_id)
+
+        views_containing_row = [
+            entry["view_id"] for entry in row_orders if row_id in entry.get("row_orders", [])
+        ]
+        verification: dict[str, Any] = {
+            "row_id": row_id,
+            "rest_row_list_present": any(item.get("id") == row_id for item in row_list),
+            "rest_row_detail_present": bool(row_detail),
+            "row_orders_present": bool(views_containing_row),
+            "views_containing_row": views_containing_row,
+            "ui_note": (
+                "This verifies AppFlowy's data plane. AppFlowy Web Board may still "
+                "require Grid/refresh warm-up before rendering the card."
+            ),
+        }
+
+        try:
+            row_collab = self.get_collab_json(workspace_id, row_id, collab_type="DatabaseRow")
+            verification["database_row_collab_present"] = bool(row_collab)
+        except AppFlowyError as exc:
+            verification["database_row_collab_present"] = None
+            verification["database_row_collab_error"] = str(exc)
+
+        if include_blob_diff:
+            try:
+                blob_diff = self.get_database_blob_diff_summary(workspace_id, database_id)
+                blob_rows = [
+                    item
+                    for item in blob_diff.get("rows", [])
+                    if isinstance(item, dict) and item.get("row_id") == row_id
+                ]
+                verification["blob_diff_status_name"] = blob_diff.get("status_name")
+                verification["blob_diff_row_operations"] = [
+                    item.get("operation") for item in blob_rows
+                ]
+                verification["blob_diff_row_present"] = bool(blob_rows)
+            except AppFlowyError as exc:
+                verification["blob_diff_status_name"] = None
+                verification["blob_diff_row_present"] = None
+                verification["blob_diff_error"] = str(exc)
+
+        verification["verified"] = all(
+            [
+                verification["rest_row_list_present"],
+                verification["rest_row_detail_present"],
+                verification["row_orders_present"],
+                verification["database_row_collab_present"] is True,
+            ]
+        )
+        return verification
 
     # ------------------------------------------------------------------
     # Collab inspector (read-only)
@@ -616,6 +733,22 @@ def _collab_type_int(collab_type: str | int) -> int:
             f"Pass an integer, a decimal string, or one of: {list(_COLLAB_TYPE_MAP)}"
         )
     return resolved
+
+
+def _extract_row_id(create_result: dict[str, Any]) -> str | None:
+    data = create_result.get("data")
+    if isinstance(data, str) and data:
+        return data
+    if isinstance(data, dict):
+        for key in ("id", "row_id"):
+            value = data.get(key)
+            if isinstance(value, str) and value:
+                return value
+    for key in ("id", "row_id"):
+        value = create_result.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return None
 
 
 def _extract_row_orders(collab: Any) -> list[dict[str, Any]]:
