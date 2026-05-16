@@ -109,18 +109,22 @@ Create proof result, 2026-05-16:
   `row_orders` arrays: inline grid, named `Grid`, and board view.
 - The new row's `DatabaseRow` collab contained field-id keyed cells:
   `phVRgL` for `Description`, `SqwRg1` with option id `CEZD` for `To Do`.
-- AppFlowy Web at `appflowy.com/app/<workspace>/<board-view>` still rendered all
-  board columns with count `0` after reload and after clearing the browser's AppFlowy
-  IndexedDB caches.
+- Initial AppFlowy Web board checks at `appflowy.com/app/<workspace>/<board-view>`
+  rendered all board columns with count `0` after reload and after clearing the
+  browser's AppFlowy IndexedDB caches. This was later found to be an incomplete
+  verification because the Grid view had not been loaded first.
 - Follow-up `blob/diff` inspection confirmed the browser-facing binary endpoint returns
   row document seeds for the disposable database: 19 creates and 3 deletes. The deleted
   proof row appears as a delete operation in `blob/diff`, and the currently ordered rows
   appear as create operations with non-empty doc-state bytes.
-- Despite that, the live browser IndexedDB cache still showed `rows = 0` and the board
-  columns still rendered `0`. This narrows the gap: REST/collab row data and blob/diff
-  row seeds exist, but AppFlowy Web is not applying/rendering them in this disposable
-  workspace page. The next slice should inspect the web-side preload/apply failure or
-  test against a browser-created page/database as a control.
+- Follow-up manual control from Cosmin (`test_ela_manual`) showed the missing piece:
+  the row existed in REST row list, all three `row_orders`, and DatabaseRow collab
+  (`Description = test_ela_manual`, `Status = To Do`). It did not show in the board-only
+  view at first, but after opening the `Grid` tab it rendered correctly in Grid; returning
+  to the board then showed populated columns and the card in `To Do`. This means the
+  earlier conclusion "REST-created rows do not appear in AppFlowy Web" was too strong.
+  The more precise limitation is a board preload/rendering path: direct board load may
+  initially show 0 until row documents are loaded through Grid/blob seeds.
 - Browser-created control: pressing Enter in the web board's new-card input created an
   `Untitled` card that immediately appeared in the `To Do` board column. The new row id
   was inserted at the front of all three `row_orders` arrays and appeared in the REST row
@@ -134,14 +138,15 @@ Create proof result, 2026-05-16:
   from all three view `row_orders` and from the REST row-list endpoint. Explicit
   `row/detail?ids=<row_id>` still returned the row object, so the implementation now reports
   row-list verification separately from row-detail resolvability.
-- Therefore the current REST create path is **not proven web-board-visible**. More
-  importantly, REST success plus database `row_orders` membership is insufficient
-  evidence for a real AppFlowy Web board card.
+- Therefore the current REST create path is **partially proven web-visible**: rows can
+  appear in AppFlowy Web Grid and then Board after row-document preload. What remains
+  unproven is reliable direct board rendering without requiring a manual Grid warm-up,
+  plus the full edit/move/delete lifecycle.
 
-Next investigation slice: map the exact web create transaction for a card and compare it
-with the REST-created row shape. Do not promote REST create into a high-level
-`appflowy_create_task` tool until MCP create can reproduce the web-visible local/live row
-semantics or the limitation is explicitly accepted.
+Next investigation slice: verify whether REST-created rows reliably appear in Grid and
+Board after refresh/warm-up, then test edit and move semantics. Do not promote REST create
+into a high-level `appflowy_create_task` tool until the required warm-up/verification
+behavior is understood and documented.
 
 ### M6.5 MCP Integration (partial — experimental gate only)
 

@@ -6,7 +6,7 @@ task-board MCP without depending on large, ambiguous work packets.
 ## Current baseline
 
 The repo has advanced past the cleanup baseline. Latest committed checkpoint before the
-current blob/diff work is `bf326c3` (`Record AppFlowy board create proof`).
+current follow-up verification is `ab75669` (`Add AppFlowy blob diff inspector`).
 
 Implemented:
 
@@ -19,7 +19,8 @@ Implemented:
 
 Not yet proven:
 
-- Full create/edit/move/delete equivalence with AppFlowy Web board behavior.
+- Direct board-load behavior for created rows without a Grid warm-up.
+- Full edit/move/delete equivalence with AppFlowy Web board behavior.
 - Higher-level task automation semantics.
 - Public release readiness.
 
@@ -41,7 +42,7 @@ Each item is a separate task.
 1. **Create proof**
    - Create one disposable task through the MCP/CLI path.
    - Verify it appears in AppFlowy Web Grid.
-   - Verify whether it appears in Board without manual repair.
+   - Verify whether it appears in Board directly and after Grid warm-up.
    - Record REST row data and collab row_orders evidence.
    - If the board does not render it, inspect the browser's blob/diff seed path
      before moving on to edit/move tooling.
