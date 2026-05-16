@@ -194,11 +194,31 @@ def test_page_view_mutations_are_dry_run_by_default(make_client):
         is_favorite=True,
         is_pinned=False,
     )["json"] == {"is_favorite": True, "is_pinned": False}
+    assert client.remove_page_icon("ws", "view1")["path"] == (
+        "/api/workspace/ws/page-view/view1/remove-icon"
+    )
+    assert client.append_blocks_to_page(
+        "ws",
+        "view1",
+        blocks=[{"id": "block1"}],
+    )["json"] == {"blocks": [{"id": "block1"}]}
     assert client.move_page_view(
         "ws",
         "view1",
         new_parent_view_id="parent2",
     )["json"] == {"new_parent_view_id": "parent2"}
+    assert client.reorder_favorite_page_view(
+        "ws",
+        "view1",
+        prev_view_id="prev",
+    )["json"] == {"prev_view_id": "prev"}
+    assert client.duplicate_page_view("ws", "view1", suffix=" copy")["json"] == {
+        "suffix": " copy"
+    }
+    assert client.create_page_database_view("ws", "view1", layout=1, name="Grid")["json"] == {
+        "layout": 1,
+        "name": "Grid",
+    }
     assert client.move_page_view_to_trash("ws", "view1")["path"] == (
         "/api/workspace/ws/page-view/view1/move-to-trash"
     )
@@ -210,6 +230,15 @@ def test_page_view_mutations_are_dry_run_by_default(make_client):
         "method": "DELETE",
         "path": "/api/workspace/ws/trash/view1",
     }
+    assert client.add_recent_pages("ws", ["view1", "view2"])["json"] == {
+        "recent_view_ids": ["view1", "view2"]
+    }
+    assert client.restore_all_pages_from_trash("ws")["path"] == (
+        "/api/workspace/ws/restore-all-pages-from-trash"
+    )
+    assert client.delete_all_pages_from_trash("ws")["path"] == (
+        "/api/workspace/ws/delete-all-pages-from-trash"
+    )
 
 
 def test_page_view_mutations_execute_when_enabled(make_client):

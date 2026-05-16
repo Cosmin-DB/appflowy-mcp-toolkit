@@ -51,10 +51,18 @@ appflowy-toolkit page-view --workspace-id <workspace_id> --view-id <view_id>
 appflowy-toolkit create-page --workspace-id <workspace_id> --parent-view-id <parent_view_id> --name "New page"
 appflowy-toolkit rename-page --workspace-id <workspace_id> --view-id <view_id> --name "Renamed page"
 appflowy-toolkit favorite-page --workspace-id <workspace_id> --view-id <view_id>
+appflowy-toolkit remove-page-icon --workspace-id <workspace_id> --view-id <view_id>
+appflowy-toolkit append-page-blocks --workspace-id <workspace_id> --view-id <view_id> --blocks-json '[{}]'
 appflowy-toolkit move-page --workspace-id <workspace_id> --view-id <view_id> --new-parent-view-id <parent_view_id>
+appflowy-toolkit reorder-favorite-page --workspace-id <workspace_id> --view-id <view_id>
+appflowy-toolkit duplicate-page --workspace-id <workspace_id> --view-id <view_id>
+appflowy-toolkit create-page-database --workspace-id <workspace_id> --view-id <view_id> --layout 1
 appflowy-toolkit trash-page --workspace-id <workspace_id> --view-id <view_id>
 appflowy-toolkit restore-page --workspace-id <workspace_id> --view-id <view_id>
 appflowy-toolkit delete-trash-page --workspace-id <workspace_id> --view-id <view_id>
+appflowy-toolkit add-recent-pages --workspace-id <workspace_id> --view-ids <view_id>
+appflowy-toolkit restore-all-pages --workspace-id <workspace_id>
+appflowy-toolkit delete-all-trash-pages --workspace-id <workspace_id>
 appflowy-toolkit databases --workspace-id <workspace_id>
 appflowy-toolkit fields --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit rows --workspace-id <workspace_id> --database-id <database_id>
@@ -127,10 +135,18 @@ Write tools exist for controlled testing, but dry-run by default and require
 - `appflowy_update_page_view`
 - `appflowy_rename_page_view`
 - `appflowy_favorite_page_view`
+- `appflowy_remove_page_icon`
+- `appflowy_append_blocks_to_page`
 - `appflowy_move_page_view`
+- `appflowy_reorder_favorite_page_view`
+- `appflowy_duplicate_page_view`
+- `appflowy_create_page_database_view`
 - `appflowy_trash_page_view`
 - `appflowy_restore_page_view`
 - `appflowy_delete_trashed_page_view`
+- `appflowy_add_recent_pages`
+- `appflowy_restore_all_pages_from_trash`
+- `appflowy_delete_all_pages_from_trash`
 - `appflowy_create_task`
 - `appflowy_update_task`
 - `appflowy_move_task`

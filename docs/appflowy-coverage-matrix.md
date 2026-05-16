@@ -35,8 +35,8 @@ Approximate coverage by object family:
 |---|---|---|---|---|---|---|
 | Workspace | list/settings/members/usage implemented | create implemented, dry-run default | patch/open routes exist | delete/leave/member removal routes exist | partial | Keep destructive admin gated or deferred |
 | Space | folder tree shows spaces | source route exists: POST /space | source route exists: PATCH /space/{view_id} | via page/view trash/delete semantics | candidate | Implement only after page/view contract is tested |
-| Folder/view/page tree | get folder/page-view implemented | page-view create implemented dry-run default | update/rename/favorite/move implemented dry-run default | trash/restore/delete-trashed implemented dry-run default | broad page/view surface implemented | Add self-hosted page lifecycle smoke next |
-| Document/page body | row document text supported on row create/detail | append-block route exists | collab/document updates are deeper | trash via page-view routes | partial | Start with page metadata and append-block only; defer full block editor |
+| Folder/view/page tree | get folder/page-view implemented | page-view create/duplicate/database-view implemented dry-run default | update/rename/favorite/reorder/move implemented dry-run default | trash/restore/delete-trashed and bulk trash ops implemented dry-run default | broad page/view surface implemented | Add self-hosted page lifecycle smoke next |
+| Document/page body | row document text supported on row create/detail | append-block implemented dry-run default | collab/document updates are deeper | trash via page-view routes | partial | Defer full block editor |
 | Database list | list databases implemented | database-view route exists | view/layout routes likely collab-backed | page-view trash/delete | partial | Add database-view creation only after page/view work |
 | Database fields | list fields implemented | POST /database/{database_id}/fields route exists | no safe update/delete route confirmed from matrix yet | no safe delete route confirmed | partial | Implement create field only after payload schema is mapped and tested |
 | Database rows | list ids/details implemented | create/upsert implemented | upsert/update, status move implemented | no REST delete; Yjs row-order delete implemented | high | Add updated-row listing and broader field type tests |
@@ -45,7 +45,7 @@ Approximate coverage by object family:
 | Collab documents | JSON/raw/blob diff read implemented | create collab route exists | web-update used only for row delete | delete collab route exists but dangerous | partial | Keep generic collab writes private/diagnostic; do not expose broad destructive collab delete |
 | File storage/blobs | usage/list/metadata implemented | upload routes exist | multipart complete routes exist | delete blob routes exist | read metadata implemented | Upload/delete deferred behind explicit gates |
 | Trash | trash list implemented | n/a | single restore implemented dry-run default | single delete-from-trash implemented dry-run default | partial | Bulk restore/delete deferred |
-| Favorites/recent | recent/favorite list implemented | add recent route exists | favorite toggle implemented dry-run default | n/a | partial | Reorder/add recent deferred |
+| Favorites/recent | recent/favorite list implemented | add recent implemented dry-run default | favorite toggle/reorder implemented dry-run default | n/a | mostly implemented | Browser polish deferred |
 | Sharing/guests | list shared views exists | share view route exists | revoke/access detail routes exist | revoke route exists | missing | Safety-sensitive; require explicit gates |
 | Publishing | many publish-info/publish routes exist | publish routes exist | patch/unpublish/default namespace routes exist | delete published collabs route exists | missing | Safety-sensitive; document first, implement later |
 | Search | search implemented | n/a | n/a | n/a | read implemented | AI summary endpoint deferred |
@@ -70,7 +70,7 @@ Approximate coverage by object family:
    - Create page view. **Done, dry-run default.**
    - Read/update page name/icon/extra. **Done, dry-run default for writes.**
    - Move page. **Done, dry-run default.**
-   - Move to trash / restore from trash / delete from trash with gates. **Single-page done, bulk deferred.**
+   - Move to trash / restore from trash / delete from trash with gates. **Single-page and bulk routes done, dry-run default.**
 
 4. **Database/field expansion**
    - Database view creation if payload is stable.

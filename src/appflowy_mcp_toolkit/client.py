@@ -277,6 +277,34 @@ class AppFlowyClient:
         self._require_writes_enabled()
         return self.request("POST", path, json=payload)
 
+    def remove_page_icon(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        path = f"/api/workspace/{workspace_id}/page-view/{view_id}/remove-icon"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": {}}
+        self._require_writes_enabled()
+        return self.request("POST", path, json={})
+
+    def append_blocks_to_page(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        blocks: list[dict[str, Any]],
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload = {"blocks": blocks}
+        path = f"/api/workspace/{workspace_id}/page-view/{view_id}/append-block"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("POST", path, json=payload)
+
     def move_page_view(
         self,
         workspace_id: str,
@@ -290,6 +318,58 @@ class AppFlowyClient:
         if prev_view_id is not None:
             payload["prev_view_id"] = prev_view_id
         path = f"/api/workspace/{workspace_id}/page-view/{view_id}/move"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("POST", path, json=payload)
+
+    def reorder_favorite_page_view(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        prev_view_id: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {}
+        if prev_view_id is not None:
+            payload["prev_view_id"] = prev_view_id
+        path = f"/api/workspace/{workspace_id}/page-view/{view_id}/reorder-favorite"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("POST", path, json=payload)
+
+    def duplicate_page_view(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        suffix: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {}
+        if suffix is not None:
+            payload["suffix"] = suffix
+        path = f"/api/workspace/{workspace_id}/page-view/{view_id}/duplicate"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("POST", path, json=payload)
+
+    def create_page_database_view(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        layout: int,
+        name: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {"layout": layout}
+        if name is not None:
+            payload["name"] = name
+        path = f"/api/workspace/{workspace_id}/page-view/{view_id}/database-view"
         if dry_run:
             return {"dry_run": True, "method": "POST", "path": path, "json": payload}
         self._require_writes_enabled()
@@ -333,6 +413,44 @@ class AppFlowyClient:
             return {"dry_run": True, "method": "DELETE", "path": path}
         self._require_writes_enabled()
         return self.request("DELETE", path)
+
+    def add_recent_pages(
+        self,
+        workspace_id: str,
+        recent_view_ids: list[str],
+        *,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload = {"recent_view_ids": recent_view_ids}
+        path = f"/api/workspace/{workspace_id}/add-recent-pages"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("POST", path, json=payload)
+
+    def restore_all_pages_from_trash(
+        self,
+        workspace_id: str,
+        *,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        path = f"/api/workspace/{workspace_id}/restore-all-pages-from-trash"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": {}}
+        self._require_writes_enabled()
+        return self.request("POST", path, json={})
+
+    def delete_all_pages_from_trash(
+        self,
+        workspace_id: str,
+        *,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        path = f"/api/workspace/{workspace_id}/delete-all-pages-from-trash"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": {}}
+        self._require_writes_enabled()
+        return self.request("POST", path, json={})
 
     def list_recent_views(self, workspace_id: str) -> list[dict[str, Any]]:
         data = self.request("GET", f"/api/workspace/{workspace_id}/recent")

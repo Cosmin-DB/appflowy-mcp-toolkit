@@ -93,12 +93,42 @@ def build_parser() -> argparse.ArgumentParser:
     favorite_page.add_argument("--is-pinned", action=argparse.BooleanOptionalAction, default=False)
     favorite_page.add_argument("--execute", action="store_true")
 
+    remove_page_icon = sub.add_parser("remove-page-icon")
+    remove_page_icon.add_argument("--workspace-id", required=True)
+    remove_page_icon.add_argument("--view-id", required=True)
+    remove_page_icon.add_argument("--execute", action="store_true")
+
+    append_page_blocks = sub.add_parser("append-page-blocks")
+    append_page_blocks.add_argument("--workspace-id", required=True)
+    append_page_blocks.add_argument("--view-id", required=True)
+    append_page_blocks.add_argument("--blocks-json", required=True)
+    append_page_blocks.add_argument("--execute", action="store_true")
+
     move_page = sub.add_parser("move-page")
     move_page.add_argument("--workspace-id", required=True)
     move_page.add_argument("--view-id", required=True)
     move_page.add_argument("--new-parent-view-id", required=True)
     move_page.add_argument("--prev-view-id")
     move_page.add_argument("--execute", action="store_true")
+
+    reorder_favorite = sub.add_parser("reorder-favorite-page")
+    reorder_favorite.add_argument("--workspace-id", required=True)
+    reorder_favorite.add_argument("--view-id", required=True)
+    reorder_favorite.add_argument("--prev-view-id")
+    reorder_favorite.add_argument("--execute", action="store_true")
+
+    duplicate_page = sub.add_parser("duplicate-page")
+    duplicate_page.add_argument("--workspace-id", required=True)
+    duplicate_page.add_argument("--view-id", required=True)
+    duplicate_page.add_argument("--suffix")
+    duplicate_page.add_argument("--execute", action="store_true")
+
+    create_page_database = sub.add_parser("create-page-database")
+    create_page_database.add_argument("--workspace-id", required=True)
+    create_page_database.add_argument("--view-id", required=True)
+    create_page_database.add_argument("--layout", type=int, required=True)
+    create_page_database.add_argument("--name")
+    create_page_database.add_argument("--execute", action="store_true")
 
     trash_page = sub.add_parser("trash-page")
     trash_page.add_argument("--workspace-id", required=True)
@@ -114,6 +144,19 @@ def build_parser() -> argparse.ArgumentParser:
     delete_trash_page.add_argument("--workspace-id", required=True)
     delete_trash_page.add_argument("--view-id", required=True)
     delete_trash_page.add_argument("--execute", action="store_true")
+
+    add_recent_pages = sub.add_parser("add-recent-pages")
+    add_recent_pages.add_argument("--workspace-id", required=True)
+    add_recent_pages.add_argument("--view-ids", required=True, help="Comma-separated view ids")
+    add_recent_pages.add_argument("--execute", action="store_true")
+
+    restore_all_pages = sub.add_parser("restore-all-pages")
+    restore_all_pages.add_argument("--workspace-id", required=True)
+    restore_all_pages.add_argument("--execute", action="store_true")
+
+    delete_all_trash_pages = sub.add_parser("delete-all-trash-pages")
+    delete_all_trash_pages.add_argument("--workspace-id", required=True)
+    delete_all_trash_pages.add_argument("--execute", action="store_true")
 
     recent = sub.add_parser("recent")
     recent.add_argument("--workspace-id", required=True)
@@ -431,12 +474,47 @@ def main(argv: Sequence[str] | None = None) -> int:
                 is_pinned=args.is_pinned,
                 dry_run=not args.execute,
             )
+        elif args.command == "remove-page-icon":
+            result = client.remove_page_icon(
+                args.workspace_id,
+                args.view_id,
+                dry_run=not args.execute,
+            )
+        elif args.command == "append-page-blocks":
+            result = client.append_blocks_to_page(
+                args.workspace_id,
+                args.view_id,
+                blocks=json.loads(args.blocks_json),
+                dry_run=not args.execute,
+            )
         elif args.command == "move-page":
             result = client.move_page_view(
                 args.workspace_id,
                 args.view_id,
                 new_parent_view_id=args.new_parent_view_id,
                 prev_view_id=args.prev_view_id,
+                dry_run=not args.execute,
+            )
+        elif args.command == "reorder-favorite-page":
+            result = client.reorder_favorite_page_view(
+                args.workspace_id,
+                args.view_id,
+                prev_view_id=args.prev_view_id,
+                dry_run=not args.execute,
+            )
+        elif args.command == "duplicate-page":
+            result = client.duplicate_page_view(
+                args.workspace_id,
+                args.view_id,
+                suffix=args.suffix,
+                dry_run=not args.execute,
+            )
+        elif args.command == "create-page-database":
+            result = client.create_page_database_view(
+                args.workspace_id,
+                args.view_id,
+                layout=args.layout,
+                name=args.name,
                 dry_run=not args.execute,
             )
         elif args.command == "trash-page":
@@ -455,6 +533,22 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = client.delete_page_view_from_trash(
                 args.workspace_id,
                 args.view_id,
+                dry_run=not args.execute,
+            )
+        elif args.command == "add-recent-pages":
+            result = client.add_recent_pages(
+                args.workspace_id,
+                [part.strip() for part in args.view_ids.split(",") if part.strip()],
+                dry_run=not args.execute,
+            )
+        elif args.command == "restore-all-pages":
+            result = client.restore_all_pages_from_trash(
+                args.workspace_id,
+                dry_run=not args.execute,
+            )
+        elif args.command == "delete-all-trash-pages":
+            result = client.delete_all_pages_from_trash(
+                args.workspace_id,
                 dry_run=not args.execute,
             )
         elif args.command == "recent":

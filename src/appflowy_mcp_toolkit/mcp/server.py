@@ -185,6 +185,32 @@ def appflowy_favorite_page_view(
         )
 
 
+@mcp.tool(name="appflowy_remove_page_icon", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_remove_page_icon(workspace_id: str, view_id: str, dry_run: bool = True) -> str:
+    """Remove a page icon. Dry-run by default."""
+    with _client() as client:
+        return compact(client.remove_page_icon(workspace_id, view_id, dry_run=dry_run))
+
+
+@mcp.tool(name="appflowy_append_blocks_to_page", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_append_blocks_to_page(
+    workspace_id: str,
+    view_id: str,
+    blocks: list[dict],
+    dry_run: bool = True,
+) -> str:
+    """Append raw AppFlowy block JSON objects to a page. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.append_blocks_to_page(
+                workspace_id,
+                view_id,
+                blocks=blocks,
+                dry_run=dry_run,
+            )
+        )
+
+
 @mcp.tool(name="appflowy_move_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
 def appflowy_move_page_view(
     workspace_id: str,
@@ -201,6 +227,65 @@ def appflowy_move_page_view(
                 view_id,
                 new_parent_view_id=new_parent_view_id,
                 prev_view_id=prev_view_id,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_reorder_favorite_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_reorder_favorite_page_view(
+    workspace_id: str,
+    view_id: str,
+    prev_view_id: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Reorder a favorite page. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.reorder_favorite_page_view(
+                workspace_id,
+                view_id,
+                prev_view_id=prev_view_id,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_duplicate_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_duplicate_page_view(
+    workspace_id: str,
+    view_id: str,
+    suffix: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Duplicate a page tree. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.duplicate_page_view(
+                workspace_id,
+                view_id,
+                suffix=suffix,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_create_page_database_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_create_page_database_view(
+    workspace_id: str,
+    view_id: str,
+    layout: int,
+    name: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Create a database view inside a page. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.create_page_database_view(
+                workspace_id,
+                view_id,
+                layout=layout,
+                name=name,
                 dry_run=dry_run,
             )
         )
@@ -229,6 +314,31 @@ def appflowy_delete_trashed_page_view(
     """Permanently delete a trashed page view. Dry-run by default."""
     with _client() as client:
         return compact(client.delete_page_view_from_trash(workspace_id, view_id, dry_run=dry_run))
+
+
+@mcp.tool(name="appflowy_add_recent_pages", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_add_recent_pages(
+    workspace_id: str,
+    recent_view_ids: list[str],
+    dry_run: bool = True,
+) -> str:
+    """Add pages to AppFlowy's recent list. Dry-run by default."""
+    with _client() as client:
+        return compact(client.add_recent_pages(workspace_id, recent_view_ids, dry_run=dry_run))
+
+
+@mcp.tool(name="appflowy_restore_all_pages_from_trash", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_restore_all_pages_from_trash(workspace_id: str, dry_run: bool = True) -> str:
+    """Restore all trashed pages in a workspace. Dry-run by default."""
+    with _client() as client:
+        return compact(client.restore_all_pages_from_trash(workspace_id, dry_run=dry_run))
+
+
+@mcp.tool(name="appflowy_delete_all_pages_from_trash", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_delete_all_pages_from_trash(workspace_id: str, dry_run: bool = True) -> str:
+    """Permanently delete all trashed pages in a workspace. Dry-run by default."""
+    with _client() as client:
+        return compact(client.delete_all_pages_from_trash(workspace_id, dry_run=dry_run))
 
 
 @mcp.tool(name="appflowy_list_recent_views", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
