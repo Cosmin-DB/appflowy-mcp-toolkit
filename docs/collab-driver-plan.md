@@ -1,0 +1,160 @@
+# AppFlowy Collab Driver Plan
+
+## Why this phase exists
+
+The public AppFlowy REST row endpoints are not enough for a complete task-board MCP.
+Live browser testing showed that AppFlowy Web deletes a board card by mutating the
+database collaboration document, not by calling a semantic row-delete REST endpoint.
+
+The toolkit should therefore treat REST row writes as limited/experimental until we
+prove that the operation is visible and consistent in AppFlowy Web.
+
+## Target outcome
+
+Provide MCP tools that can create, edit, move, and delete tasks as AppFlowy Web board
+cards, with the same visible result a user gets from the browser UI.
+
+## Non-goals
+
+- Do not invent undocumented `/api/v1/.../delete` endpoints.
+- Do not delete row collab objects directly with `DELETE /collab/{row_id}`.
+- Do not publish destructive tools before disposable-workspace verification.
+- Do not commit private workspace IDs, tokens, or captured network payloads.
+
+## Working model
+
+AppFlowy Web stores database state in a Yjs/AppFlowy-Collab document. Task-board
+operations update that document, then sync a binary update to AppFlowy Cloud through
+the realtime channel or the generic `web-update` endpoint.
+
+For task deletion, the confirmed web behavior is:
+
+1. Find the row id in each database view's `row_orders`.
+2. Remove that row id from every `row_orders` array.
+3. Clear local row outbox/collab cache for the row.
+4. Sync the database collab update.
+
+The MCP implementation should reproduce the semantic collab operation, not approximate
+it through JSON string manipulation or unrelated delete endpoints.
+
+## Milestones
+
+### M6.0 Evidence Pack
+
+- [x] Verify the real web delete button in a disposable workspace.
+- [x] Confirm no semantic REST row-delete request is emitted by the browser.
+- [x] Confirm AppFlowy Cloud REST row route exposes GET/POST/PUT, not DELETE.
+- [x] Record that current REST writes are not yet proven equivalent to web board cards.
+
+### M6.1 Read-only Collab Inspector
+
+- [x] Add client support for `GET /api/workspace/v1/{workspace_id}/collab/{object_id}/json`.
+- [x] Add a safe helper that extracts database view ids and `row_orders`.
+- [x] Expose this through CLI/MCP as read-only diagnostics.
+- [x] Add offline tests with fixture responses.
+- [x] Live read-only smoke against the disposable workspace.
+
+### M6.2 Current Write Audit
+
+- [x] Re-check existing REST create/upsert/move behavior against web-visible board state.
+- [x] Decide whether existing task write tools should be renamed, hidden, or marked legacy.
+- [x] Update README, DESIGN, and safety docs with the result.
+
+Current decision: keep the existing REST write tools, but document their exact scope.
+They correctly create/update database rows, appear in collab `row_orders`, and render in
+AppFlowy Web Grid after refresh/navigation; some board cards render too, but full board
+card behavior and ordering are not yet proven. They update task status cells, but they do
+not control intra-column card ordering. Full task automation still needs a collab/Yjs
+driver for delete and positional moves.
+
+### M6.3 Collab Mutator Prototype
+
+- [x] Build an experimental local helper that uses AppFlowy-compatible Yjs logic.
+- [x] Start with delete because the web behavior is now known and compact.
+- [x] Produce a binary update for `web-update`; do not hand-edit JSON.
+- [x] Require an explicit disposable workspace/database allowlist for live mutation tests.
+
+Prototype result: a local Node.js helper using the MIT-licensed `yjs` package fetched the
+binary database collab document, removed a row id from every view's `row_orders`, produced
+an incremental lib0-v1 update, and posted it to `web-update`. One live disposable-row delete
+was verified through binary collab and REST reads. The prototype lives under
+`.local/prototypes/yrs-delete-mutator/`.
+
+Integration result: the prototype was wrapped as a tracked helper under
+`src/appflowy_mcp_toolkit/collab/` for experimental MCP/CLI/client use. The public toolkit
+remains MIT-only by depending on `yjs`, not AGPL `appflowy-collab`. A future Rust `yrs`
+helper is still possible, but it is not required for the current experimental baseline.
+
+### M6.4 End-to-End Disposable Workspace Proof
+
+- [ ] Create a task that appears in AppFlowy Web.
+- [ ] Move it between board groups.
+- [ ] Edit its title/description/status.
+- [x] Delete a disposable row through the local Yjs prototype.
+- [ ] Verify after each step through AppFlowy Web and collab/REST reads.
+
+### M6.5 MCP Integration (partial — experimental gate only)
+
+- [x] Wrap the Yjs prototype as a tracked helper with runtime checks and JSON output.
+- [x] Add a second opt-in flag for experimental collab writes (`APPFLOWY_ALLOW_COLLAB_WRITES`).
+- [x] Keep dry-run behavior (default).
+- [x] Check binary collab presence before delete; surface `row_found=False` on lag.
+- [x] Keep destructive tools explicit and narrow.
+- [ ] Add task tools beyond delete only after M6.4 passes.
+- [ ] Full board create/edit/move/delete loop, not just delete.
+
+Current stabilization note: M6.5 is integrated but should be treated as a frozen
+experimental baseline until reviewed and committed. Do not start new task operations
+or broader collab mutations before M6.4 proves the full disposable board loop.
+
+### M6.5.1 Stabilization Checkpoint
+
+- [ ] Review the M6 diff as one architectural change.
+- [ ] Ensure README, DESIGN, ROADMAP, safety docs, and this plan describe the same state.
+- [ ] Decide whether `uv.lock` is ignored or tracked; default for this library is ignored.
+- [ ] Keep `node_modules/` out of git while keeping `package.json` and `package-lock.json`.
+- [ ] Run pytest, ruff format/check, mypy, and git diff check.
+- [ ] Commit the coherent experimental delete baseline before launching more workers.
+
+### M6.6 Publication Gate
+
+- [ ] Full test/lint/typecheck gates.
+- [ ] Secret/private-ID scan.
+- [ ] Docs clearly separate REST diagnostics from web-board task automation.
+- [ ] Public repo creation only after Cosmin confirms.
+
+## Agent Workstreams
+
+- Source/protocol agent: map AppFlowy Web, Cloud, and Collab source for the exact
+  create/edit/move/delete paths.
+- Read-only inspector agent: implement M6.1 in the Python toolkit.
+- Write-audit agent: verify current REST writes and document whether they match web board
+  semantics.
+- Mutator-design agent: propose the smallest safe Rust/Node/Python helper strategy for
+  M6.3 without committing to a broad rewrite.
+
+## Development Mode After M6.5
+
+The next phase should use small slices. The coordinator owns architecture, sequencing,
+and integration. Workers, if used, should receive one narrow task with a clear write
+scope and a fast verification gate.
+
+Good next slices:
+
+1. Verify web-visible create for one disposable card.
+2. Verify edit semantics for one field set.
+3. Verify move/status semantics and what ordering is or is not controlled.
+4. Re-run delete through the integrated MCP/CLI path.
+5. Only then design higher-level task tools.
+
+Avoid combining source research, live experiments, implementation, docs, and release
+cleanup in one worker brief.
+
+## Safety Gates
+
+- All live mutation tests must target a disposable workspace only.
+- Destructive tests must create their own disposable row/card first.
+- Every write path must have dry-run output and post-write verification.
+- Tool output and docs must redact tokens, emails, real workspace IDs, and captured
+  realtime URLs.
+- Main coordination/review stays separate from implementation workers.

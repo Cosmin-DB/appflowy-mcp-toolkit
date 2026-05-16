@@ -241,6 +241,200 @@ class AppFlowyClient:
             }
         return result
 
+    # ------------------------------------------------------------------
+    # Collab inspector (read-only)
+    # ------------------------------------------------------------------
+
+    def get_collab_json(
+        self,
+        workspace_id: str,
+        object_id: str,
+        *,
+        collab_type: str | int = "Database",
+    ) -> dict[str, Any]:
+        """Fetch a collab document as JSON.
+
+        Uses ``GET /api/workspace/v1/{workspace_id}/collab/{object_id}/json``.
+
+        ``collab_type`` can be a well-known string name or an explicit integer::
+
+            "Document" = 0, "Database" = 1, "WorkspaceDatabase" = 2,
+            "Folder" = 3, "DatabaseRow" = 4, "UserAwareness" = 5
+
+        The server requires the integer form; string names are resolved
+        automatically.
+        """
+        data = self.request(
+            "GET",
+            f"/api/workspace/v1/{workspace_id}/collab/{object_id}/json",
+            params={"collab_type": _collab_type_int(collab_type)},
+        )
+        return self._extract_data(data)
+
+    def get_database_row_orders(
+        self,
+        workspace_id: str,
+        database_id: str,
+    ) -> list[dict[str, Any]]:
+        """Return per-view row orders extracted from the database collab document.
+
+        Each entry has ``view_id`` and ``row_orders`` (list of row-id strings).
+        Returns an empty list if the collab document has no recognisable views.
+        """
+        collab = self.get_collab_json(workspace_id, database_id, collab_type="Database")
+        return _extract_row_orders(collab)
+
+    # ------------------------------------------------------------------
+    # Experimental: Yjs-based collab row delete (M6.3)
+    # ------------------------------------------------------------------
+
+    def get_binary_collab(
+        self,
+        workspace_id: str,
+        object_id: str,
+        *,
+        collab_type: str | int = "Database",
+    ) -> dict[str, Any]:
+        """Fetch the binary collab state from AppFlowy Cloud.
+
+        Uses ``GET /api/workspace/v1/{workspace_id}/collab/{object_id}``.
+        Returns the raw API response dict with ``doc_state`` (list[int]),
+        ``state_vector`` (list[int]) and ``version`` (int) fields.
+        """
+        data = self.request(
+            "GET",
+            f"/api/workspace/v1/{workspace_id}/collab/{object_id}",
+            params={"collab_type": _collab_type_int(collab_type)},
+        )
+        return self._extract_data(data)
+
+    def delete_database_row_collab(
+        self,
+        workspace_id: str,
+        database_id: str,
+        row_id: str,
+        *,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Delete a database row via Yjs collab mutation (experimental, M6.3).
+
+        This is the only confirmed-correct delete path: AppFlowy Web does not
+        expose a REST row-delete endpoint.  Deletion works by removing the
+        ``row_id`` from every view's ``row_orders`` in the database collab
+        document and posting the incremental lib0-v1 update to
+        ``/api/workspace/v1/{workspace_id}/collab/{database_id}/web-update``.
+
+        **Experimental safety gates (live mode requires all of these):**
+
+        - ``dry_run=False`` must be passed explicitly.
+        - ``APPFLOWY_ALLOW_WRITES=true`` must be set in the environment.
+        - ``APPFLOWY_ALLOW_COLLAB_WRITES=true`` must be set in the environment.
+        - The row must be present in the binary collab (not just the REST row
+          list); rows freshly created via REST may not yet be visible in the
+          binary collab state due to sync lag.
+
+        **Node.js 18+ and the ``yjs`` npm package are required.**
+        Run ``cd src/appflowy_mcp_toolkit/collab && npm install`` once before
+        using this method.
+
+        Parameters
+        ----------
+        workspace_id:
+            AppFlowy workspace UUID string.
+        database_id:
+            AppFlowy database UUID string.
+        row_id:
+            Row UUID string to delete.
+        dry_run:
+            If ``True`` (default), compute and return the mutation summary
+            without posting to the server.
+
+        Returns
+        -------
+        dict with keys:
+          - ``dry_run`` (bool)
+          - ``row_found`` (bool) — whether the row was present in the collab
+          - ``views_affected`` (list[str]) — view IDs where the row was removed
+          - ``view_row_counts`` (dict) — per-view before/after row counts
+          - ``delta_update_bytes`` (int) — size of the incremental update
+          - ``server_status`` (int | None) — HTTP status from web-update (live only)
+          - ``collab_verified`` (bool | None) — post-delete verification (live only)
+        """
+        from appflowy_mcp_toolkit.collab.collab_delete import (
+            CollabHelperError,
+            allow_collab_writes,
+            invoke_yjs_delete,
+        )
+
+        if not dry_run:
+            self._require_writes_enabled()
+            if not allow_collab_writes():
+                raise AppFlowyError(
+                    "Collab writes are disabled. "
+                    "Set APPFLOWY_ALLOW_COLLAB_WRITES=true to enable experimental "
+                    "Yjs-based row deletion."
+                )
+
+        # Step 1: fetch binary collab state
+        binary = self.get_binary_collab(workspace_id, database_id, collab_type="Database")
+        doc_state: list[int] = binary.get("doc_state", [])
+        if not doc_state:
+            raise AppFlowyError(
+                "Binary collab returned empty doc_state; cannot compute delete delta."
+            )
+
+        # Step 2: invoke Yjs helper (pure, no network)
+        try:
+            helper_result = invoke_yjs_delete(doc_state, row_id)
+        except CollabHelperError as exc:
+            raise AppFlowyError(str(exc)) from exc
+
+        summary: dict[str, Any] = {
+            "dry_run": dry_run,
+            "row_found": helper_result["row_found"],
+            "views_affected": helper_result["views_affected"],
+            "view_row_counts": helper_result["view_row_counts"],
+            "delta_update_bytes": len(helper_result["delta_update"]),
+        }
+
+        if not helper_result["row_found"]:
+            summary["warning"] = (
+                "Row not found in binary collab row_orders. "
+                "The row may be visible via REST but not yet synced to the collab state. "
+                "No update was posted."
+            )
+            return summary
+
+        if dry_run:
+            return summary
+
+        # Step 3: POST incremental delta to web-update
+        post_data = self.request(
+            "POST",
+            f"/api/workspace/v1/{workspace_id}/collab/{database_id}/web-update",
+            json={
+                "doc_state": helper_result["delta_update"],
+                "collab_type": _collab_type_int("Database"),
+            },
+        )
+        summary["server_status"] = post_data.get("code")
+
+        # Step 4: post-delete verification
+        try:
+            orders_after = self.get_database_row_orders(workspace_id, database_id)
+            still_present = any(row_id in v["row_orders"] for v in orders_after)
+            summary["collab_verified"] = not still_present
+        except AppFlowyError:
+            summary["collab_verified"] = None
+
+        try:
+            rest_rows = self.list_database_row_ids(workspace_id, database_id)
+            summary["rest_verified"] = not any(r.get("id") == row_id for r in rest_rows)
+        except AppFlowyError:
+            summary["rest_verified"] = None
+
+        return summary
+
     def health_check(self) -> dict[str, Any]:
         try:
             self.request("GET", "/api/workspace")
@@ -306,3 +500,130 @@ class AppFlowyClient:
         except ValueError:
             pass
         return f"AppFlowy API error {response.status_code}"
+
+
+def _collab_type_int(collab_type: str | int) -> int:
+    """Resolve a collab type name, integer, or decimal numeric string to the
+    integer the server requires.
+
+    The AppFlowy Cloud ``/json`` endpoint deserialises ``collab_type`` as an
+    integer.  Passing a string such as ``"Database"`` results in a 400 error.
+
+    Accepted forms:
+    - ``int``: forwarded as-is (e.g. ``1``)
+    - decimal numeric string: parsed as int (e.g. ``"1"`` → ``1``)
+    - known name string: mapped to int (e.g. ``"Database"`` → ``1``)
+
+    Known mappings (from ``collab_entity::CollabType``):
+    ``Document=0, Database=1, WorkspaceDatabase=2, Folder=3,
+    DatabaseRow=4, UserAwareness=5``.
+    """
+    if isinstance(collab_type, int):
+        return collab_type
+    if collab_type.isdigit():
+        return int(collab_type)
+    _COLLAB_TYPE_MAP: dict[str, int] = {
+        "Document": 0,
+        "Database": 1,
+        "WorkspaceDatabase": 2,
+        "Folder": 3,
+        "DatabaseRow": 4,
+        "UserAwareness": 5,
+    }
+    resolved = _COLLAB_TYPE_MAP.get(collab_type)
+    if resolved is None:
+        raise AppFlowyError(
+            f"Unknown collab_type name {collab_type!r}. "
+            f"Pass an integer, a decimal string, or one of: {list(_COLLAB_TYPE_MAP)}"
+        )
+    return resolved
+
+
+def _extract_row_orders(collab: Any) -> list[dict[str, Any]]:
+    """Extract per-view row orders from a database collab JSON payload.
+
+    The AppFlowy Cloud ``/json`` endpoint returns (after ``_extract_data``) a
+    dict whose shape depends on the server version:
+
+    **Live shape** (beta.appflowy.cloud, observed 2026-05):
+
+    .. code-block:: json
+
+        {"collab": {"database": {"views": {"<view_id>": {"row_orders": [...]}}}}}
+
+    **Flat fixture shape** (used in unit tests / earlier schema):
+
+    .. code-block:: json
+
+        {"views": {"<view_id>": {"row_orders": [...]}}}
+
+    **Inline-views fallback**:
+
+    .. code-block:: json
+
+        {"database_inline_views": {"<view_id>": {"row_orders": [...]}}}
+
+    This helper tries all known locations and returns the first non-empty match.
+    ``row_orders`` entries may be plain strings or ``{"id": "..."}`` dicts;
+    both are normalised to strings.
+
+    Returns a list of dicts::
+
+        [{"view_id": "<id>", "row_orders": ["<row_id>", ...]}, ...]
+    """
+    if not isinstance(collab, dict):
+        return []
+
+    def _views_to_results(views: Any) -> list[dict[str, Any]]:
+        if not isinstance(views, dict):
+            return []
+        out = []
+        for view_id, view_data in views.items():
+            if not isinstance(view_data, dict):
+                continue
+            row_orders = _coerce_row_orders(view_data.get("row_orders"))
+            out.append({"view_id": str(view_id), "row_orders": row_orders})
+        return out
+
+    # 1. Live shape: collab.database.views
+    nested_collab = collab.get("collab")
+    if isinstance(nested_collab, dict):
+        db = nested_collab.get("database")
+        if isinstance(db, dict):
+            results = _views_to_results(db.get("views"))
+            if results:
+                return results
+
+    # 2. Flat shape: top-level "views" key
+    results = _views_to_results(collab.get("views"))
+    if results:
+        return results
+
+    # 3. Inline-views fallback
+    for key in ("database_inline_views", "inline_views"):
+        results = _views_to_results(collab.get(key))
+        if results:
+            return results
+
+    return []
+
+
+def _coerce_row_orders(raw: Any) -> list[str]:
+    """Normalise row_orders to a flat list of row-id strings.
+
+    AppFlowy may encode row_orders as:
+    - a list of strings: ["row_id_1", ...]
+    - a list of dicts: [{"id": "row_id_1"}, ...]
+    - absent / other: return []
+    """
+    if not isinstance(raw, list):
+        return []
+    out: list[str] = []
+    for item in raw:
+        if isinstance(item, str):
+            out.append(item)
+        elif isinstance(item, dict):
+            row_id = item.get("id")
+            if isinstance(row_id, str):
+                out.append(row_id)
+    return out

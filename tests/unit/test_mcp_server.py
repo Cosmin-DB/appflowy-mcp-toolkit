@@ -20,6 +20,8 @@ EXPECTED_READ_TOOLS = {
     "appflowy_list_database_row_ids",
     "appflowy_get_database_rows",
     "appflowy_list_select_options",
+    "appflowy_get_collab_json",
+    "appflowy_get_database_row_orders",
 }
 
 EXPECTED_WRITE_TOOLS = {
@@ -27,6 +29,7 @@ EXPECTED_WRITE_TOOLS = {
     "appflowy_upsert_database_row",
     "appflowy_upsert_managed_task",
     "appflowy_move_managed_task_status",
+    "appflowy_delete_database_row",
 }
 
 EXPECTED_ALL_TOOLS = EXPECTED_READ_TOOLS | EXPECTED_WRITE_TOOLS

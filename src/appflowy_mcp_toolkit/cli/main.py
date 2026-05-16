@@ -68,6 +68,15 @@ def build_parser() -> argparse.ArgumentParser:
     options.add_argument("--database-id", required=True)
     options.add_argument("--field-name", default="Status")
 
+    collab = sub.add_parser("collab-json")
+    collab.add_argument("--workspace-id", required=True)
+    collab.add_argument("--object-id", required=True)
+    collab.add_argument("--collab-type", default="Database")
+
+    row_orders = sub.add_parser("row-orders")
+    row_orders.add_argument("--workspace-id", required=True)
+    row_orders.add_argument("--database-id", required=True)
+
     managed = sub.add_parser("managed-task")
     managed.add_argument("--workspace-id", required=True)
     managed.add_argument("--database-id", required=True)
@@ -85,6 +94,24 @@ def build_parser() -> argparse.ArgumentParser:
     move.add_argument("--task-key", required=True)
     move.add_argument("--status", required=True)
     move.add_argument("--execute", action="store_true", help="Actually move it; default is dry-run")
+
+    delete_row = sub.add_parser(
+        "delete-row",
+        description=(
+            "[EXPERIMENTAL] Delete a database row via Yjs collab mutation. "
+            "Requires Node.js 18+ and yjs npm package. "
+            "Dry-run by default; use --execute for a live write (requires "
+            "APPFLOWY_ALLOW_WRITES=true and APPFLOWY_ALLOW_COLLAB_WRITES=true)."
+        ),
+    )
+    delete_row.add_argument("--workspace-id", required=True)
+    delete_row.add_argument("--database-id", required=True)
+    delete_row.add_argument("--row-id", required=True)
+    delete_row.add_argument(
+        "--execute",
+        action="store_true",
+        help="Actually delete the row (live write); default is dry-run",
+    )
     return parser
 
 
@@ -133,6 +160,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = client.list_select_options(
                 args.workspace_id, args.database_id, field_name=args.field_name
             )
+        elif args.command == "collab-json":
+            result = client.get_collab_json(
+                args.workspace_id,
+                args.object_id,
+                collab_type=args.collab_type,
+            )
+        elif args.command == "row-orders":
+            result = client.get_database_row_orders(args.workspace_id, args.database_id)
         elif args.command == "managed-task":
             result = client.upsert_managed_task(
                 args.workspace_id,
@@ -149,6 +184,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.database_id,
                 task_key=args.task_key,
                 status=args.status,
+                dry_run=not args.execute,
+            )
+        elif args.command == "delete-row":
+            result = client.delete_database_row_collab(
+                args.workspace_id,
+                args.database_id,
+                args.row_id,
                 dry_run=not args.execute,
             )
         else:  # pragma: no cover

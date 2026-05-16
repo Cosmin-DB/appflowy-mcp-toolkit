@@ -25,13 +25,29 @@ Write tools are available but **disabled by default**. They require explicit opt
 - Post-write verification is performed where possible (e.g. `move_managed_task_status`
   fetches and returns the updated row after a real write).
 
-## Scope limits
+## Experimental: Yjs-based row delete
 
-No broad destructive, admin, or invite tools are included. Specifically:
+`appflowy_delete_database_row` / `delete-row` CLI / `delete_database_row_collab()` are
+experimental (M6.3). They require **two** opt-in flags:
 
-- No row delete (no confirmed public REST endpoint exists).
-- No view/page delete or bulk operations.
-- No workspace admin or member management.
+- `APPFLOWY_ALLOW_WRITES=true`
+- `APPFLOWY_ALLOW_COLLAB_WRITES=true`
+
+They also require Node.js 18+ and the `yjs` npm package:
+
+```bash
+cd src/appflowy_mcp_toolkit/collab && npm install
+```
+
+This is the only confirmed-correct delete path (AppFlowy Web does not expose a REST
+row-delete endpoint). The implementation has been live-tested against a disposable
+workspace but is **not yet proven for all board create/edit/move scenarios** and is
+not recommended for production use. All defaults are dry-run.
+
+Row/card deletion in AppFlowy Web is handled by mutating the database collab/Yjs document
+and syncing a binary update, not by a semantic REST delete endpoint. Future delete support
+must therefore use a verified collab mutator, an explicit experimental opt-in, and
+disposable-workspace proof before it is exposed as an MCP tool.
 
 Future write tools must:
 
@@ -41,3 +57,12 @@ Future write tools must:
 - validate target workspace/database/row IDs;
 - return before/after summaries;
 - avoid bulk/destructive actions until there is a proven safety model.
+
+## Scope limits
+
+No broad destructive, admin, or invite tools are included. Specifically:
+
+- Row delete is available only via the experimental Yjs path (`appflowy_delete_database_row`),
+  gated by two explicit env flags and Node.js.
+- No view/page delete or bulk operations.
+- No workspace admin or member management.

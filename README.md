@@ -39,6 +39,12 @@ appflowy-toolkit databases --workspace-id <workspace_id>
 appflowy-toolkit fields --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit rows --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit row-details --workspace-id <workspace_id> --database-id <database_id> --ids <row_id>
+appflowy-toolkit collab-json --workspace-id <workspace_id> --object-id <database_id> --collab-type Database
+appflowy-toolkit row-orders --workspace-id <workspace_id> --database-id <database_id>
+
+# Experimental: Yjs-based row delete (requires Node.js 18+ and npm install in collab/)
+appflowy-toolkit delete-row --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id>
+appflowy-toolkit delete-row ... --execute  # live write; also needs APPFLOWY_ALLOW_WRITES=true and APPFLOWY_ALLOW_COLLAB_WRITES=true
 ```
 
 ## MCP server
@@ -57,6 +63,8 @@ Initial tools are read-only:
 - `appflowy_list_database_row_ids`
 - `appflowy_get_database_rows`
 - `appflowy_list_select_options`
+- `appflowy_get_collab_json`
+- `appflowy_get_database_row_orders`
 
 Write tools exist for controlled testing, but dry-run by default and require
 `APPFLOWY_ALLOW_WRITES=true` for real mutations:
@@ -66,9 +74,19 @@ Write tools exist for controlled testing, but dry-run by default and require
 - `appflowy_upsert_managed_task`
 - `appflowy_move_managed_task_status`
 
-Current API limitation: public AppFlowy REST does not expose confirmed endpoints
-for deleting rows or creating new select/status options. The toolkit surfaces
-validated status movement for MCP-managed tasks via stable `task_key`/`pre_hash`.
+Experimental write tool (dry-run by default; requires `APPFLOWY_ALLOW_WRITES=true` **and**
+`APPFLOWY_ALLOW_COLLAB_WRITES=true`; requires Node.js 18+ with `npm install` in
+`src/appflowy_mcp_toolkit/collab/`):
+
+- `appflowy_delete_database_row` — deletes a row from all views via Yjs collab
+  mutation. This is the only confirmed delete path; AppFlowy Web does not expose
+  a REST row-delete endpoint. **Not yet proven for all board create/edit/move
+  scenarios.** See `docs/collab-driver-plan.md` for the full M6 status.
+
+Current API limitation: public AppFlowy REST does not expose a confirmed row-delete
+endpoint. Row/card deletion in AppFlowy Web is a collab/Yjs update. The `appflowy_delete_database_row`
+tool implements this path experimentally; it has been live-tested against a disposable
+workspace but is not yet recommended for production use.
 
 ## Development
 

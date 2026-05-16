@@ -1,0 +1,15 @@
+{
+  "name": "appflowy-mcp-toolkit-collab-helper",
+  "version": "1.0.0",
+  "description": "Experimental local Yjs helper for appflowy-mcp-toolkit",
+  "main": "yjs_helper.js",
+  "scripts": {
+    "test": "node -c yjs_helper.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "yjs": "^13.6.30"
+  }
+}

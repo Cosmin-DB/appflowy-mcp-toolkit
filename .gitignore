@@ -16,5 +16,7 @@ out/
 token.json
 *.token
 *.secret
+node_modules/
+uv.lock
 
 .venv/

@@ -44,6 +44,26 @@
 - [x] Disposable write integration smoke test.
 - [x] Manual stdio MCP write smoke in disposable workspace.
 
+## M6 — AppFlowy Web collab driver
+
+- [x] Verify real web delete behavior in a disposable workspace.
+- [x] Add read-only collab JSON/row-order inspector.
+- [x] Audit whether current REST writes are web-board visible.
+- [x] Prototype AppFlowy-compatible collab mutation for task delete.
+- [x] Integrate experimental Yjs row-delete into MCP/CLI/client (gated, dry-run default).
+- [ ] Prove create/edit/move/delete against a disposable web board.
+- [ ] Integrate verified task operations into MCP behind explicit experimental gates.
+
+Current status: Yjs delete is integrated as an experimental tool (`appflowy_delete_database_row`)
+behind two explicit env gates (`APPFLOWY_ALLOW_WRITES` + `APPFLOWY_ALLOW_COLLAB_WRITES`)
+and a Node.js runtime requirement. Live-tested against a disposable workspace (M6.3).
+Board create/edit/move equivalence is not yet proven (M6.4 pending).
+
+Before adding more AppFlowy features, pause for stabilization: review the M6 diff,
+align docs, keep dependencies explicit, and commit a coherent experimental baseline.
+
+See [docs/collab-driver-plan.md](docs/collab-driver-plan.md).
+
 ### Deferred
 
 - `/api/v1/workspace/get_folder`: live-tested against `beta.appflowy.cloud` and returned
@@ -52,5 +72,6 @@
   implemented; absent from official public OpenAPI (which documents only the
   `/api/workspace/...` namespace). Require official documentation and independent
   live verification before any implementation is attempted.
-- Row delete and view delete operations: no confirmed public REST endpoint exists;
-  out of scope until a safe, reversible pattern is established.
+- REST row delete and view delete operations: no confirmed public REST endpoint exists.
+  Row delete is available only through the experimental Yjs collab tool above; view
+  delete remains out of scope until a safe, verified pattern is established.
