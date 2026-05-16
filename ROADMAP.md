@@ -63,6 +63,7 @@ Before adding more AppFlowy features, pause for stabilization: review the M6 dif
 align docs, keep dependencies explicit, and commit a coherent experimental baseline.
 
 See [docs/collab-driver-plan.md](docs/collab-driver-plan.md).
+Execution plan: [docs/execution-roadmap.md](docs/execution-roadmap.md).
 
 ### Deferred
 
