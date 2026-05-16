@@ -10,7 +10,7 @@ Included:
 - AppFlowy REST client, CLI, and MCP server.
 - Read coverage for server/user/workspace/folder/page/database/row/search/file metadata.
 - Guarded writes for task rows, page/view organization, fields, quick notes, and trash flows.
-- Experimental Yjs row delete behind explicit write + collab write gates.
+- Experimental Yjs row delete and ordering behind explicit write + collab write gates.
 - Optional self-hosted Docker and browser smoke tests.
 
 Deferred:
@@ -61,6 +61,10 @@ APPFLOWY_BROWSER_TESTS=true uv run --extra browser pytest tests/browser -q -s
 Current expected browser result: one Grid/login smoke passes and one MCP-created-row
 rendering observation is `xfail` if AppFlowy Web does not render the row despite
 REST/collab/blob-diff verification passing.
+
+Ordering tools have unit and offline Yjs helper integration coverage. Before a
+public release, run the browser checklist for row/card order and board/status
+column order against the disposable Docker stack.
 
 ## Safety Review
 

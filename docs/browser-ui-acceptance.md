@@ -16,12 +16,16 @@ workspace/database:
 6. If cards disappear, open Grid, then return to Board and record whether cards reappear.
 7. Move the task through `appflowy_move_task`; verify data plane first, then repeat Grid
    and Board observations.
-8. Delete the task through `appflowy_delete_task --execute` using the returned `row_id`;
+8. Reorder a card through `appflowy_reorder_database_row`; verify the
+   `row_orders` data plane first, then check Board/Grid rendering.
+9. Reorder a board/status column through `appflowy_reorder_database_column`;
+   verify the Database collab data plane first, then check Board rendering.
+10. Delete the task through `appflowy_delete_task --execute` using the returned `row_id`;
    verify absence from row orders and REST row list.
 
 Expected current behavior:
 
-- Data-plane create/update/move/delete should pass.
+- Data-plane create/update/move/delete/reorder should pass.
 - Board may hide cards after refresh until Grid is opened and Board is revisited. Treat
   that as a browser/UI finding, not an MCP mutation failure, unless REST/collab verification
   also fails.

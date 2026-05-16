@@ -309,10 +309,17 @@ Experimental collab write tools (dry-run by default; require `APPFLOWY_ALLOW_WRI
   a REST row-delete endpoint. The current verification means absent from database
   view row lists; explicit row-detail lookup by id may still resolve the old row
   object.
+- `appflowy_reorder_database_row` — reorders a row/card inside a specific
+  database view by mutating that view's `row_orders` YArray.
+- `appflowy_reorder_database_column` — reorders a board column/status group
+  inside a specific database view by mutating `groups[field_id].groups`.
 
 Current API limitation: public AppFlowy REST does not expose a confirmed row-delete
 endpoint. Row/card deletion in AppFlowy Web is a collab/Yjs update. The
-`appflowy_delete_database_row` tool implements this path experimentally; it has been
+`appflowy_delete_database_row`, `appflowy_reorder_database_row`, and
+`appflowy_reorder_database_column` tools implement narrow Yjs paths
+experimentally; they have been covered by offline helper integration tests, but
+Docker/browser live proof is still pending for ordering.
 tested against disposable self-hosted workspaces, but remains
 opt-in and is not yet recommended for production use.
 
