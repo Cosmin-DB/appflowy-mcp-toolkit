@@ -315,10 +315,14 @@ def test_selfhosted_organizational_structure_lifecycle() -> None:
                 space_icon_color="0xFF00AAFF",
                 dry_run=False,
             )
-            folder = client.get_folder(workspace_id, depth=3)
-            updated_space = _find_view_by_id(folder, space_id)
-            assert updated_space is not None
-            assert updated_space.get("name") == f"MCP Space Renamed {suffix}"
+
+            def assert_space_renamed() -> None:
+                folder = client.get_folder(workspace_id, depth=3)
+                updated_space = _find_view_by_id(folder, space_id)
+                assert updated_space is not None
+                assert updated_space.get("name") == f"MCP Space Renamed {suffix}"
+
+            _eventually(assert_space_renamed)
 
             try:
                 created_folder = client.create_folder_view(
@@ -368,19 +372,26 @@ def test_selfhosted_organizational_structure_lifecycle() -> None:
             )
             client.add_recent_pages(workspace_id, [page_id], dry_run=False)
 
-            folder = client.get_folder(workspace_id, depth=4)
-            moved_page = _find_view_by_id(folder, page_id)
-            assert moved_page is not None
-            assert moved_page.get("name") == f"MCP Page Renamed {suffix}"
-            assert moved_page.get("parent_view_id") == parent_space_id
+            def assert_page_moved() -> None:
+                folder = client.get_folder(workspace_id, depth=4)
+                moved_page = _find_view_by_id(folder, page_id)
+                assert moved_page is not None
+                assert moved_page.get("name") == f"MCP Page Renamed {suffix}"
+                assert moved_page.get("parent_view_id") == parent_space_id
+
+            _eventually(assert_page_moved)
 
             client.move_page_view_to_trash(workspace_id, page_id, dry_run=False)
             trash = client.list_trash_views(workspace_id)
             assert any(item.get("view_id") == page_id for item in trash)
 
             client.restore_page_view_from_trash(workspace_id, page_id, dry_run=False)
-            folder = client.get_folder(workspace_id, depth=4)
-            assert _find_view_by_id(folder, page_id) is not None
+
+            def assert_page_restored() -> None:
+                folder = client.get_folder(workspace_id, depth=4)
+                assert _find_view_by_id(folder, page_id) is not None
+
+            _eventually(assert_page_restored)
         finally:
             _delete_views(client, workspace_id, created_view_ids)
 

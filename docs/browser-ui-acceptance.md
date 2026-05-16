@@ -52,3 +52,28 @@ Next browser-quality step: run Playwright or an allowed browser profile against 
 stack, sign into the seeded user, and execute the checklist above. Keep that as a
 separate browser acceptance layer; the automated self-hosted pytest suite already proves
 API/collab data-plane behavior.
+
+## Playwright Smoke
+
+The repo includes opt-in browser smoke coverage in `tests/browser/`:
+
+```bash
+set -a
+source .env.selfhosted.generated
+set +a
+APPFLOWY_BROWSER_TESTS=true uv run --extra browser pytest tests/browser -q -s
+```
+
+Current expectations:
+
+- Login and Grid rendering against the local Docker stack should pass.
+- MCP-created rows are verified through REST/collab/blob-diff before the browser check.
+- If AppFlowy Web does not render that verified row, the browser test records an
+  `xfail` instead of pretending the UI layer passed. That preserves the important
+  split: MCP data-plane correctness can be true while AppFlowy Web rendering remains
+  stale or incomplete.
+
+Validated 2026-05-16 against the local Docker stack: `1 passed, 1 xfailed`. The
+passing test proves login + To-dos Grid rendering. The xfailed test proves the MCP-created
+row at the data plane first, then records that this AppFlowy Web build still does not
+render that row in Board/Grid during the browser pass.

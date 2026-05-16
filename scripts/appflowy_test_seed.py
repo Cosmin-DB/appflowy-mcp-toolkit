@@ -59,7 +59,7 @@ def main() -> int:
         )
         return 3
 
-    write_generated_env(base_url, tokens, workspace_id, database_id)
+    write_generated_env(base_url, tokens, workspace_id, database_id, email, password)
     print(f"Wrote {GENERATED_ENV}")
     print(f"workspace_id={workspace_id}")
     print(f"database_id={database_id}")
@@ -192,6 +192,8 @@ def write_generated_env(
     tokens: dict[str, str],
     workspace_id: str,
     database_id: str,
+    email: str,
+    password: str,
 ) -> None:
     values = {
         "APPFLOWY_BASE_URL": base_url,
@@ -203,6 +205,8 @@ def write_generated_env(
         "APPFLOWY_LIVE_DATABASE_ID": database_id,
         "APPFLOWY_SELFHOSTED_TESTS": "true",
         "APPFLOWY_LIVE_TESTS": "true",
+        "APPFLOWY_BROWSER_EMAIL": email,
+        "APPFLOWY_BROWSER_PASSWORD": password,
     }
     GENERATED_ENV.write_text(
         "\n".join(f"{key}={shell_quote(value)}" for key, value in values.items()) + "\n",
@@ -210,7 +214,10 @@ def write_generated_env(
     )
     metadata_path = ROOT / ".env.selfhosted.generated.json"
     metadata_path.write_text(
-        json.dumps({k: v for k, v in values.items() if "TOKEN" not in k}, indent=2),
+        json.dumps(
+            {k: v for k, v in values.items() if "TOKEN" not in k and "PASSWORD" not in k},
+            indent=2,
+        ),
         encoding="utf-8",
     )
 

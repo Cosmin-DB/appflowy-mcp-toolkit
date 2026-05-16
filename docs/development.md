@@ -55,3 +55,12 @@ Browser/UI acceptance is tracked separately from API/collab truth. The local Doc
 stack can be smoke-rendered at `http://localhost/app`; a full browser acceptance pass
 should use Playwright or an allowed browser profile and follow
 `docs/browser-ui-acceptance.md`.
+
+Opt-in Playwright browser smoke:
+
+```bash
+set -a
+source .env.selfhosted.generated
+set +a
+APPFLOWY_BROWSER_TESTS=true uv run --extra browser pytest tests/browser -q -s
+```
