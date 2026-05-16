@@ -1,5 +1,5 @@
 """
-Experimental Yjs-based collab delete helper for AppFlowy database rows.
+Experimental Yjs-based collab mutation helpers for AppFlowy database rows.
 
 This module is experimental (M6.3). It requires Node.js 18+ and the ``yjs``
 npm package installed alongside the helper script in
@@ -162,39 +162,14 @@ def _require_helper() -> None:
         )
 
 
-def invoke_yjs_delete(doc_state: list[int], row_id: str) -> dict[str, Any]:
-    """Call the Yjs helper to compute a row-delete delta from binary collab state.
-
-    Parameters
-    ----------
-    doc_state:
-        Raw lib0-v1 bytes from AppFlowy Cloud binary collab endpoint, as a
-        list of ints (the JSON array format returned by the API).
-    row_id:
-        UUID string of the row to delete from all views' ``row_orders``.
-
-    Returns
-    -------
-    dict with keys:
-      - ``ok`` (bool)
-      - ``row_found`` (bool)
-      - ``views_affected`` (list[str])
-      - ``view_row_counts`` (dict[str, dict[str, int]])
-      - ``delta_update`` (list[int])
-
-    Raises
-    ------
-    CollabHelperError
-        If Node.js is missing, the helper is missing, or the subprocess fails.
-    """
+def _invoke_yjs_helper(payload: dict[str, Any]) -> dict[str, Any]:
     node = _require_node()
     _require_helper()
 
-    payload = json.dumps({"doc_state": doc_state, "row_id": row_id})
     try:
         proc = subprocess.run(
             [node, str(_HELPER_JS)],
-            input=payload,
+            input=json.dumps(payload),
             capture_output=True,
             text=True,
             timeout=30,
@@ -220,6 +195,51 @@ def invoke_yjs_delete(doc_state: list[int], row_id: str) -> dict[str, Any]:
         raise CollabHelperError(f"Yjs helper error: {result.get('error', 'unknown')}")
 
     return result
+
+
+def invoke_yjs_delete(doc_state: list[int], row_id: str) -> dict[str, Any]:
+    """Call the Yjs helper to compute a row-delete delta from binary collab state.
+
+    Parameters
+    ----------
+    doc_state:
+        Raw lib0-v1 bytes from AppFlowy Cloud binary collab endpoint, as a
+        list of ints (the JSON array format returned by the API).
+    row_id:
+        UUID string of the row to delete from all views' ``row_orders``.
+
+    Returns
+    -------
+    dict with keys:
+      - ``ok`` (bool)
+      - ``row_found`` (bool)
+      - ``views_affected`` (list[str])
+      - ``view_row_counts`` (dict[str, dict[str, int]])
+      - ``delta_update`` (list[int])
+
+    Raises
+    ------
+    CollabHelperError
+        If Node.js is missing, the helper is missing, or the subprocess fails.
+    """
+    return _invoke_yjs_helper({"operation": "delete_row", "doc_state": doc_state, "row_id": row_id})
+
+
+def invoke_yjs_update_row_cells(
+    doc_state: list[int], cell_updates: dict[str, dict[str, Any]]
+) -> dict[str, Any]:
+    """Call the Yjs helper to compute a DatabaseRow cell-update delta.
+
+    cell_updates must be keyed by AppFlowy field id. Each value contains
+    the integer field_type and the already-normalized internal data.
+    """
+    return _invoke_yjs_helper(
+        {
+            "operation": "update_row_cells",
+            "doc_state": doc_state,
+            "cells": cell_updates,
+        }
+    )
 
 
 def allow_collab_writes() -> bool:

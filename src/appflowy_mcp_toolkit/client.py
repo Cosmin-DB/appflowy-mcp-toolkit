@@ -11,7 +11,7 @@ import httpx
 from .blob_diff import decode_database_blob_diff_response, encode_database_blob_diff_request
 from .config import AppFlowyConfig
 from .errors import AppFlowyError, AppFlowySchemaError, classify_http_error
-from .typed_fields import build_cells
+from .typed_fields import build_cells, build_collab_cell_updates
 
 
 class AppFlowyClient:
@@ -1272,6 +1272,100 @@ class AppFlowyClient:
             database_id,
             task_key=task_key,
             status=status,
+            dry_run=dry_run,
+        )
+
+    def update_database_row_by_id_collab(
+        self,
+        workspace_id: str,
+        database_id: str,
+        row_id: str,
+        *,
+        values: dict[str, Any],
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Update an existing row by row id through its DatabaseRow collab document.
+
+        Use this for rows created manually in AppFlowy Web or rows where only the
+        row_id is known. REST upsert is still preferred for MCP-managed rows that
+        have a stable pre_hash/task_key.
+        """
+        from appflowy_mcp_toolkit.collab.collab_delete import (
+            CollabHelperError,
+            allow_collab_writes,
+            invoke_yjs_update_row_cells,
+        )
+
+        fields = self.list_database_fields(workspace_id, database_id)
+        typed_cells = build_cells(fields, values)
+        cell_updates = build_collab_cell_updates(fields, values)
+
+        if not dry_run:
+            self._require_writes_enabled()
+            if not allow_collab_writes():
+                raise AppFlowyError(
+                    "Collab writes are disabled. "
+                    "Set APPFLOWY_ALLOW_COLLAB_WRITES=true to enable Yjs-based row updates."
+                )
+
+        binary = self.get_binary_collab(workspace_id, row_id, collab_type="DatabaseRow")
+        doc_state: list[int] = binary.get("doc_state", [])
+        if not doc_state:
+            raise AppFlowyError(
+                "Binary DatabaseRow collab returned empty doc_state; cannot compute update delta."
+            )
+
+        try:
+            helper_result = invoke_yjs_update_row_cells(doc_state, cell_updates)
+        except CollabHelperError as exc:
+            raise AppFlowyError(str(exc)) from exc
+
+        summary: dict[str, Any] = {
+            "dry_run": dry_run,
+            "row_id": row_id,
+            "typed_cells": typed_cells,
+            "collab_cell_updates": cell_updates,
+            "updated_fields": helper_result["updated_fields"],
+            "delta_update_bytes": len(helper_result["delta_update"]),
+            "path": f"/api/workspace/v1/{workspace_id}/collab/{row_id}/web-update",
+            "collab_type": _collab_type_int("DatabaseRow"),
+        }
+        if dry_run:
+            return summary
+
+        post_data = self.request(
+            "POST",
+            f"/api/workspace/v1/{workspace_id}/collab/{row_id}/web-update",
+            json={
+                "doc_state": helper_result["delta_update"],
+                "collab_type": _collab_type_int("DatabaseRow"),
+            },
+        )
+        summary["server_status"] = post_data.get("code")
+        summary["verified_row"] = self.get_database_rows(workspace_id, database_id, [row_id])
+        summary["verification"] = self.verify_database_row(
+            workspace_id,
+            database_id,
+            row_id,
+            include_blob_diff=False,
+        )
+        return summary
+
+    def move_task_by_row_id(
+        self,
+        workspace_id: str,
+        database_id: str,
+        row_id: str,
+        *,
+        status: str,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Move an existing/manual task row to another Status option by row id."""
+        return self.update_database_row_by_id_collab(
+            workspace_id,
+            database_id,
+            row_id,
+            values={"Status": status},
             dry_run=dry_run,
         )
 

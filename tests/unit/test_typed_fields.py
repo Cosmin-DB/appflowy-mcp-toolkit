@@ -5,7 +5,13 @@ from typing import Any
 
 import pytest
 
-from appflowy_mcp_toolkit.typed_fields import FieldSchema, FieldType, TypedFieldError, build_cells
+from appflowy_mcp_toolkit.typed_fields import (
+    FieldSchema,
+    FieldType,
+    TypedFieldError,
+    build_cells,
+    build_collab_cell_updates,
+)
 
 FIELDS: list[dict[str, Any]] = [
     {
@@ -113,6 +119,27 @@ def test_build_cells_normalizes_common_task_fields() -> None:
             ],
             "selected_option_ids": ["write"],
         },
+    }
+
+
+def test_build_collab_cell_updates_uses_field_ids_and_select_option_ids() -> None:
+    assert build_collab_cell_updates(
+        FIELDS,
+        {
+            "Description": "Ship release notes",
+            "Status": "doing",
+            "Labels": ["Bug", "release"],
+            "Blocked": True,
+        },
+    ) == {
+        "description_id": {
+            "field_name": "Description",
+            "field_type": 0,
+            "data": "Ship release notes",
+        },
+        "status_id": {"field_name": "Status", "field_type": 3, "data": "doing"},
+        "labels_id": {"field_name": "Labels", "field_type": 4, "data": ["bug", "release"]},
+        "blocked_id": {"field_name": "Blocked", "field_type": 5, "data": True},
     }
 
 

@@ -36,7 +36,8 @@ real mutation to occur:
 2. The environment variable `APPFLOWY_ALLOW_WRITES=true` must be set.
 
 Dry-run calls return the would-be HTTP method, path, and payload without touching the API.
-Row delete is available only through the experimental Yjs collab path (see below).
+Row delete and arbitrary existing-row updates by `row_id` are available only through
+the experimental Yjs collab path (see below).
 Page/view trash, restore, and delete-from-trash operations are included behind the same
 dry-run/write gate model. Workspace admin/member/invite/publish/import operations are
 not included in the first release candidate.
@@ -52,17 +53,24 @@ The toolkit includes read-only collab inspection helpers for database documents:
 These diagnostics exist because AppFlowy Web board operations are backed by Yjs/AppFlowy
 collab state. They are intentionally read-only and do not perform binary collab writes.
 
-## Experimental: Yjs-based row delete
+## Experimental: Yjs-based row update/delete
 
-AppFlowy Web does not expose a REST row-delete endpoint. Deletion is a Yjs collab
+AppFlowy Web does not expose REST endpoints for every row mutation. Deletion is a Yjs collab
 mutation: the row ID is removed from every view's `row_orders` YArray in one transaction,
 and the incremental lib0-v1 update is posted to
 `/api/workspace/v1/{workspace_id}/collab/{database_id}/web-update`.
 
+Existing manual/UI-created rows have the same issue for updates: REST `PUT /row`
+targets a deterministic row derived from `pre_hash`, not an arbitrary existing
+`row_id`. For those rows, the toolkit updates the row's `DatabaseRow` collab
+document by mutating `data.cells.<field_id>.data` and posting the incremental update
+to `/api/workspace/v1/{workspace_id}/collab/{row_id}/web-update` with collab type
+`DatabaseRow`.
+
 The toolkit implements this through a two-layer design:
 
 1. **Yjs helper** (`src/appflowy_mcp_toolkit/collab/yjs_helper.js`): Node.js 18+ script
-   that reads `{doc_state: [...], row_id: "..."}` from stdin and writes the mutation
+   that reads `{doc_state: [...], operation: "..."}` from stdin and writes the mutation
    result to stdout as JSON.  No network access, no tokens passed to Node.
 2. **Python wrapper** (`collab/collab_delete.py`, `client.delete_database_row_collab()`):
    fetches binary collab, invokes the helper via subprocess, and (in live mode) POSTs
@@ -87,6 +95,10 @@ id may still return the old row object on some AppFlowy deployments. Browser Boa
 rendering is not treated as authoritative because of the known AppFlowy Web Board/Grid
 refresh issue.
 
+See `docs/rest-vs-collab.md` for the operational decision table. The important rule is:
+use REST and `task_key` for agent-managed tasks; use collab-by-`row_id` only for
+existing manual rows or for row deletion, where REST cannot target the desired object.
+
 ## pre_hash and MCP-managed task upserts
 
 `pre_hash` is used exclusively for MCP-managed idempotent task upserts
@@ -108,6 +120,8 @@ diagnostics:
 - `create_task` creates an MCP-managed task using a stable `task_key`.
 - `update_task` updates description/status/document fields for the same stable `task_key`.
 - `move_task` is a status-only wrapper for common board movement.
+- `update_database_row_by_id_collab` updates existing/manual rows by AppFlowy `row_id`.
+- `move_task_by_row_id` is the status-only wrapper for existing/manual task rows.
 - `delete_task` deletes by AppFlowy `row_id` through the experimental Yjs collab path.
 
 For the current board shape, the required task fields are `Description` and `Status`.

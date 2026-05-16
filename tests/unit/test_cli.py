@@ -832,6 +832,68 @@ def test_cli_task_commands_delegate_to_task_methods(monkeypatch, capsys):
         dry_run=True,
     )
 
+    with _patch(
+        "appflowy_mcp_toolkit.client.AppFlowyClient.move_task_by_row_id",
+        return_value={"dry_run": True},
+    ) as mock_move_by_id:
+        rc = main(
+            [
+                "move-task-by-id",
+                "--workspace-id",
+                "ws_001",
+                "--database-id",
+                "db_001",
+                "--row-id",
+                "row-1",
+                "--status",
+                "Done",
+            ]
+        )
+    assert rc == 0
+    assert json.loads(capsys.readouterr().out)["dry_run"] is True
+    mock_move_by_id.assert_called_once_with(
+        "ws_001",
+        "db_001",
+        "row-1",
+        status="Done",
+        dry_run=True,
+    )
+
+
+def test_cli_update_row_by_id_dry_run(monkeypatch, capsys):
+    from unittest.mock import patch as _patch
+
+    monkeypatch.setenv("APPFLOWY_BASE_URL", "https://example.test")
+    monkeypatch.setenv("APPFLOWY_ACCESS_TOKEN", "test-token")
+
+    with _patch(
+        "appflowy_mcp_toolkit.client.AppFlowyClient.update_database_row_by_id_collab",
+        return_value={"dry_run": True, "row_id": "row-1"},
+    ) as mock_method:
+        rc = main(
+            [
+                "update-row-by-id",
+                "--workspace-id",
+                "ws_001",
+                "--database-id",
+                "db_001",
+                "--row-id",
+                "row-1",
+                "--values-json",
+                '{"Status":"Done"}',
+            ]
+        )
+
+    assert rc == 0
+    assert json.loads(capsys.readouterr().out)["row_id"] == "row-1"
+    mock_method.assert_called_once_with(
+        "ws_001",
+        "db_001",
+        "row-1",
+        values={"Status": "Done"},
+        dry_run=True,
+    )
+
 
 def test_cli_delete_row_dry_run(monkeypatch, capsys):
     """delete-row dry-run: patches the client method directly, no real subprocess."""

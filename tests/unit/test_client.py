@@ -921,6 +921,127 @@ def test_upsert_typed_database_row_normalizes_against_schema(make_client):
     assert result["result"]["json"]["cells"] == {"Description": "Typed"}
 
 
+def test_update_database_row_by_id_collab_dry_run_uses_database_row_collab(
+    make_client, monkeypatch
+):
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if request.url.path.endswith("/fields"):
+            return json_response(
+                {
+                    "data": [
+                        {"id": "desc", "name": "Description", "field_type": "RichText"},
+                        {
+                            "id": "status",
+                            "name": "Status",
+                            "field_type": "SingleSelect",
+                            "type_option": {
+                                "content": {
+                                    "options": [
+                                        {"id": "todo", "name": "To Do"},
+                                        {"id": "done", "name": "✅ Done"},
+                                    ]
+                                }
+                            },
+                        },
+                    ]
+                }
+            )
+        if request.url.path == "/api/workspace/v1/ws/collab/row-1":
+            assert request.url.params["collab_type"] == "4"
+            return json_response({"data": {"doc_state": [1, 2, 3]}})
+        raise AssertionError(str(request.url))
+
+    client = make_client(handler)
+
+    def fake_invoke(doc_state: list[int], updates: dict[str, dict[str, object]]):
+        assert doc_state == [1, 2, 3]
+        assert updates["status"]["data"] == "done"
+        return {"ok": True, "updated_fields": ["status"], "delta_update": [9, 8, 7]}
+
+    import appflowy_mcp_toolkit.collab.collab_delete as cd_mod
+
+    monkeypatch.setattr(cd_mod, "invoke_yjs_update_row_cells", fake_invoke)
+
+    result = client.update_database_row_by_id_collab(
+        "ws",
+        "db",
+        "row-1",
+        values={"Status": "✅ Done", "Description": "Manual row"},
+    )
+
+    assert result["dry_run"] is True
+    assert result["row_id"] == "row-1"
+    assert result["typed_cells"]["Status"] == "✅ Done"
+    assert result["collab_cell_updates"]["status"]["data"] == "done"
+    assert result["delta_update_bytes"] == 3
+    assert result["collab_type"] == 4
+    assert all("web-update" not in request.url.path for request in seen)
+
+
+def test_update_database_row_by_id_collab_live_posts_and_verifies(make_client, monkeypatch):
+    monkeypatch.setenv("APPFLOWY_ALLOW_COLLAB_WRITES", "true")
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        path = request.url.path
+        if path.endswith("/fields"):
+            return json_response(
+                {
+                    "data": [
+                        {
+                            "id": "status",
+                            "name": "Status",
+                            "field_type": "SingleSelect",
+                            "type_option": {
+                                "content": {"options": [{"id": "done", "name": "Done"}]}
+                            },
+                        }
+                    ]
+                }
+            )
+        if path == "/api/workspace/v1/ws/collab/row-1":
+            return json_response({"data": {"doc_state": [1, 2, 3]}})
+        if path.endswith("/web-update"):
+            assert request.method == "POST"
+            assert json.loads(request.content)["collab_type"] == 4
+            return json_response({"code": 0, "message": "ok"})
+        if path == "/api/workspace/ws/database/db/row/detail":
+            return json_response({"data": [{"id": "row-1", "cells": {"Status": "Done"}}]})
+        if path == "/api/workspace/ws/database/db/row":
+            return json_response({"data": [{"id": "row-1"}]})
+        if path == "/api/workspace/v1/ws/collab/db/json":
+            return json_response({"data": {"views": {"view": {"row_orders": ["row-1"]}}}})
+        if path == "/api/workspace/v1/ws/collab/row-1/json":
+            return json_response({"data": {"collab": {"database_row": {}}}})
+        raise AssertionError(str(request.url))
+
+    client = make_client(handler, allow_writes=True)
+
+    def fake_invoke(doc_state: list[int], updates: dict[str, dict[str, object]]):
+        return {"ok": True, "updated_fields": ["status"], "delta_update": [9, 8, 7]}
+
+    import appflowy_mcp_toolkit.collab.collab_delete as cd_mod
+
+    monkeypatch.setattr(cd_mod, "invoke_yjs_update_row_cells", fake_invoke)
+
+    result = client.move_task_by_row_id(
+        "ws",
+        "db",
+        "row-1",
+        status="Done",
+        dry_run=False,
+    )
+
+    assert result["server_status"] == 0
+    assert result["verified_row"][0]["cells"]["Status"] == "Done"
+    assert result["verification"]["verified"] is True
+    assert any("web-update" in request.url.path for request in seen)
+
+
 def test_list_select_options_extracts_status_options(make_client):
     def handler(_request: httpx.Request) -> httpx.Response:
         return json_response(

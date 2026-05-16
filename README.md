@@ -32,6 +32,7 @@ This repo tries to make those edges explicit:
   summary, URL, checkbox, number, datetime, and media
 - AppFlowy file upload/download/delete support for Media fields
 - verification tools that distinguish API/collab truth from browser rendering
+- a documented REST-vs-collab decision path for manual rows and agent-managed tasks
 - documentation for deferred areas instead of pretending everything is solved
 
 ## Current Scope
@@ -146,10 +147,12 @@ appflowy-toolkit tasks --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit create-task --workspace-id <workspace_id> --database-id <database_id> --task-key <stable_key> --description "Test"
 appflowy-toolkit update-task --workspace-id <workspace_id> --database-id <database_id> --task-key <stable_key> --status "Doing"
 appflowy-toolkit move-task --workspace-id <workspace_id> --database-id <database_id> --task-key <stable_key> --status "Done"
+appflowy-toolkit move-task-by-id --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id> --status "Done"
+appflowy-toolkit update-row-by-id --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id> --values-json '{"Status":"Done"}'
 appflowy-toolkit delete-task --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id>
 appflowy-toolkit managed-task-verified --workspace-id <workspace_id> --database-id <database_id> --task-key <stable_key> --description "Test"
 
-# Experimental: Yjs-based row delete (requires Node.js 18+ and npm install in collab/)
+# Experimental: Yjs-based row update/delete (requires Node.js 18+ and npm install in collab/)
 appflowy-toolkit delete-row --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id>
 appflowy-toolkit delete-row ... --execute  # live write; also needs APPFLOWY_ALLOW_WRITES=true and APPFLOWY_ALLOW_COLLAB_WRITES=true
 ```
@@ -167,6 +170,7 @@ Start with these files:
 - `AGENTS.md` - working rules, safety boundaries, and test gates for agents.
 - `README.md` - user-facing install, CLI, MCP tools, and known limitations.
 - `docs/appflowy-coverage-matrix.md` - implemented, candidate, and deferred AppFlowy areas.
+- `docs/rest-vs-collab.md` - when to use REST, `task_key`/`pre_hash`, or collab-by-`row_id`.
 - `docs/browser-ui-acceptance.md` - why browser rendering is tested separately from API/collab truth.
 - `docs/typed-field-coverage.md` - typed field/cell coverage status for richer task cards.
 - `docs/self-hosted-test-plan.md` - how to run disposable local AppFlowy for destructive tests.
@@ -250,6 +254,8 @@ Write tools exist for controlled testing, but dry-run by default and require
 - `appflowy_create_task`
 - `appflowy_update_task`
 - `appflowy_move_task`
+- `appflowy_update_database_row_by_id`
+- `appflowy_move_task_by_id`
 - `appflowy_delete_task`
 - `appflowy_create_quick_note`
 - `appflowy_update_quick_note`
@@ -266,18 +272,27 @@ Write tools exist for controlled testing, but dry-run by default and require
 Task-facing tools are the preferred public workflow for board-like task databases.
 `create_task`, `update_task`, and `move_task` use a caller-supplied stable
 `task_key`, mapped to AppFlowy's `pre_hash`, and verify the resulting data-plane
-state. `delete_task` currently requires the AppFlowy `row_id` returned by create/list
-because there is no confirmed safe lookup-by-`pre_hash` delete endpoint.
+state. For rows created manually in AppFlowy Web, use `move-task-by-id` /
+`appflowy_move_task_by_id` or `update-row-by-id` /
+`appflowy_update_database_row_by_id`; REST `pre_hash` upsert cannot target an
+arbitrary existing `row_id`. `delete_task` currently requires the AppFlowy
+`row_id` returned by create/list because there is no confirmed safe
+lookup-by-`pre_hash` delete endpoint.
 
-Experimental write tool (dry-run by default; requires `APPFLOWY_ALLOW_WRITES=true` **and**
+Experimental collab write tools (dry-run by default; require `APPFLOWY_ALLOW_WRITES=true` **and**
 `APPFLOWY_ALLOW_COLLAB_WRITES=true`; requires Node.js 18+ with `npm install` in
 `src/appflowy_mcp_toolkit/collab/`):
 
+- `appflowy_update_database_row_by_id` — updates cells on an existing
+  `DatabaseRow` collab object by `row_id`. This is the path for manually-created
+  rows/cards that do not have an MCP `task_key`.
+- `appflowy_move_task_by_id` — status-only wrapper for moving an existing/manual
+  task card by `row_id`.
 - `appflowy_delete_database_row` — deletes a row from all views via Yjs collab
   mutation. This is the only confirmed delete path; AppFlowy Web does not expose
-  a REST row-delete endpoint. **Not yet proven for all board create/edit/move
-  scenarios.** The current verification means absent from database view row lists;
-  explicit row-detail lookup by id may still resolve the old row object.
+  a REST row-delete endpoint. The current verification means absent from database
+  view row lists; explicit row-detail lookup by id may still resolve the old row
+  object.
 
 Current API limitation: public AppFlowy REST does not expose a confirmed row-delete
 endpoint. Row/card deletion in AppFlowy Web is a collab/Yjs update. The

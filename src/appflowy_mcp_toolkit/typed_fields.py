@@ -128,6 +128,32 @@ def build_cells(
     return cells
 
 
+def build_collab_cell_updates(
+    fields: Iterable[Mapping[str, Any]] | FieldSchema, values: Mapping[str, Any]
+) -> dict[str, dict[str, Any]]:
+    """Build DatabaseRow-collab cell updates keyed by AppFlowy field id.
+
+    AppFlowy's REST row create/upsert endpoint accepts human-facing select
+    option names. The DatabaseRow Yjs document stores select option ids
+    instead, so collab row updates need a separate normalization step.
+    """
+    schema = fields if isinstance(fields, FieldSchema) else FieldSchema(fields)
+    updates: dict[str, dict[str, Any]] = {}
+    for field_ref, value in values.items():
+        field = schema.resolve(str(field_ref))
+        _ensure_writable(field)
+        if not field.id:
+            raise TypedFieldError(
+                f"Field {field.name!r} is missing an id; collab row updates require field ids"
+            )
+        updates[field.id] = {
+            "field_name": field.name,
+            "field_type": field.field_type_id,
+            "data": _build_collab_cell(field, value),
+        }
+    return updates
+
+
 def _parse_field(raw: Mapping[str, Any]) -> Field:
     field_id = _first_str(raw, ("id", "field_id")) or ""
     name = _first_str(raw, ("name", "field_name"))
@@ -230,6 +256,20 @@ def _build_cell(field: Field, value: Any) -> Any:
         case _:
             _ensure_writable(field)
             raise TypedFieldError(f"Unsupported field type for field {field.name!r}: {field.type}")
+
+
+def _build_collab_cell(field: Field, value: Any) -> Any:
+    match field.field_type:
+        case FieldType.SINGLE_SELECT:
+            if not isinstance(value, str):
+                raise TypedFieldError(f"Field {field.name!r} expects an option name or id string")
+            return field.option_by_name_or_id(value).id
+        case FieldType.MULTI_SELECT:
+            if isinstance(value, str) or not isinstance(value, Sequence):
+                raise TypedFieldError(f"Field {field.name!r} expects a list of option names or ids")
+            return [field.option_by_name_or_id(str(item)).id for item in value]
+        case _:
+            return _build_cell(field, value)
 
 
 def _build_number(field: Field, value: Any) -> int | float:

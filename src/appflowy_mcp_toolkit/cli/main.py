@@ -440,6 +440,24 @@ def build_parser() -> argparse.ArgumentParser:
     move_task.add_argument("--status", required=True)
     move_task.add_argument("--execute", action="store_true")
 
+    update_row_by_id = sub.add_parser("update-row-by-id")
+    update_row_by_id.add_argument("--workspace-id", required=True)
+    update_row_by_id.add_argument("--database-id", required=True)
+    update_row_by_id.add_argument("--row-id", required=True)
+    update_row_by_id.add_argument(
+        "--values-json",
+        required=True,
+        help="Human-friendly field values keyed by AppFlowy field name or id",
+    )
+    update_row_by_id.add_argument("--execute", action="store_true")
+
+    move_task_by_id = sub.add_parser("move-task-by-id")
+    move_task_by_id.add_argument("--workspace-id", required=True)
+    move_task_by_id.add_argument("--database-id", required=True)
+    move_task_by_id.add_argument("--row-id", required=True)
+    move_task_by_id.add_argument("--status", required=True)
+    move_task_by_id.add_argument("--execute", action="store_true")
+
     delete_task = sub.add_parser("delete-task")
     delete_task.add_argument("--workspace-id", required=True)
     delete_task.add_argument("--database-id", required=True)
@@ -895,6 +913,22 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.workspace_id,
                 args.database_id,
                 task_key=args.task_key,
+                status=args.status,
+                dry_run=not args.execute,
+            )
+        elif args.command == "update-row-by-id":
+            result = client.update_database_row_by_id_collab(
+                args.workspace_id,
+                args.database_id,
+                args.row_id,
+                values=json.loads(args.values_json),
+                dry_run=not args.execute,
+            )
+        elif args.command == "move-task-by-id":
+            result = client.move_task_by_row_id(
+                args.workspace_id,
+                args.database_id,
+                args.row_id,
                 status=args.status,
                 dry_run=not args.execute,
             )

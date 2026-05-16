@@ -13,10 +13,10 @@ payloads, and keeps the raw path available as an escape hatch for unsupported sh
 Implemented entry points:
 
 - Python client: `create_typed_database_row`, `create_typed_database_row_verified`,
-  `upsert_typed_database_row`.
-- CLI: `create-typed-row`, `upsert-typed-row`.
+  `upsert_typed_database_row`, `update_database_row_by_id_collab`.
+- CLI: `create-typed-row`, `upsert-typed-row`, `update-row-by-id`.
 - MCP tools: `appflowy_create_typed_database_row`,
-  `appflowy_upsert_typed_database_row`.
+  `appflowy_upsert_typed_database_row`, `appflowy_update_database_row_by_id`.
 
 ## AppFlowy Field Types
 
@@ -166,6 +166,12 @@ Relation, Translate, and Media uploads.
 
 The typed API is usable for real task-card work now. The remaining completeness work is
 limited to deferred/high-complexity field families:
+
+For rows created manually in AppFlowy Web, typed updates go through
+`update_database_row_by_id_collab` / `update-row-by-id` /
+`appflowy_update_database_row_by_id`. That path uses field ids and stores select option
+ids in the `DatabaseRow` collab document, which is different from REST create/upsert
+payloads that can accept option names.
 
 - Relation
 - Translate

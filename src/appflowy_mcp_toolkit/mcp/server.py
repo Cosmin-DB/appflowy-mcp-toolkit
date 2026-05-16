@@ -859,6 +859,53 @@ def appflowy_move_task(
         )
 
 
+@mcp.tool(name="appflowy_update_database_row_by_id", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_update_database_row_by_id(
+    workspace_id: str,
+    database_id: str,
+    row_id: str,
+    values: dict[str, object],
+    dry_run: bool = True,
+) -> str:
+    """Update an existing AppFlowy row by row id via DatabaseRow collab/Yjs.
+
+    Use this for manual/UI-created rows or any row where only the row_id is
+    known. For MCP-managed tasks with a stable task_key, prefer
+    appflowy_update_task/appflowy_move_task.
+    """
+    with _client() as client:
+        return compact(
+            client.update_database_row_by_id_collab(
+                workspace_id,
+                database_id,
+                row_id,
+                values=values,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_move_task_by_id", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_move_task_by_id(
+    workspace_id: str,
+    database_id: str,
+    row_id: str,
+    status: str,
+    dry_run: bool = True,
+) -> str:
+    """Move an existing/manual task row by row id via DatabaseRow collab/Yjs."""
+    with _client() as client:
+        return compact(
+            client.move_task_by_row_id(
+                workspace_id,
+                database_id,
+                row_id,
+                status=status,
+                dry_run=dry_run,
+            )
+        )
+
+
 @mcp.tool(name="appflowy_delete_task", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
 def appflowy_delete_task(
     workspace_id: str,

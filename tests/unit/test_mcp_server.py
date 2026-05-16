@@ -48,6 +48,8 @@ EXPECTED_WRITE_TOOLS = {
     "appflowy_create_task",
     "appflowy_update_task",
     "appflowy_move_task",
+    "appflowy_update_database_row_by_id",
+    "appflowy_move_task_by_id",
     "appflowy_delete_task",
     "appflowy_create_quick_note",
     "appflowy_update_quick_note",

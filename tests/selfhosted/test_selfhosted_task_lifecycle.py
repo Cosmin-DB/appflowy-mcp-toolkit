@@ -603,6 +603,55 @@ def test_selfhosted_typed_multifield_row_lifecycle() -> None:
             _delete_created(client, workspace_id, database_id, created_row_ids)
 
 
+def test_selfhosted_manual_row_can_move_by_row_id_collab(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_id, database_id = _selfhosted_ids()
+    suffix = time.time_ns()
+    created_row_ids: list[str] = []
+    monkeypatch.setenv("APPFLOWY_ALLOW_COLLAB_WRITES", "true")
+
+    with AppFlowyClient() as client:
+        try:
+            options = _status_options(client, workspace_id, database_id)
+            initial_status = _pick_status(options, "To Do")
+            target_status = _pick_status(options, "Done", fallback_index=len(options) - 1)
+
+            created = client.create_typed_database_row_verified(
+                workspace_id,
+                database_id,
+                values={
+                    "Description": f"Manual row-id collab move {suffix}",
+                    "Status": initial_status,
+                },
+                dry_run=False,
+                include_blob_diff=False,
+            )
+            row_id = created["result"]["verification"]["row_id"]
+            created_row_ids.append(row_id)
+
+            moved = client.move_task_by_row_id(
+                workspace_id,
+                database_id,
+                row_id,
+                status=target_status,
+                dry_run=False,
+            )
+            assert moved["updated_fields"]
+
+            _eventually(
+                lambda: _assert_row_cells(
+                    client,
+                    workspace_id,
+                    database_id,
+                    row_id,
+                    status=target_status,
+                )
+            )
+        finally:
+            _delete_created(client, workspace_id, database_id, created_row_ids)
+
+
 def test_selfhosted_typed_scalar_field_lifecycle() -> None:
     workspace_id, database_id = _selfhosted_ids()
     suffix = time.time_ns()
