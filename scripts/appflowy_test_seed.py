@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import sys
-import time
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +24,18 @@ def main() -> int:
         )
         return 2
 
-    email = os.getenv("APPFLOWY_TEST_EMAIL", f"mcp-test-{int(time.time())}@example.test")
+    existing = load_generated_env()
+    if (
+        existing
+        and existing.get("APPFLOWY_BASE_URL", "").rstrip("/") == base_url
+        and validate_generated_env(existing)
+    ):
+        print(f"Reusing valid {GENERATED_ENV}")
+        print(f"workspace_id={existing['APPFLOWY_LIVE_WORKSPACE_ID']}")
+        print(f"database_id={existing['APPFLOWY_LIVE_DATABASE_ID']}")
+        return 0
+
+    email = os.getenv("APPFLOWY_TEST_EMAIL", "mcp-test@example.test")
     password = os.getenv("APPFLOWY_TEST_PASSWORD", "appflowy-mcp-test-password")
 
     tokens = signup_or_login(base_url, email, password)
@@ -53,6 +64,49 @@ def main() -> int:
     print(f"workspace_id={workspace_id}")
     print(f"database_id={database_id}")
     return 0
+
+
+def load_generated_env() -> dict[str, str]:
+    if not GENERATED_ENV.exists():
+        return {}
+    values: dict[str, str] = {}
+    for raw_line in GENERATED_ENV.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, raw_value = line.split("=", 1)
+        try:
+            value = shlex.split(raw_value)[0]
+        except (IndexError, ValueError):
+            value = raw_value.strip().strip("'\"")
+        values[key] = value
+    return values
+
+
+def validate_generated_env(values: dict[str, str]) -> bool:
+    required = (
+        "APPFLOWY_BASE_URL",
+        "APPFLOWY_ACCESS_TOKEN",
+        "APPFLOWY_LIVE_WORKSPACE_ID",
+        "APPFLOWY_LIVE_DATABASE_ID",
+    )
+    if any(not values.get(key) for key in required):
+        return False
+    config = AppFlowyConfig(
+        base_url=values["APPFLOWY_BASE_URL"].rstrip("/"),
+        access_token=values["APPFLOWY_ACCESS_TOKEN"],
+        refresh_token=values.get("APPFLOWY_REFRESH_TOKEN") or None,
+        allow_writes=True,
+    )
+    try:
+        with AppFlowyClient(config) as client:
+            client.list_database_fields(
+                values["APPFLOWY_LIVE_WORKSPACE_ID"],
+                values["APPFLOWY_LIVE_DATABASE_ID"],
+            )
+    except Exception:
+        return False
+    return True
 
 
 def signup_or_login(base_url: str, email: str, password: str) -> dict[str, str]:
