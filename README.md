@@ -113,6 +113,7 @@ Start with these files:
 - `README.md` - user-facing install, CLI, MCP tools, and known limitations.
 - `docs/appflowy-coverage-matrix.md` - implemented, candidate, and deferred AppFlowy areas.
 - `docs/browser-ui-acceptance.md` - why browser rendering is tested separately from API/collab truth.
+- `docs/multifield-coverage-plan.md` - typed field/cell coverage plan for richer task cards.
 - `docs/self-hosted-test-plan.md` - how to run disposable local AppFlowy for destructive tests.
 - `docs/release-checklist.md` - final checks before publishing or external handoff.
 
