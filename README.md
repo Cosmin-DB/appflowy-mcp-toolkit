@@ -119,6 +119,19 @@ Start with these files:
 Do not use a real/private AppFlowy workspace for write tests. Use the self-hosted
 Docker stack for the normal contributor test workflow.
 
+For a full local release-style run, use:
+
+```bash
+scripts/test_all_local.sh
+```
+
+That command runs the offline unit suite, formatting/lint/type/build gates, starts the
+disposable self-hosted AppFlowy Docker stack, seeds test credentials, and runs the
+self-hosted and browser smoke tests. Plain `uv run pytest -q` intentionally skips
+Docker/browser tests so the default suite stays safe on machines without AppFlowy
+running. If Docker is installed but your user cannot access the daemon yet, run
+`sudo -v` first or add the user to the Docker group.
+
 Read-only tools:
 
 - `appflowy_health_check`

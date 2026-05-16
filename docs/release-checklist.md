@@ -26,7 +26,18 @@ Deferred:
 Run from a clean checkout or clean worktree:
 
 ```bash
-uv run pytest -q
+scripts/test_all_local.sh
+```
+
+This is the preferred local release battery. It is self-contained except for Docker,
+uses the disposable self-hosted AppFlowy stack, and does not call AppFlowy official
+cloud. If Docker requires elevated access on the host, run `sudo -v` first or add
+the user to the Docker group.
+
+The same gates can be run manually as:
+
+```bash
+uv run pytest tests/unit -q
 uv run ruff format --check .
 uv run ruff check .
 uv run mypy src tests
@@ -34,11 +45,11 @@ uv build
 git diff --check
 ```
 
-Optional but expected before public release when local Docker is available:
+Self-hosted and browser gates:
 
 ```bash
 scripts/appflowy_test_env_up.sh
-python scripts/appflowy_test_seed.py
+uv run python scripts/appflowy_test_seed.py
 set -a
 source .env.selfhosted.generated
 set +a
