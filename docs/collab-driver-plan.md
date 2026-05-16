@@ -176,6 +176,21 @@ Board after refresh/warm-up, then test edit and move semantics. Do not promote R
 into a high-level `appflowy_create_task` tool until the required warm-up/verification
 behavior is understood and documented.
 
+Before starting a self-hosted AppFlowy Docker test rig, finish the MCP-side task-board
+surface so the Docker work validates a coherent contract instead of a moving target:
+
+- Promote the verified managed-task operations into final task-facing tool names.
+- Keep diagnostic row/collab tools separate from the main public workflow.
+- Document the task model: `task_key`, row id, required fields, status movement, and
+  ordering limitations.
+- Add/update one official live-smoke evidence note for data-plane lifecycle.
+- Add a browser/UI acceptance skeleton that records Grid/Board behavior separately from
+  data-plane correctness.
+- Re-run unit/type/lint gates and the official opt-in live smoke.
+
+Only after that should the project add `docker/appflowy-test/` or `tests/docker/` for
+self-hosted destructive tests.
+
 ### M6.5 MCP Integration (partial — experimental gate only)
 
 - [x] Wrap the Yjs prototype as a tracked helper with runtime checks and JSON output.

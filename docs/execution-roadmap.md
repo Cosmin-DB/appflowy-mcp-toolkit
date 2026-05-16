@@ -176,3 +176,50 @@ Continue Phase 1 with browser/UI acceptance: record the managed lifecycle eviden
 then test how AppFlowy Web Board/Grid renders the same lifecycle. Do not start
 packaging or publication until that UI limitation is documented as either supported
 with workaround or explicitly out of scope.
+
+## Before Self-Hosted Docker Testing
+
+Do these MCP-side items before spending effort on a local AppFlowy Docker test rig.
+The goal is to avoid using Docker to discover problems we can already define and close
+against the official instance.
+
+1. **Freeze the task-board contract**
+   - Decide the public task identity: `task_key` as the MCP-owned stable id.
+   - Define required fields: `Description` and `Status` for the current board shape.
+   - Document that `task_key` maps to AppFlowy `pre_hash` and returns/keeps a row id.
+
+2. **Expose final task tools, still behind safety gates**
+   - Add thin public aliases/wrappers for:
+     - `appflowy_create_task`
+     - `appflowy_update_task`
+     - `appflowy_move_task`
+     - `appflowy_delete_task`
+     - `appflowy_list_tasks`
+   - Keep lower-level row/collab tools available as diagnostics.
+   - Keep dry-run defaults and write/collab gates.
+
+3. **Complete one official-instance task lifecycle evidence note**
+   - Record create/update/move/delete data-plane results from the live smoke.
+   - Record what the AppFlowy Web UI does separately from data-plane verification.
+   - Explicitly mark the known Board/Grid refresh bug as upstream UI behavior.
+
+4. **Add browser/UI acceptance skeleton**
+   - Add a documented manual or opt-in browser check for Grid/Board rendering.
+   - Do not block task data-plane correctness on AppFlowy Web Board cache behavior.
+
+5. **Clean release-facing docs**
+   - README says what is stable, experimental, and known-limited.
+   - DESIGN documents the task model and verification model.
+   - ROADMAP no longer says M6.4 is pending if the data-plane lifecycle is already
+     covered by live tests.
+
+6. **Run the current gates before starting Docker work**
+   - `uv run ruff format .`
+   - `uv run ruff check .`
+   - `uv run mypy src`
+   - `uv run pytest -q`
+   - Opt-in official live smoke with disposable ids.
+
+After this checklist is done, start the self-hosted test rig as its own phase:
+`docker/appflowy-test/` or `tests/docker/`, with compose, env example, seed script,
+healthcheck/wait script, destructive tests, and teardown/reset instructions.

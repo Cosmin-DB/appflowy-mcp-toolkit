@@ -65,6 +65,24 @@ align docs, keep dependencies explicit, and commit a coherent experimental basel
 See [docs/collab-driver-plan.md](docs/collab-driver-plan.md).
 Execution plan: [docs/execution-roadmap.md](docs/execution-roadmap.md).
 
+## Before local AppFlowy Docker tests
+
+Before building a self-hosted Docker rig for destructive testing, finish the current
+MCP-side task-board contract:
+
+- [ ] Freeze `task_key`/`pre_hash` as the public managed-task identity.
+- [ ] Add final task-facing tool names (`create_task`, `update_task`, `move_task`,
+  `delete_task`, `list_tasks`) as safe wrappers around the verified managed-task/data-plane
+  implementation.
+- [ ] Keep low-level row/collab tools as diagnostics, not the main public workflow.
+- [ ] Add one browser/UI acceptance skeleton for Grid/Board rendering, documenting the
+  known AppFlowy Web Board refresh/cache bug separately from data-plane correctness.
+- [ ] Align README, DESIGN, ROADMAP and collab-driver docs with the verified live smoke.
+- [ ] Re-run unit gates and the official opt-in live smoke.
+
+Then add the Docker/self-hosted phase: compose file, test env, seed user/workspace,
+healthcheck, destructive tests, and teardown/reset.
+
 ### Deferred
 
 - `/api/v1/workspace/get_folder`: live-tested against `beta.appflowy.cloud` and returned
