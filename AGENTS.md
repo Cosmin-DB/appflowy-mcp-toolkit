@@ -33,9 +33,10 @@ Current accepted scope is broader than the original read-only draft:
 1. Read `README.md` for user-facing usage and known limitations.
 2. Read `docs/appflowy-coverage-matrix.md` before adding new AppFlowy surface area.
 3. Read `docs/browser-ui-acceptance.md` before interpreting web/Board rendering.
-4. Use the self-hosted Docker stack for destructive tests; never use a private
+4. Read `docs/release-checklist.md` before claiming publish readiness.
+5. Use the self-hosted Docker stack for destructive tests; never use a private
    production workspace for write tests.
-5. Keep browser-rendering evidence separate from API/collab data-plane truth.
+6. Keep browser-rendering evidence separate from API/collab data-plane truth.
 
 ## Review checklist
 

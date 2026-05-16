@@ -114,6 +114,7 @@ Start with these files:
 - `docs/appflowy-coverage-matrix.md` - implemented, candidate, and deferred AppFlowy areas.
 - `docs/browser-ui-acceptance.md` - why browser rendering is tested separately from API/collab truth.
 - `docs/self-hosted-test-plan.md` - how to run disposable local AppFlowy for destructive tests.
+- `docs/release-checklist.md` - final checks before publishing or external handoff.
 
 Do not use a real/private AppFlowy workspace for write tests. Use either an explicit
 disposable official workspace or the self-hosted Docker stack.

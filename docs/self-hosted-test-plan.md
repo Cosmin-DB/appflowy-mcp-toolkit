@@ -204,11 +204,18 @@ Tasks:
    - delete removes row from view row lists
 4. Keep these tests opt-in and destructive.
 
-### Phase D4 - Browser/UI Acceptance — pending
+### Phase D4 - Browser/UI Acceptance — implemented as opt-in smoke
 
 Purpose: verify user-visible behavior separately from data-plane correctness.
 
-Tasks:
+Current implementation:
+
+- `tests/browser/test_appflowy_web_smoke.py` logs into the local AppFlowy Web stack.
+- One test proves To-dos/Grid rendering.
+- One test creates a row through the MCP/client, verifies REST/collab/blob-diff first,
+  then records an `xfail` if AppFlowy Web does not render the verified row.
+
+Remaining browser-quality work:
 
 1. Open local AppFlowy Web with Playwright/OpenClaw browser.
 2. Navigate to the seeded board.
@@ -219,7 +226,7 @@ Tasks:
    - refresh/F5 behavior
 4. Document whether the official Board/Grid cache bug reproduces locally.
 
-This should not block data-plane tests unless the UI bug indicates actual data loss.
+This does not block data-plane tests unless the UI bug indicates actual data loss.
 
 ### Phase D5 - Contributor Workflow — partial
 
@@ -250,7 +257,9 @@ Deliverables:
 - The self-hosted stack exposes the AppFlowy API/collab surfaces needed by the current
   task lifecycle test; exact parity with AppFlowy official cloud is not exhaustively
   proven.
-- Does the Board/Grid refresh bug reproduce in self-hosted `appflowy_web`?
+- The browser smoke confirms a related local rendering limitation: MCP-created rows can
+  verify through REST/collab/blob-diff while AppFlowy Web still does not render them in
+  the browser pass. The test records this as `xfail` rather than as a false MCP failure.
 
 ## Current Implementation Status
 
@@ -261,10 +270,10 @@ validated self-hosted test workflow. Latest verified battery:
 - `GET /api/health` OK.
 - AppFlowy Web redirects to `/app`.
 - Seed reuse OK after the local one-seat license behavior was fixed.
-- Self-hosted lifecycle test passed.
-- Full local/self-hosted pytest: 61 passed.
-- Offline pytest: 59 passed + 2 skipped.
-- Ruff format/check, mypy, and official AppFlowy live smoke passed.
+- Self-hosted tests: 4 passed + 1 skipped.
+- Browser smoke: 1 passed + 1 xfailed.
+- Offline pytest: 98 passed + 8 skipped.
+- Ruff format/check, mypy, build, and diff check passed.
 
 Run the workflow with:
 
@@ -275,4 +284,13 @@ set -a
 source .env.selfhosted.generated
 set +a
 APPFLOWY_SELFHOSTED_TESTS=true uv run pytest tests/selfhosted -q
+```
+
+Run browser smoke with:
+
+```bash
+set -a
+source .env.selfhosted.generated
+set +a
+APPFLOWY_BROWSER_TESTS=true uv run --extra browser pytest tests/browser -q -s
 ```

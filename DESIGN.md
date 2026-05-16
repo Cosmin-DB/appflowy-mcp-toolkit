@@ -37,7 +37,9 @@ real mutation to occur:
 
 Dry-run calls return the would-be HTTP method, path, and payload without touching the API.
 Row delete is available only through the experimental Yjs collab path (see below).
-No view/page delete, bulk operations, or workspace admin tools are included.
+Page/view trash, restore, and delete-from-trash operations are included behind the same
+dry-run/write gate model. Workspace admin/member/invite/publish/import operations are
+not included in the first release candidate.
 
 ## Collab diagnostics
 

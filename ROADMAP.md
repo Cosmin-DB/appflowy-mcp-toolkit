@@ -54,7 +54,9 @@
 - [x] Prove create/edit/move/delete at the AppFlowy data plane against a disposable
   official workspace.
 - [x] Integrate verified task operations into MCP behind explicit write gates.
-- [ ] Prove direct Browser Board rendering without Grid warm-up.
+- [x] Add opt-in browser smoke against local AppFlowy Web.
+- [ ] Prove direct Browser Board rendering for MCP-created rows without AppFlowy Web
+  rendering/cache limitations.
 
 Current status: task-facing tools (`appflowy_list_tasks`, `appflowy_create_task`,
 `appflowy_update_task`, `appflowy_move_task`, `appflowy_delete_task`) are integrated.
@@ -93,8 +95,9 @@ The Docker/self-hosted phase now exists and has been validated:
 - [x] Full local validation: stack health, web redirect, seed reuse, self-hosted
   lifecycle, offline suite, lint, format, typecheck, and official live smoke.
 
-Remaining Docker/UI work: automate browser Grid/Board acceptance against the local web
-container and record whether the known Board/Grid refresh bug reproduces there.
+Remaining Docker/UI work: full visual parity. The opt-in browser smoke can log in and
+render Grid, but MCP-created rows are currently verified at the REST/collab/blob-diff
+data plane and recorded as `xfail` when this AppFlowy Web build does not render them.
 
 Detailed Docker/self-hosted testing plan: [docs/self-hosted-test-plan.md](docs/self-hosted-test-plan.md).
 
