@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "appflowy-mcp-toolkit"
 version = "0.1.0"
-description = "Local-first AppFlowy MCP toolkit"
+description = "MCP server, Python client, and CLI for AppFlowy automation"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}

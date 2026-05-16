@@ -1,26 +1,70 @@
 # AppFlowy MCP Toolkit
 
-A local-first, read-first MCP toolkit for AppFlowy Cloud and self-hosted AppFlowy.
+An MCP server, Python client, and CLI for controlling AppFlowy from AI agents.
 
-Status: pre-1.0 release candidate for local/public review. Core task, page/view,
-metadata, diagnostic, and guarded write paths are implemented with offline,
-live, self-hosted, and browser smoke coverage. Publication still requires an
-explicit final review/approval.
+It is built for the practical workflows agents need most: inspect workspaces, read
+folder/page/database structure, create and move task cards, write typed database fields,
+upload media, and verify changes against a disposable self-hosted AppFlowy stack before
+touching real data.
 
-## Goals
+Status: pre-1.0 release candidate. Core task, page/view, metadata, file-storage,
+diagnostic, and guarded write paths are implemented with offline, self-hosted Docker,
+and browser smoke coverage.
 
-- Reusable Python client for AppFlowy REST API.
-- CLI inspection commands for debugging without an MCP client.
-- Read-only MCP tools plus task-facing write tools, disabled by default.
-- Cloud and self-host friendly via `APPFLOWY_BASE_URL`.
+## Why This Exists
 
-## Non-goals for the first version
+Most AppFlowy automation examples stop at a few REST calls. That is not enough for an
+agent that needs to safely operate a real task board. AppFlowy has REST routes, collab
+state, row ordering, typed database cells, file storage, and a web UI that can lag behind
+the data plane.
+
+This repo tries to make those edges explicit:
+
+- local-first testing with disposable AppFlowy Docker
+- writes disabled by default
+- task-card helpers for create/update/move/delete
+- typed database values for rich fields such as select, multi-select, checklist, time,
+  summary, URL, checkbox, number, datetime, and media
+- AppFlowy file upload/download/delete support for Media fields
+- verification tools that distinguish API/collab truth from browser rendering
+- documentation for deferred areas instead of pretending everything is solved
+
+## Current Scope
+
+Implemented:
+
+- MCP server: `appflowy-mcp-server`
+- CLI: `appflowy-toolkit`
+- Python client: `appflowy_mcp_toolkit`
+- Workspaces, folder/page/view reads, database schema/rows, tasks, typed row writes,
+  quick notes, search, file-storage metadata, v1 file upload/download/delete, and
+  guarded page/view mutations.
+- Self-hosted Docker test workflow using official AppFlowy-Cloud compose sources.
+
+Intentionally deferred:
 
 - No required Docker runtime for normal users; self-hosted tests are optional.
 - No Notion migration.
 - No broad delete/admin/invite tools.
+- No publishing/sharing/member-management mutations in the first public slice.
+- No AI/chat workflow automation yet.
 - No personal workflow assumptions.
 - No secrets, workspace IDs, emails, or private fixtures committed.
+
+## Quick Start
+
+```bash
+python -m pip install -e '.[mcp]'
+appflowy-toolkit health
+appflowy-mcp-server
+```
+
+For development:
+
+```bash
+python -m pip install -e '.[dev,mcp,browser]'
+scripts/test_all_local.sh
+```
 
 ## Environment
 
