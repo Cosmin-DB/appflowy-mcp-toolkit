@@ -191,6 +191,54 @@ class AppFlowyClient:
         self._require_writes_enabled()
         return self.request("POST", "/api/workspace", json=payload)
 
+    def create_space(
+        self,
+        workspace_id: str,
+        *,
+        name: str,
+        space_permission: int = 0,
+        space_icon: str = "",
+        space_icon_color: str = "",
+        view_id: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "space_permission": space_permission,
+            "name": name,
+            "space_icon": space_icon,
+            "space_icon_color": space_icon_color,
+        }
+        if view_id is not None:
+            payload["view_id"] = view_id
+        path = f"/api/workspace/{workspace_id}/space"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("POST", path, json=payload)
+
+    def update_space(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        name: str,
+        space_permission: int = 0,
+        space_icon: str = "",
+        space_icon_color: str = "",
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload = {
+            "space_permission": space_permission,
+            "name": name,
+            "space_icon": space_icon,
+            "space_icon_color": space_icon_color,
+        }
+        path = f"/api/workspace/{workspace_id}/space/{view_id}"
+        if dry_run:
+            return {"dry_run": True, "method": "PATCH", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("PATCH", path, json=payload)
+
     def get_folder(
         self,
         workspace_id: str,
@@ -205,6 +253,33 @@ class AppFlowyClient:
             params["root_view_id"] = root_view_id
         data = self.request("GET", f"/api/workspace/{workspace_id}/folder", params=params or None)
         return self._extract_data(data)
+
+    def create_folder_view(
+        self,
+        workspace_id: str,
+        *,
+        parent_view_id: str,
+        layout: int = 0,
+        name: str | None = None,
+        view_id: str | None = None,
+        database_id: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "parent_view_id": parent_view_id,
+            "layout": layout,
+        }
+        if name is not None:
+            payload["name"] = name
+        if view_id is not None:
+            payload["view_id"] = view_id
+        if database_id is not None:
+            payload["database_id"] = database_id
+        path = f"/api/workspace/{workspace_id}/folder-view"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("POST", path, json=payload)
 
     def get_page_view(self, workspace_id: str, view_id: str) -> dict[str, Any]:
         data = self.request("GET", f"/api/workspace/{workspace_id}/page-view/{view_id}")

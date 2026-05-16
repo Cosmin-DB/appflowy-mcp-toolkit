@@ -35,8 +35,8 @@ Approximate coverage by object family:
 | Object family | Read/list | Create | Update/move | Delete/trash | Current status | Next decision |
 |---|---|---|---|---|---|---|
 | Workspace | list/settings/members/usage implemented | create implemented, dry-run default | patch/open routes exist | delete/leave/member removal routes exist | partial | Keep destructive admin gated or deferred |
-| Space | folder tree shows spaces | source route exists: POST /space | source route exists: PATCH /space/{view_id} | via page/view trash/delete semantics | candidate | Implement only after page/view contract is tested |
-| Folder/view/page tree | get folder/page-view implemented | page-view create/duplicate/database-view implemented dry-run default | update/rename/favorite/reorder/move implemented dry-run default | trash/restore/delete-trashed and bulk trash ops implemented dry-run default | broad page/view surface implemented | Add self-hosted page lifecycle smoke next |
+| Space | folder tree shows spaces | create space implemented dry-run default | update space implemented dry-run default | via page/view trash/delete semantics | implemented except dedicated delete | Add self-hosted org-structure smoke next |
+| Folder/view/page tree | get folder/page-view implemented | folder-view/page-view create, duplicate, database-view implemented dry-run default | update/rename/favorite/reorder/move implemented dry-run default | trash/restore/delete-trashed and bulk trash ops implemented dry-run default | broad page/view surface implemented | Add self-hosted page lifecycle smoke next |
 | Document/page body | row document text supported on row create/detail | append-block implemented dry-run default | collab/document updates are deeper | trash via page-view routes | partial | Defer full block editor |
 | Database list | list databases implemented | database-view route exists | view/layout routes likely collab-backed | page-view trash/delete | partial | Add database-view creation only after page/view work |
 | Database fields | list fields implemented | create field implemented dry-run default | no safe update/delete route confirmed from matrix yet | no safe delete route confirmed | partial | Add friendly field-type builders later; raw payload route exists now |
@@ -68,6 +68,8 @@ Approximate coverage by object family:
    - Search. **Done, AI summary deferred.**
 
 3. **Page/view management**
+   - Create/update space. **Done, dry-run default.**
+   - Create folder view. **Done, dry-run default.**
    - Create page view. **Done, dry-run default.**
    - Read/update page name/icon/extra. **Done, dry-run default for writes.**
    - Move page. **Done, dry-run default.**

@@ -52,6 +52,9 @@ EXPECTED_WRITE_TOOLS = {
     "appflowy_create_quick_note",
     "appflowy_update_quick_note",
     "appflowy_delete_quick_note",
+    "appflowy_create_space",
+    "appflowy_update_space",
+    "appflowy_create_folder_view",
     "appflowy_create_page_view",
     "appflowy_update_page_view",
     "appflowy_rename_page_view",
@@ -384,11 +387,32 @@ def test_page_view_tools_delegate_to_client() -> None:
         autospec=True,
     ) as MockClient:
         instance = MockClient.return_value.__enter__.return_value
+        instance.create_space.return_value = {"dry_run": True}
+        instance.update_space.return_value = {"dry_run": True}
+        instance.create_folder_view.return_value = {"dry_run": True}
         instance.get_page_view.return_value = {"view": {"id": "view1"}}
         instance.create_page_view.return_value = {"dry_run": True}
         instance.update_page_name.return_value = {"dry_run": True}
         instance.move_page_view_to_trash.return_value = {"dry_run": True}
 
+        space_raw: Any = asyncio.run(
+            mcp.call_tool(
+                "appflowy_create_space",
+                {"workspace_id": "ws", "name": "Space"},
+            )
+        )
+        update_space_raw: Any = asyncio.run(
+            mcp.call_tool(
+                "appflowy_update_space",
+                {"workspace_id": "ws", "view_id": "space1", "name": "Space 2"},
+            )
+        )
+        folder_raw: Any = asyncio.run(
+            mcp.call_tool(
+                "appflowy_create_folder_view",
+                {"workspace_id": "ws", "parent_view_id": "parent", "name": "Folder"},
+            )
+        )
         read_raw: Any = asyncio.run(
             mcp.call_tool("appflowy_get_page_view", {"workspace_id": "ws", "view_id": "view1"})
         )
@@ -416,6 +440,33 @@ def test_page_view_tools_delegate_to_client() -> None:
             )
         )
 
+    instance.create_space.assert_called_once_with(
+        "ws",
+        name="Space",
+        space_permission=0,
+        space_icon="",
+        space_icon_color="",
+        view_id=None,
+        dry_run=True,
+    )
+    instance.update_space.assert_called_once_with(
+        "ws",
+        "space1",
+        name="Space 2",
+        space_permission=0,
+        space_icon="",
+        space_icon_color="",
+        dry_run=True,
+    )
+    instance.create_folder_view.assert_called_once_with(
+        "ws",
+        parent_view_id="parent",
+        layout=0,
+        name="Folder",
+        view_id=None,
+        database_id=None,
+        dry_run=True,
+    )
     instance.get_page_view.assert_called_once_with("ws", "view1")
     instance.create_page_view.assert_called_once_with(
         "ws",
@@ -429,6 +480,9 @@ def test_page_view_tools_delegate_to_client() -> None:
     )
     instance.update_page_name.assert_called_once_with("ws", "view1", name="Renamed", dry_run=True)
     instance.move_page_view_to_trash.assert_called_once_with("ws", "view1", dry_run=True)
+    assert json.loads(space_raw[0][0].text) == {"dry_run": True}
+    assert json.loads(update_space_raw[0][0].text) == {"dry_run": True}
+    assert json.loads(folder_raw[0][0].text) == {"dry_run": True}
     assert json.loads(read_raw[0][0].text) == {"view": {"id": "view1"}}
     assert json.loads(create_raw[0][0].text) == {"dry_run": True}
     assert json.loads(rename_raw[0][0].text) == {"dry_run": True}

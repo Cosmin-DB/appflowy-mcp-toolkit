@@ -42,11 +42,14 @@ appflowy-toolkit workspaces
 appflowy-toolkit workspace-settings --workspace-id <workspace_id>
 appflowy-toolkit workspace-members --workspace-id <workspace_id>
 appflowy-toolkit workspace-usage --workspace-id <workspace_id>
+appflowy-toolkit create-space --workspace-id <workspace_id> --name "Engineering"
+appflowy-toolkit update-space --workspace-id <workspace_id> --view-id <space_view_id> --name "Engineering"
 appflowy-toolkit file-storage-usage --workspace-id <workspace_id>
 appflowy-toolkit file-storage-blobs --workspace-id <workspace_id>
 appflowy-toolkit file-metadata --workspace-id <workspace_id> --file-id <file_id>
 appflowy-toolkit file-metadata-v1 --workspace-id <workspace_id> --parent-dir <parent_dir> --file-id <file_id>
 appflowy-toolkit folder --workspace-id <workspace_id> --depth 2
+appflowy-toolkit create-folder --workspace-id <workspace_id> --parent-view-id <parent_view_id> --name "Folder"
 appflowy-toolkit recent --workspace-id <workspace_id>
 appflowy-toolkit favorites --workspace-id <workspace_id>
 appflowy-toolkit trash --workspace-id <workspace_id>
@@ -139,6 +142,9 @@ Write tools exist for controlled testing, but dry-run by default and require
 - `appflowy_create_database_row`
 - `appflowy_create_verified_database_row`
 - `appflowy_create_database_field`
+- `appflowy_create_space`
+- `appflowy_update_space`
+- `appflowy_create_folder_view`
 - `appflowy_create_page_view`
 - `appflowy_update_page_view`
 - `appflowy_rename_page_view`

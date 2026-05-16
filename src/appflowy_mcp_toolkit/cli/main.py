@@ -35,6 +35,24 @@ def build_parser() -> argparse.ArgumentParser:
     workspace_usage = sub.add_parser("workspace-usage")
     workspace_usage.add_argument("--workspace-id", required=True)
 
+    create_space = sub.add_parser("create-space")
+    create_space.add_argument("--workspace-id", required=True)
+    create_space.add_argument("--name", required=True)
+    create_space.add_argument("--space-permission", type=int, default=0)
+    create_space.add_argument("--space-icon", default="")
+    create_space.add_argument("--space-icon-color", default="")
+    create_space.add_argument("--view-id")
+    create_space.add_argument("--execute", action="store_true")
+
+    update_space = sub.add_parser("update-space")
+    update_space.add_argument("--workspace-id", required=True)
+    update_space.add_argument("--view-id", required=True)
+    update_space.add_argument("--name", required=True)
+    update_space.add_argument("--space-permission", type=int, default=0)
+    update_space.add_argument("--space-icon", default="")
+    update_space.add_argument("--space-icon-color", default="")
+    update_space.add_argument("--execute", action="store_true")
+
     file_storage_usage = sub.add_parser("file-storage-usage")
     file_storage_usage.add_argument("--workspace-id", required=True)
 
@@ -54,6 +72,15 @@ def build_parser() -> argparse.ArgumentParser:
     folder.add_argument("--workspace-id", required=True)
     folder.add_argument("--depth", type=int)
     folder.add_argument("--root-view-id")
+
+    create_folder = sub.add_parser("create-folder")
+    create_folder.add_argument("--workspace-id", required=True)
+    create_folder.add_argument("--parent-view-id", required=True)
+    create_folder.add_argument("--layout", type=int, default=0)
+    create_folder.add_argument("--name")
+    create_folder.add_argument("--view-id")
+    create_folder.add_argument("--database-id")
+    create_folder.add_argument("--execute", action="store_true")
 
     page = sub.add_parser("page-view")
     page.add_argument("--workspace-id", required=True)
@@ -437,6 +464,26 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = client.list_workspace_members(args.workspace_id)
         elif args.command == "workspace-usage":
             result = client.get_workspace_usage(args.workspace_id)
+        elif args.command == "create-space":
+            result = client.create_space(
+                args.workspace_id,
+                name=args.name,
+                space_permission=args.space_permission,
+                space_icon=args.space_icon,
+                space_icon_color=args.space_icon_color,
+                view_id=args.view_id,
+                dry_run=not args.execute,
+            )
+        elif args.command == "update-space":
+            result = client.update_space(
+                args.workspace_id,
+                args.view_id,
+                name=args.name,
+                space_permission=args.space_permission,
+                space_icon=args.space_icon,
+                space_icon_color=args.space_icon_color,
+                dry_run=not args.execute,
+            )
         elif args.command == "file-storage-usage":
             result = client.get_file_storage_usage(args.workspace_id)
         elif args.command == "file-storage-blobs":
@@ -452,6 +499,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         elif args.command == "folder":
             result = client.get_folder(
                 args.workspace_id, depth=args.depth, root_view_id=args.root_view_id
+            )
+        elif args.command == "create-folder":
+            result = client.create_folder_view(
+                args.workspace_id,
+                parent_view_id=args.parent_view_id,
+                layout=args.layout,
+                name=args.name,
+                view_id=args.view_id,
+                database_id=args.database_id,
+                dry_run=not args.execute,
             )
         elif args.command == "page-view":
             result = client.get_page_view(args.workspace_id, args.view_id)

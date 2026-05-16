@@ -84,6 +84,46 @@ def test_workspace_usage_uses_usage_route(make_client):
     }
 
 
+def test_space_mutations_are_dry_run_by_default(make_client):
+    client = make_client(lambda _request: json_response({"data": {}}))
+
+    assert client.create_space(
+        "ws",
+        name="Engineering",
+        space_permission=0,
+        space_icon="rocket",
+        space_icon_color="#fff",
+    ) == {
+        "dry_run": True,
+        "method": "POST",
+        "path": "/api/workspace/ws/space",
+        "json": {
+            "space_permission": 0,
+            "name": "Engineering",
+            "space_icon": "rocket",
+            "space_icon_color": "#fff",
+        },
+    }
+    assert client.update_space(
+        "ws",
+        "space_view",
+        name="Ops",
+        space_permission=1,
+        space_icon="",
+        space_icon_color="",
+    ) == {
+        "dry_run": True,
+        "method": "PATCH",
+        "path": "/api/workspace/ws/space/space_view",
+        "json": {
+            "space_permission": 1,
+            "name": "Ops",
+            "space_icon": "",
+            "space_icon_color": "",
+        },
+    }
+
+
 def test_file_storage_readonly_routes(make_client):
     seen: list[str] = []
 
@@ -153,6 +193,30 @@ def test_get_folder_passes_depth_and_root(make_client):
         client.get_folder("ws_demo_001", depth=2, root_view_id="view_demo_001")["view_id"]
         == "view_demo_001"
     )
+
+
+def test_create_folder_view_is_dry_run_by_default(make_client):
+    client = make_client(lambda _request: json_response({"data": {}}))
+
+    assert client.create_folder_view(
+        "ws",
+        parent_view_id="parent",
+        layout=0,
+        name="Folder",
+        view_id="view1",
+        database_id="db1",
+    ) == {
+        "dry_run": True,
+        "method": "POST",
+        "path": "/api/workspace/ws/folder-view",
+        "json": {
+            "parent_view_id": "parent",
+            "layout": 0,
+            "name": "Folder",
+            "view_id": "view1",
+            "database_id": "db1",
+        },
+    }
 
 
 def test_navigation_view_lists_use_workspace_routes(make_client):

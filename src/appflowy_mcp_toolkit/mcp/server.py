@@ -75,6 +75,56 @@ def appflowy_get_workspace_usage(workspace_id: str) -> str:
         return compact(client.get_workspace_usage(workspace_id))
 
 
+@mcp.tool(name="appflowy_create_space", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_create_space(
+    workspace_id: str,
+    name: str,
+    space_permission: int = 0,
+    space_icon: str = "",
+    space_icon_color: str = "",
+    view_id: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Create an AppFlowy space. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.create_space(
+                workspace_id,
+                name=name,
+                space_permission=space_permission,
+                space_icon=space_icon,
+                space_icon_color=space_icon_color,
+                view_id=view_id,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_update_space", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_update_space(
+    workspace_id: str,
+    view_id: str,
+    name: str,
+    space_permission: int = 0,
+    space_icon: str = "",
+    space_icon_color: str = "",
+    dry_run: bool = True,
+) -> str:
+    """Update an AppFlowy space. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.update_space(
+                workspace_id,
+                view_id,
+                name=name,
+                space_permission=space_permission,
+                space_icon=space_icon,
+                space_icon_color=space_icon_color,
+                dry_run=dry_run,
+            )
+        )
+
+
 @mcp.tool(name="appflowy_get_file_storage_usage", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
 def appflowy_get_file_storage_usage(workspace_id: str) -> str:
     """Get read-only file-storage capacity usage for one workspace."""
@@ -112,6 +162,31 @@ def appflowy_get_folder(
     """Get a workspace folder/view tree or subtree."""
     with _client() as client:
         return compact(client.get_folder(workspace_id, depth=depth, root_view_id=root_view_id))
+
+
+@mcp.tool(name="appflowy_create_folder_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_create_folder_view(
+    workspace_id: str,
+    parent_view_id: str,
+    layout: int = 0,
+    name: str | None = None,
+    view_id: str | None = None,
+    database_id: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Create a folder view. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.create_folder_view(
+                workspace_id,
+                parent_view_id=parent_view_id,
+                layout=layout,
+                name=name,
+                view_id=view_id,
+                database_id=database_id,
+                dry_run=dry_run,
+            )
+        )
 
 
 @mcp.tool(name="appflowy_get_page_view", annotations={"readOnlyHint": True})  # type: ignore[arg-type]

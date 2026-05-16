@@ -178,6 +178,44 @@ def test_cli_page_view_commands_dry_run(monkeypatch, capsys):
     assert moved["json"] == {"new_parent_view_id": "parent2"}
 
 
+def test_cli_space_and_folder_dry_run(capsys):
+    assert (
+        main(
+            [
+                "create-space",
+                "--workspace-id",
+                "ws_001",
+                "--name",
+                "Engineering",
+                "--space-permission",
+                "0",
+            ]
+        )
+        == 0
+    )
+    created_space = json.loads(capsys.readouterr().out)
+    assert created_space["path"] == "/api/workspace/ws_001/space"
+    assert created_space["json"]["name"] == "Engineering"
+
+    assert (
+        main(
+            [
+                "create-folder",
+                "--workspace-id",
+                "ws_001",
+                "--parent-view-id",
+                "parent",
+                "--name",
+                "Folder",
+            ]
+        )
+        == 0
+    )
+    created_folder = json.loads(capsys.readouterr().out)
+    assert created_folder["path"] == "/api/workspace/ws_001/folder-view"
+    assert created_folder["json"]["parent_view_id"] == "parent"
+
+
 def test_cli_updated_rows(monkeypatch, capsys):
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/workspace/ws_001/database/db_001/row/updated"
