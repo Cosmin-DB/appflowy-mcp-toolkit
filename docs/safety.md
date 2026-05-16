@@ -41,10 +41,10 @@ cd src/appflowy_mcp_toolkit/collab && npm install
 
 This is the only confirmed-correct delete path (AppFlowy Web does not expose a REST
 row-delete endpoint). The implementation has been live-tested against a disposable
-workspace but is **not yet proven for all board create/edit/move scenarios** and is
-not recommended for production use. The current verification means removal from
-database view row lists; explicit row-detail lookup by id may still return the old row
-object. All defaults are dry-run.
+official and self-hosted disposable workspaces as part of the task lifecycle, but it is
+not recommended for production use. The current verification means removal from database
+view row lists and REST row lists; explicit row-detail lookup by id may still return the
+old row object on some AppFlowy deployments. All defaults are dry-run.
 
 Row/card deletion in AppFlowy Web is handled by mutating the database collab/Yjs document
 and syncing a binary update, not by a semantic REST delete endpoint. Future delete support

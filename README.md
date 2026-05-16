@@ -2,19 +2,19 @@
 
 A local-first, read-first MCP toolkit for AppFlowy Cloud and self-hosted AppFlowy.
 
-Status: early local draft. Not ready for public release yet.
+Status: local draft with verified task-facing tools and optional live/self-hosted
+acceptance tests. Not ready for public release yet.
 
 ## Goals
 
 - Reusable Python client for AppFlowy REST API.
 - CLI inspection commands for debugging without an MCP client.
-- Read-only MCP tools first.
-- Safe write tools later, disabled by default.
+- Read-only MCP tools plus task-facing write tools, disabled by default.
 - Cloud and self-host friendly via `APPFLOWY_BASE_URL`.
 
 ## Non-goals for the first version
 
-- No Docker/compose until deployment actually needs it.
+- No required Docker runtime for normal users; self-hosted tests are optional.
 - No Notion migration.
 - No broad delete/admin/invite tools.
 - No personal workflow assumptions.
@@ -33,6 +33,8 @@ APPFLOWY_REFRESH_TOKEN=...
 ## CLI
 
 ```bash
+appflowy-toolkit health
+appflowy-toolkit setup-check  # local Node/npm/Yjs helper diagnostics
 appflowy-toolkit workspaces
 appflowy-toolkit folder --workspace-id <workspace_id> --depth 2
 appflowy-toolkit databases --workspace-id <workspace_id>
@@ -62,7 +64,7 @@ appflowy-toolkit delete-row ... --execute  # live write; also needs APPFLOWY_ALL
 appflowy-mcp-server
 ```
 
-Initial tools are read-only:
+Read-only tools:
 
 - `appflowy_health_check`
 - `appflowy_list_workspaces`
@@ -110,9 +112,10 @@ Experimental write tool (dry-run by default; requires `APPFLOWY_ALLOW_WRITES=tru
   `docs/collab-driver-plan.md` for the full M6 status.
 
 Current API limitation: public AppFlowy REST does not expose a confirmed row-delete
-endpoint. Row/card deletion in AppFlowy Web is a collab/Yjs update. The `appflowy_delete_database_row`
-tool implements this path experimentally; it has been live-tested against a disposable
-workspace but is not yet recommended for production use.
+endpoint. Row/card deletion in AppFlowy Web is a collab/Yjs update. The
+`appflowy_delete_database_row` tool implements this path experimentally; it has been
+live-tested against disposable official and self-hosted workspaces, but remains
+opt-in and is not yet recommended for production use.
 
 Board-rendering investigation: AppFlowy Web also calls a binary `blob/diff` endpoint
 to seed row documents before rendering database views. `blob-diff` /
@@ -163,6 +166,9 @@ scripts/appflowy_test_env_down.sh --volumes
 ```
 
 Self-hosted tests are destructive and must only target the local disposable stack.
+The workflow has been validated against the pinned Docker stack; see
+[`docs/self-hosted-test-plan.md`](docs/self-hosted-test-plan.md) for current pins,
+seed behavior, and remaining UI/browser work.
 
 ## Development
 

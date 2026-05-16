@@ -3,7 +3,7 @@
 Goal: provide a reproducible local AppFlowy environment that can run destructive MCP
 integration tests without touching AppFlowy official cloud or Cosmin's real workspaces.
 
-This plan now has an initial implementation: `docker/appflowy-test/`,
+This plan now has a validated initial implementation: `docker/appflowy-test/`,
 `scripts/appflowy_test_env_up.sh`, `scripts/appflowy_test_env_down.sh`,
 `scripts/appflowy_test_seed.py`, and `tests/selfhosted/`.
 
@@ -70,7 +70,7 @@ Important upstream facts observed on 2026-05-16:
 
 Do not copy a full AppFlowy source tree into this MCP repo.
 
-Preferred structure:
+Implemented structure:
 
 ```text
 docker/appflowy-test/
@@ -85,28 +85,21 @@ tests/selfhosted/
   test_task_lifecycle.py
 ```
 
-The test environment should either:
-
-- clone/download the official AppFlowy-Cloud compose files at a pinned revision into a
-  cache/temp directory, or
-- document that the contributor must provide `APPFLOWY_CLOUD_DIR` pointing at a checked
-  out `AppFlowy-Cloud` repo.
-
-For reliability, prefer the first approach once proven.
+The test environment downloads the official AppFlowy-Cloud compose files at a pinned
+revision into `.local/`. It does not vendor AppFlowy source into this repo.
 
 ### Pin Versions
 
-Do not rely on `latest` in the final committed testing flow.
+The committed testing flow does not rely on `latest`.
 
-Initial spike may use upstream defaults to learn the stack, but the documented version
-must pin one of:
+Current pin:
 
-- a specific AppFlowy-Cloud git commit + image tags, or
-- explicit Docker image versions for `appflowy_cloud`, `appflowy_web`, `gotrue`,
-  `appflowy_worker`, and related services.
-
-If upstream does not publish stable tags suitable for this, pause and document the
-versioning problem before implementing more tests.
+- AppFlowy-Cloud tag `0.9.64`
+- Commit `ecf8c031d3c955508a0d3887acd61d970022db79`
+- Docker images:
+  - `appflowy_cloud` / `appflowy_worker` / `gotrue` / `admin_frontend` `0.15.17`
+  - `appflowy_web` `0.13.3`
+  - `appflowy_ai` `0.15.10`
 
 ### Keep It Optional
 
@@ -142,7 +135,7 @@ Never point self-hosted destructive tests at AppFlowy official cloud.
 
 ## Implementation Phases
 
-### Phase D1 - Discovery Spike
+### Phase D1 - Discovery Spike — done
 
 Purpose: prove the upstream stack can start locally and expose the same API surface the MCP uses.
 
@@ -170,9 +163,9 @@ Stop conditions:
 - If local auth cannot produce an access token non-interactively.
 - If Docker resource usage is too high for a practical contributor flow.
 
-### Phase D2 - Auth and Seed
+### Phase D2 - Auth and Seed — done
 
-Purpose: create repeatable test credentials and a test board.
+Purpose: create repeatable test credentials and discover a test board.
 
 Tasks:
 
@@ -195,7 +188,7 @@ Stop conditions:
 - If board/database creation has no safe API and requires heavy UI automation, decide
   whether to seed through browser or pause and implement page/database tools first.
 
-### Phase D3 - Self-Hosted Data-Plane Tests
+### Phase D3 - Self-Hosted Data-Plane Tests — done
 
 Purpose: run the same task lifecycle smoke against local AppFlowy.
 
@@ -211,7 +204,7 @@ Tasks:
    - delete removes row from view row lists
 4. Keep these tests opt-in and destructive.
 
-### Phase D4 - Browser/UI Acceptance
+### Phase D4 - Browser/UI Acceptance — pending
 
 Purpose: verify user-visible behavior separately from data-plane correctness.
 
@@ -228,7 +221,7 @@ Tasks:
 
 This should not block data-plane tests unless the UI bug indicates actual data loss.
 
-### Phase D5 - Contributor Workflow
+### Phase D5 - Contributor Workflow — partial
 
 Purpose: make it usable by the community.
 
@@ -246,25 +239,34 @@ Deliverables:
   - expected runtime/resources
   - cleanup command
 
-## Open Questions
+## Open Questions / Remaining Work
 
-- Initial source pin selected: AppFlowy-Cloud tag `0.9.64`,
-  commit `ecf8c031d3c955508a0d3887acd61d970022db79`.
-- Initial Docker image pins selected from published Docker Hub tags:
-  `appflowy_cloud`/`appflowy_worker`/`gotrue`/`admin_frontend` `0.15.17`,
-  `appflowy_web` `0.13.3`, and `appflowy_ai` `0.15.10`.
-- Can AI/admin/search services be disabled for MCP task lifecycle tests?
-- Is AppFlowy Web required for seed, or can seed be fully API-driven?
-- What is the most reliable non-interactive auth flow for GoTrue in this stack?
-- Does the self-hosted stack expose exactly the same `/api/workspace/...` endpoints
-  as AppFlowy official cloud?
+- Can AI/admin/search services be disabled further for MCP task lifecycle tests without
+  destabilizing the upstream compose stack?
+- Seed is currently API-driven enough for the task lifecycle: it signs up/logs in through
+  local GoTrue, verifies the local user, then discovers a workspace/database with the
+  expected AppFlowy template fields. It does not yet create a board/database from scratch.
+- Local auth currently works through GoTrue signup/login plus explicit local verification.
+- The self-hosted stack exposes the AppFlowy API/collab surfaces needed by the current
+  task lifecycle test; exact parity with AppFlowy official cloud is not exhaustively
+  proven.
 - Does the Board/Grid refresh bug reproduce in self-hosted `appflowy_web`?
 
 ## Current Implementation Status
 
-The MCP-side checklist in `docs/execution-roadmap.md` is complete. The repo now contains
-the first self-hosted test workflow scaffold. It cannot be validated on a machine without
-Docker; when Docker is available, the next verification step is:
+The MCP-side checklist in `docs/execution-roadmap.md` is complete. The repo contains a
+validated self-hosted test workflow. Latest verified battery:
+
+- Docker compose services up.
+- `GET /api/health` OK.
+- AppFlowy Web redirects to `/app`.
+- Seed reuse OK after the local one-seat license behavior was fixed.
+- Self-hosted lifecycle test passed.
+- Full local/self-hosted pytest: 61 passed.
+- Offline pytest: 59 passed + 2 skipped.
+- Ruff format/check, mypy, and official AppFlowy live smoke passed.
+
+Run the workflow with:
 
 ```bash
 scripts/appflowy_test_env_up.sh

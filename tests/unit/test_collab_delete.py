@@ -17,6 +17,7 @@ import pytest
 from appflowy_mcp_toolkit.collab.collab_delete import (
     CollabHelperError,
     allow_collab_writes,
+    check_collab_helper_setup,
     invoke_yjs_delete,
 )
 from appflowy_mcp_toolkit.config import AppFlowyConfig
@@ -167,6 +168,78 @@ def test_invoke_yjs_delete_helper_js_missing(tmp_path: Any) -> None:
             tmp_path / "nonexistent.js",
         ),
         pytest.raises(CollabHelperError, match="Yjs helper script not found"),
+    ):
+        invoke_yjs_delete(FAKE_DOC_STATE, "row-x")
+
+
+def test_check_collab_helper_setup_reports_missing_runtime(
+    tmp_path: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import appflowy_mcp_toolkit.collab.collab_delete as cd_mod
+
+    helper_js = tmp_path / "yjs_helper.js"
+    package_json = tmp_path / "package.json"
+    helper_js.write_text("// helper\n")
+    package_json.write_text("{}\n")
+
+    monkeypatch.setattr("shutil.which", lambda _name: None)
+    monkeypatch.setattr(cd_mod, "_HELPER_JS", helper_js)
+    monkeypatch.setattr(cd_mod, "_HELPER_PACKAGE_JSON", package_json)
+    monkeypatch.setattr(cd_mod, "_HELPER_NODE_MODULES", tmp_path / "node_modules" / "yjs")
+
+    result = check_collab_helper_setup()
+
+    assert result["ok"] is False
+    assert result["checks"]["node"]["ok"] is False
+    assert "Node.js was not found" in result["checks"]["node"]["message"]
+    assert result["checks"]["npm"]["ok"] is False
+    assert result["checks"]["helper_script"]["ok"] is True
+    assert result["checks"]["helper_package"]["ok"] is True
+    assert result["checks"]["yjs_dependency"]["ok"] is False
+    assert "npm install" in result["checks"]["yjs_dependency"]["message"]
+
+
+def test_check_collab_helper_setup_success(
+    tmp_path: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import appflowy_mcp_toolkit.collab.collab_delete as cd_mod
+
+    helper_js = tmp_path / "yjs_helper.js"
+    package_json = tmp_path / "package.json"
+    yjs_dir = tmp_path / "node_modules" / "yjs"
+    helper_js.write_text("// helper\n")
+    package_json.write_text("{}\n")
+    yjs_dir.mkdir(parents=True)
+
+    monkeypatch.setattr("shutil.which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(cd_mod, "_HELPER_JS", helper_js)
+    monkeypatch.setattr(cd_mod, "_HELPER_PACKAGE_JSON", package_json)
+    monkeypatch.setattr(cd_mod, "_HELPER_NODE_MODULES", yjs_dir)
+
+    def fake_run(args: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        version = "v20.11.1" if args[0].endswith("node") else "10.8.0"
+        return subprocess.CompletedProcess(args, returncode=0, stdout=f"{version}\n", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = check_collab_helper_setup()
+
+    assert result["ok"] is True
+    assert result["checks"]["node"]["version"] == "v20.11.1"
+    assert result["checks"]["npm"]["version"] == "10.8.0"
+    assert result["checks"]["yjs_dependency"]["ok"] is True
+
+
+def test_invoke_yjs_delete_rejects_old_node() -> None:
+    with (
+        patch("shutil.which", return_value="/usr/bin/node"),
+        patch(
+            "appflowy_mcp_toolkit.collab.collab_delete._command_version",
+            return_value="v16.20.0",
+        ),
+        pytest.raises(CollabHelperError, match="Node.js 18\+ is required"),
     ):
         invoke_yjs_delete(FAKE_DOC_STATE, "row-x")
 

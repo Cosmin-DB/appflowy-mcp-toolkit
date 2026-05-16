@@ -6,8 +6,10 @@ The public AppFlowy REST row endpoints are not enough for a complete task-board 
 Live browser testing showed that AppFlowy Web deletes a board card by mutating the
 database collaboration document, not by calling a semantic row-delete REST endpoint.
 
-The toolkit should therefore treat REST row writes as limited/experimental until we
-prove that the operation is visible and consistent in AppFlowy Web.
+The toolkit therefore treats the AppFlowy API/collab data plane as the source of truth
+and documents browser rendering separately. REST-managed task writes are verified at the
+data plane; AppFlowy Web Board rendering remains limited by the known Board/Grid
+refresh/preload behavior.
 
 ## Target outcome
 
@@ -44,7 +46,8 @@ it through JSON string manipulation or unrelated delete endpoints.
 - [x] Verify the real web delete button in a disposable workspace.
 - [x] Confirm no semantic REST row-delete request is emitted by the browser.
 - [x] Confirm AppFlowy Cloud REST row route exposes GET/POST/PUT, not DELETE.
-- [x] Record that current REST writes are not yet proven equivalent to web board cards.
+- [x] Record that current REST writes are data-plane verified but not equivalent to
+  direct browser Board rendering in every load state.
 
 ### M6.1 Read-only Collab Inspector
 
@@ -62,10 +65,10 @@ it through JSON string manipulation or unrelated delete endpoints.
 
 Current decision: keep the existing REST write tools, but document their exact scope.
 They correctly create/update database rows, appear in collab `row_orders`, and render in
-AppFlowy Web Grid after refresh/navigation; some board cards render too, but full board
-card behavior and ordering are not yet proven. They update task status cells, but they do
-not control intra-column card ordering. Full task automation still needs a collab/Yjs
-driver for delete and positional moves.
+AppFlowy Web Grid after refresh/navigation; Board rendering may require Grid warm-up and
+is tracked as a browser/UI limitation. They update task status cells, but they do not
+control intra-column card ordering. Delete uses the integrated Yjs collab path; positional
+board moves remain deferred.
 
 ### M6.3 Collab Mutator Prototype
 
@@ -91,11 +94,12 @@ helper is still possible, but it is not required for the current experimental ba
 ### M6.4 End-to-End Disposable Workspace Proof
 
 - [x] Create a task through the current REST/MCP path and inspect REST/collab state.
-- [ ] Create a task that appears in AppFlowy Web.
-- [ ] Move it between board groups.
-- [ ] Edit its title/description/status.
-- [x] Delete a disposable row through the local Yjs prototype.
-- [ ] Verify after each step through AppFlowy Web and collab/REST reads.
+- [x] Create a task that appears in AppFlowy Web Grid and then Board after Grid warm-up.
+- [x] Move it between status groups at the data plane.
+- [x] Edit/update its description/status at the data plane.
+- [x] Delete a disposable row through the integrated Yjs path.
+- [x] Verify each task lifecycle step through collab/REST reads.
+- [ ] Verify direct Board-only load/rendering for each lifecycle step without Grid warm-up.
 
 Create proof result, 2026-05-16:
 
@@ -175,8 +179,8 @@ Task-facing create/update/move/delete tools now use the verified data-plane path
 Grid/Board rendering is intentionally not used as the source of truth because the AppFlowy
 Web Board can be stale until Grid/refresh warm-up.
 
-Before starting a self-hosted AppFlowy Docker test rig, finish the MCP-side task-board
-surface so the Docker work validates a coherent contract instead of a moving target:
+The MCP-side task-board surface was finished before self-hosted Docker testing, so Docker
+work could validate a coherent contract:
 
 - [x] Promote the verified managed-task operations into final task-facing tool names.
 - [x] Keep diagnostic row/collab tools separate from the main public workflow.
@@ -187,8 +191,7 @@ surface so the Docker work validates a coherent contract instead of a moving tar
   data-plane correctness.
 - [x] Re-run unit/type/lint gates and the official opt-in live smoke.
 
-Only after that should the project add `docker/appflowy-test/` or `tests/docker/` for
-self-hosted destructive tests.
+That follow-up now exists under `docker/appflowy-test/` and `tests/selfhosted/`.
 
 ### M6.5 MCP Integration (partial — experimental gate only)
 
@@ -205,19 +208,25 @@ broader collab mutations until the self-hosted rig can run destructive tests rep
 
 ### M6.5.1 Stabilization Checkpoint
 
-- [ ] Review the M6 diff as one architectural change.
-- [ ] Ensure README, DESIGN, ROADMAP, safety docs, and this plan describe the same state.
-- [ ] Decide whether `uv.lock` is ignored or tracked; default for this library is ignored.
-- [ ] Keep `node_modules/` out of git while keeping `package.json` and `package-lock.json`.
-- [ ] Run pytest, ruff format/check, mypy, and git diff check.
-- [ ] Commit the coherent experimental delete baseline before launching more workers.
+- [x] Review the M6 diff as one architectural change.
+- [x] Ensure README, DESIGN, ROADMAP, safety docs, and this plan describe the same state.
+- [x] Decide whether `uv.lock` is ignored or tracked; default for this library is ignored.
+- [x] Keep `node_modules/` out of git while keeping `package.json` and `package-lock.json`.
+- [x] Run pytest, ruff format/check, mypy, and git diff check.
+- [x] Commit the coherent experimental delete baseline before launching more workers.
+
+Status: completed before the self-hosted testing work.
 
 ### M6.6 Publication Gate
 
-- [ ] Full test/lint/typecheck gates.
+- [x] Full test/lint/typecheck gates for the current local, official-live, and
+  self-hosted battery.
 - [ ] Secret/private-ID scan.
-- [ ] Docs clearly separate REST diagnostics from web-board task automation.
+- [x] Docs clearly separate REST diagnostics from web-board task automation.
 - [ ] Public repo creation only after Cosmin confirms.
+
+Publication remains blocked on final release review, secret/private-ID scan, and explicit
+approval to create/push a public repo.
 
 ## Agent Workstreams
 
@@ -237,11 +246,11 @@ scope and a fast verification gate.
 
 Good next slices:
 
-1. Verify web-visible create for one disposable card.
-2. Verify edit semantics for one field set.
-3. Verify move/status semantics and what ordering is or is not controlled.
-4. Re-run delete through the integrated MCP/CLI path.
-5. Only then design higher-level task tools.
+1. Run browser/UI acceptance against the self-hosted AppFlowy Web container.
+2. Determine whether the Board/Grid refresh bug reproduces locally.
+3. Improve setup checks for the Node/Yjs helper and Docker prerequisites.
+4. Run final release secret/private-ID scan.
+5. Prepare publication only after explicit approval.
 
 Avoid combining source research, live experiments, implementation, docs, and release
 cleanup in one worker brief.

@@ -5,8 +5,9 @@ task-board MCP without depending on large, ambiguous work packets.
 
 ## Current baseline
 
-The repo has advanced past the cleanup baseline. Latest committed checkpoint is
-`0f4997a` (`Correct AppFlowy web visibility findings`).
+The repo has advanced past the cleanup and pre-Docker baseline. Latest committed
+checkpoint observed during this docs audit is `43aba93`
+(`Make self-hosted seed idempotent`).
 
 Implemented:
 
@@ -17,16 +18,20 @@ Implemented:
 - Data-plane row verification through REST row list/detail, database `row_orders`,
   DatabaseRow collab JSON, and optional blob/diff diagnostics.
 - Verified create path exposed through CLI/client/MCP for controlled task-row proof.
+- Task-facing CLI/MCP tools for list/create/update/move/delete.
 - Opt-in live acceptance test for the managed task lifecycle data plane against a
   disposable real AppFlowy database.
 - Experimental Yjs row delete through client, CLI, and MCP.
 - Safety gates for writes and collab writes.
+- Optional self-hosted Docker test workflow using pinned AppFlowy-Cloud/AppFlowy Web
+  images, deterministic env overrides, seed/auth script, and destructive local lifecycle
+  tests.
 
 Not yet proven:
 
 - Direct board-load behavior for created rows without a Grid warm-up.
-- Full edit/move/delete equivalence with AppFlowy Web board behavior.
-- Higher-level task automation semantics.
+- Full browser-rendered edit/move/delete equivalence with AppFlowy Web board behavior.
+- Automated browser/UI acceptance against the self-hosted AppFlowy Web container.
 - Public release readiness.
 
 ## Development rule
@@ -38,13 +43,14 @@ clear verification gate.
 Avoid assigning one worker combined research, implementation, live testing, docs,
 and release cleanup.
 
-## Phase 1 - M6.4 disposable board proof
+## Phase 1 - M6.4 disposable board/data-plane proof
 
-Goal: prove what operations actually behave like normal AppFlowy Web board cards.
+Goal: prove task operations at the AppFlowy data plane and document where AppFlowy Web
+Board rendering diverges.
 
 Each item is a separate task.
 
-1. **Create proof**
+1. **Create proof** — done at data plane; UI behavior documented
    - Create one disposable task through the MCP/CLI path.
    - Verify it appears in AppFlowy Web Grid.
    - Verify whether it appears in Board directly and after Grid warm-up.
@@ -52,29 +58,29 @@ Each item is a separate task.
    - If the board does not render it, inspect the browser's blob/diff seed path
      before moving on to edit/move tooling.
 
-2. **Edit proof**
+2. **Edit/update proof** — done at data plane through managed task update
    - Edit title/description/status fields on one disposable row.
    - Verify changes in AppFlowy Web.
    - Verify REST and collab state after refresh.
 
-3. **Move/status proof**
+3. **Move/status proof** — done at data plane through managed task move
    - Move one disposable task between status groups.
    - Verify the board column changes in AppFlowy Web.
    - Determine whether ordering inside a column is controlled by REST cell update,
      row_orders, or another collab field.
 
-4. **Integrated delete proof**
+4. **Integrated delete proof** — done at data plane through tracked Yjs path
    - Delete one disposable task using the tracked MCP/CLI Yjs path, not the old local
      prototype.
    - Verify absence in AppFlowy Web, collab row_orders, and REST row list.
 
-Exit criteria:
+Exit criteria status:
 
-- A short evidence note for each operation.
-- `docs/collab-driver-plan.md` updated with exact findings.
-- No production/private workspace mutations.
+- Data-plane lifecycle evidence is recorded in `docs/collab-driver-plan.md`.
+- Browser UI rendering is explicitly split into `docs/browser-ui-acceptance.md`.
+- No production/private workspace mutations are required for the tests.
 
-## Phase 2 - Define stable task semantics
+## Phase 2 - Define stable task semantics — done
 
 Goal: decide what a "task" means for this MCP.
 
@@ -86,16 +92,13 @@ Outputs:
 - Ordering support: supported, unsupported, or explicitly deferred.
 - Difference between generic database rows and task-board cards.
 
-Exit criteria:
+Status: `task_key` maps to AppFlowy `pre_hash` for create/update/move. Delete uses
+the returned/listed AppFlowy `row_id` because there is no safe confirmed lookup-by-key
+delete path. Ordering inside a Board column remains deferred.
 
-- `DESIGN.md` has a stable task model section.
-- README no longer implies more board support than verified.
+## Phase 3 - Implement high-level task tools — done
 
-## Phase 3 - Implement high-level task tools
-
-Goal: expose user-facing task operations only after Phase 1 and Phase 2 are clear.
-
-Candidate tools:
+Implemented tools:
 
 - `appflowy_create_task`
 - `appflowy_update_task`
@@ -116,7 +119,7 @@ Exit criteria:
 - Disposable live smoke tests for the full task lifecycle.
 - MCP tool annotations reviewed.
 
-## Phase 4 - Hardening and packaging
+## Phase 4 - Hardening and packaging — partial
 
 Goal: make the toolkit installable and less fragile.
 
@@ -172,16 +175,15 @@ Exit criteria:
 
 ## Immediate next step
 
-Continue Phase 1 with browser/UI acceptance: record the managed lifecycle evidence,
-then test how AppFlowy Web Board/Grid renders the same lifecycle. Do not start
-packaging or publication until that UI limitation is documented as either supported
-with workaround or explicitly out of scope.
+Next small slice: automate or manually run browser/UI acceptance against the self-hosted
+AppFlowy Web container, keeping data-plane results separate from Board/Grid rendering.
+Do not publish until UI limitations, setup requirements, and release safety are reviewed.
 
-## Before Self-Hosted Docker Testing
+## Pre-Docker MCP Checklist — complete
 
-Do these MCP-side items before spending effort on a local AppFlowy Docker test rig.
-The goal is to avoid using Docker to discover problems we can already define and close
-against the official instance.
+These MCP-side items were completed before the local AppFlowy Docker rig was added.
+The goal was to avoid using Docker to discover problems already definable against the
+official instance.
 
 1. **Freeze the task-board contract** — done
    - Decide the public task identity: `task_key` as the MCP-owned stable id.
@@ -220,8 +222,33 @@ against the official instance.
    - `uv run pytest -q`
    - Opt-in official live smoke with disposable ids.
 
-After this checklist is done, start the self-hosted test rig as its own phase:
-`docker/appflowy-test/` or `tests/docker/`, with compose, env example, seed script,
-healthcheck/wait script, destructive tests, and teardown/reset instructions.
+This checklist was completed before the self-hosted rig was added.
 
 Detailed plan: `docs/self-hosted-test-plan.md`.
+
+## Self-Hosted Docker Testing — implemented and validated
+
+Current workflow:
+
+- `docker/appflowy-test/` contains the optional test stack config and docs.
+- `scripts/appflowy_test_env_up.sh` fetches the pinned official AppFlowy-Cloud source
+  and starts the local stack.
+- `scripts/appflowy_test_seed.py` signs up or reuses the local test user, verifies the
+  account, discovers a task-compatible database, and writes `.env.selfhosted.generated`.
+- `tests/selfhosted/` contains the opt-in destructive task lifecycle coverage for the
+  local disposable stack.
+
+Validated status from the latest full battery:
+
+- Docker stack health OK and AppFlowy Web redirects to `/app`.
+- Seed reuse is idempotent for the one-seat local license behavior.
+- Self-hosted lifecycle test passed.
+- Full pytest: 61 passed.
+- Offline pytest: 59 passed + 2 skipped.
+- Ruff format/check, mypy, and official live smoke passed.
+
+Remaining work:
+
+- Browser/UI acceptance against the local web container.
+- Secret/private-ID scan and release checklist before publication.
+- Public GitHub repo only after Cosmin confirms.

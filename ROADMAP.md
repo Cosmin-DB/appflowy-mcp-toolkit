@@ -36,7 +36,7 @@
 - [x] Decide license (MIT).
 - [ ] Create public GitHub repo.
 
-## M5 — safe writes later
+## M5 — guarded writes
 
 - [x] Explicit write-enable flag.
 - [x] Dry-run create/upsert row.
@@ -44,29 +44,32 @@
 - [x] Disposable write integration smoke test.
 - [x] Manual stdio MCP write smoke in disposable workspace.
 
-## M6 — AppFlowy Web collab driver
+## M6 — AppFlowy Web collab driver and task data plane
 
 - [x] Verify real web delete behavior in a disposable workspace.
 - [x] Add read-only collab JSON/row-order inspector.
 - [x] Audit whether current REST writes are web-board visible.
 - [x] Prototype AppFlowy-compatible collab mutation for task delete.
 - [x] Integrate experimental Yjs row-delete into MCP/CLI/client (gated, dry-run default).
-- [ ] Prove create/edit/move/delete against a disposable web board.
-- [ ] Integrate verified task operations into MCP behind explicit experimental gates.
+- [x] Prove create/edit/move/delete at the AppFlowy data plane against a disposable
+  official workspace.
+- [x] Integrate verified task operations into MCP behind explicit write gates.
+- [ ] Prove direct Browser Board rendering without Grid warm-up.
 
-Current status: Yjs delete is integrated as an experimental tool (`appflowy_delete_database_row`)
-behind two explicit env gates (`APPFLOWY_ALLOW_WRITES` + `APPFLOWY_ALLOW_COLLAB_WRITES`)
-and a Node.js runtime requirement. Live-tested against a disposable workspace (M6.3).
-Board create/edit/move/delete data-plane lifecycle is covered by the opt-in live smoke.
-Browser Board rendering remains a separate AppFlowy Web cache/rendering concern.
+Current status: task-facing tools (`appflowy_list_tasks`, `appflowy_create_task`,
+`appflowy_update_task`, `appflowy_move_task`, `appflowy_delete_task`) are integrated.
+They are dry-run by default and require explicit write gates for mutation. Yjs delete is
+integrated as an experimental path behind `APPFLOWY_ALLOW_WRITES` +
+`APPFLOWY_ALLOW_COLLAB_WRITES` and a Node.js runtime requirement. Official live smoke
+covers the create/update/move/delete data-plane lifecycle. Browser Board rendering remains
+a separate AppFlowy Web cache/rendering concern.
 
 See [docs/collab-driver-plan.md](docs/collab-driver-plan.md).
 Execution plan: [docs/execution-roadmap.md](docs/execution-roadmap.md).
 
-## Before local AppFlowy Docker tests
+## Self-hosted AppFlowy Docker tests
 
-Before building a self-hosted Docker rig for destructive testing, finish the current
-MCP-side task-board contract:
+The pre-Docker MCP-side checklist is complete:
 
 - [x] Freeze `task_key`/`pre_hash` as the public managed-task identity.
 - [x] Add final task-facing tool names (`create_task`, `update_task`, `move_task`,
@@ -78,8 +81,19 @@ MCP-side task-board contract:
 - [x] Align README, DESIGN, ROADMAP and collab-driver docs with the verified live smoke.
 - [x] Re-run unit gates and the official opt-in live smoke.
 
-Then add the Docker/self-hosted phase: compose file, test env, seed user/workspace,
-healthcheck, destructive tests, and teardown/reset.
+The Docker/self-hosted phase now exists and has been validated:
+
+- [x] Optional compose workflow under `docker/appflowy-test/` using the official
+  `AppFlowy-IO/AppFlowy-Cloud` source at a pinned tag/commit.
+- [x] Start/teardown scripts for a disposable local stack.
+- [x] Seed script that signs up or reuses a local test user, verifies it through GoTrue,
+  discovers a workspace/database, and emits `.env.selfhosted.generated`.
+- [x] Opt-in destructive self-hosted task lifecycle test under `tests/selfhosted/`.
+- [x] Full local validation: stack health, web redirect, seed reuse, self-hosted
+  lifecycle, offline suite, lint, format, typecheck, and official live smoke.
+
+Remaining Docker/UI work: automate browser Grid/Board acceptance against the local web
+container and record whether the known Board/Grid refresh bug reproduces there.
 
 Detailed Docker/self-hosted testing plan: [docs/self-hosted-test-plan.md](docs/self-hosted-test-plan.md).
 

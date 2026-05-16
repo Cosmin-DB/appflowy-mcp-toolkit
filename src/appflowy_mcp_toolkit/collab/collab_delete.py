@@ -20,11 +20,115 @@ from pathlib import Path
 from typing import Any
 
 _HELPER_JS = Path(__file__).parent / "yjs_helper.js"
+_HELPER_PACKAGE_JSON = Path(__file__).parent / "package.json"
 _HELPER_NODE_MODULES = Path(__file__).parent / "node_modules" / "yjs"
+_MIN_NODE_MAJOR = 18
+
+
+def _install_command() -> str:
+    return f"cd {Path(__file__).parent} && npm install"
 
 
 class CollabHelperError(RuntimeError):
     """Raised when the Yjs helper subprocess fails or is unavailable."""
+
+
+def _parse_node_major(version_output: str) -> int | None:
+    version = version_output.strip()
+    if version.startswith("v"):
+        version = version[1:]
+    major, _, _ = version.partition(".")
+    try:
+        return int(major)
+    except ValueError:
+        return None
+
+
+def _command_version(executable: str) -> str | None:
+    try:
+        proc = subprocess.run(
+            [executable, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return (proc.stdout or proc.stderr).strip() or None
+
+
+def check_collab_helper_setup() -> dict[str, Any]:
+    """Return local setup diagnostics for the Node/Yjs collab helper."""
+    install_command = _install_command()
+    checks: dict[str, dict[str, Any]] = {}
+
+    node = shutil.which("node")
+    node_version = _command_version(node) if node else None
+    node_major = _parse_node_major(node_version or "") if node_version else None
+    node_ok = bool(node and node_major is not None and node_major >= _MIN_NODE_MAJOR)
+    node_message = "Node.js 18+ found."
+    if node is None:
+        node_message = "Node.js was not found on PATH. Install Node.js 18+."
+    elif node_major is None:
+        node_message = f"Could not parse Node.js version from {node_version!r}; require 18+."
+    elif node_major < _MIN_NODE_MAJOR:
+        node_message = f"Node.js {node_version} is too old; install Node.js 18+."
+    checks["node"] = {
+        "ok": node_ok,
+        "path": node,
+        "version": node_version,
+        "message": node_message,
+    }
+
+    npm = shutil.which("npm")
+    npm_version = _command_version(npm) if npm else None
+    checks["npm"] = {
+        "ok": npm is not None,
+        "path": npm,
+        "version": npm_version,
+        "message": (
+            "npm found."
+            if npm is not None
+            else "npm was not found on PATH. Install npm, then run the install command."
+        ),
+    }
+
+    checks["helper_script"] = {
+        "ok": _HELPER_JS.exists(),
+        "path": str(_HELPER_JS),
+        "message": (
+            "Yjs helper script found."
+            if _HELPER_JS.exists()
+            else "Yjs helper script is missing; this is a packaging issue."
+        ),
+    }
+    checks["helper_package"] = {
+        "ok": _HELPER_PACKAGE_JSON.exists(),
+        "path": str(_HELPER_PACKAGE_JSON),
+        "message": (
+            "Helper package.json found."
+            if _HELPER_PACKAGE_JSON.exists()
+            else "Helper package.json is missing; this is a packaging issue."
+        ),
+    }
+    checks["yjs_dependency"] = {
+        "ok": _HELPER_NODE_MODULES.exists(),
+        "path": str(_HELPER_NODE_MODULES),
+        "message": (
+            "yjs dependency installed."
+            if _HELPER_NODE_MODULES.exists()
+            else f"yjs dependency is not installed. Run: {install_command}"
+        ),
+    }
+
+    ok = all(check["ok"] for check in checks.values())
+    return {
+        "ok": ok,
+        "helper_dir": str(Path(__file__).parent),
+        "install_command": install_command,
+        "checks": checks,
+    }
 
 
 def _require_node() -> str:
@@ -33,8 +137,14 @@ def _require_node() -> str:
     if node is None:
         raise CollabHelperError(
             "Node.js is required for collab mutations but was not found on PATH. "
-            "Install Node.js 18+ and run: "
-            "cd src/appflowy_mcp_toolkit/collab && npm install"
+            f"Install Node.js 18+ and run: {_install_command()}"
+        )
+    version = _command_version(node)
+    major = _parse_node_major(version or "") if version else None
+    if major is None or major < _MIN_NODE_MAJOR:
+        raise CollabHelperError(
+            f"Node.js 18+ is required for collab mutations; found {version or 'unknown'}. "
+            "Install Node.js 18+."
         )
     return node
 
@@ -48,8 +158,7 @@ def _require_helper() -> None:
         )
     if not _HELPER_NODE_MODULES.exists():
         raise CollabHelperError(
-            f"yjs npm package not found at {_HELPER_NODE_MODULES}. "
-            "Run: cd src/appflowy_mcp_toolkit/collab && npm install"
+            f"yjs npm package not found at {_HELPER_NODE_MODULES}. Run: {_install_command()}"
         )
 
 

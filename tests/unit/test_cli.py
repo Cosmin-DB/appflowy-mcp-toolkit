@@ -31,6 +31,35 @@ def test_cli_health(monkeypatch, capsys):
     assert '"ok": true' in capsys.readouterr().out
 
 
+def test_cli_setup_check_does_not_require_appflowy_config(monkeypatch, capsys):
+    from unittest.mock import patch as _patch
+
+    monkeypatch.delenv("APPFLOWY_ACCESS_TOKEN", raising=False)
+    monkeypatch.delenv("APPFLOWY_BASE_URL", raising=False)
+
+    setup_result = {
+        "ok": False,
+        "install_command": "cd src/appflowy_mcp_toolkit/collab && npm install",
+        "checks": {"node": {"ok": False, "message": "Node.js was not found"}},
+    }
+
+    with (
+        _patch(
+            "appflowy_mcp_toolkit.collab.collab_delete.check_collab_helper_setup",
+            return_value=setup_result,
+        ) as mock_setup,
+        _patch(
+            "appflowy_mcp_toolkit.cli.main.AppFlowyClient",
+            side_effect=AssertionError("setup-check must not create a client"),
+        ),
+    ):
+        assert main(["setup-check"]) == 0
+
+    parsed = json.loads(capsys.readouterr().out)
+    assert parsed == setup_result
+    mock_setup.assert_called_once_with()
+
+
 def test_cli_collab_json(monkeypatch, capsys):
     fake_collab = {"views": {"view_001": {"row_orders": ["row_aaa"]}}}
 

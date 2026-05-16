@@ -14,6 +14,13 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("health")
+    sub.add_parser(
+        "setup-check",
+        description=(
+            "Check local runtime setup for optional collab/Yjs commands. "
+            "Does not require AppFlowy credentials or network access."
+        ),
+    )
     sub.add_parser("workspaces")
 
     folder = sub.add_parser("folder")
@@ -207,6 +214,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "setup-check":
+        from appflowy_mcp_toolkit.collab.collab_delete import check_collab_helper_setup
+
+        print(to_json(check_collab_helper_setup()))
+        return 0
+
     with AppFlowyClient() as client:
         if args.command == "health":
             result: Any = client.health_check()
