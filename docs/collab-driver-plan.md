@@ -158,6 +158,13 @@ Create proof result, 2026-05-16:
   verification found the moved row in REST row list/detail, all three observed
   `row_orders`, and DatabaseRow collab. This supports using `task_key`/`pre_hash` as
   the stable MCP-owned task identity for create/edit/move operations.
+- Added opt-in live acceptance test `tests/live/test_task_lifecycle.py`. It requires
+  `APPFLOWY_LIVE_TESTS=true`, disposable workspace/database ids, and both write gates.
+  The live official AppFlowy run passed on 2026-05-16: create managed task, move to
+  `Doing`, delete via Yjs collab, verify collab absence and REST row-list absence.
+  This is now the first platform-level data-plane smoke test; AppFlowy Web UI/Board
+  rendering still remains a separate browser acceptance layer because of the known
+  Board/Grid cache issue.
 - Cosmin independently reproduced the Board/Grid bug in his own AppFlowy official
   workspace on Firefox and Chrome: refreshing/F5 on Board makes cards disappear, then
   opening Grid and returning to Board makes them reappear. Treat this as an AppFlowy

@@ -110,6 +110,23 @@ could show empty/missing cards until the Grid tab was opened and the Board revis
 Use `verify-row` / `appflowy_verify_database_row` for data-plane verification; use
 browser/live tests separately for UI rendering.
 
+## Live Acceptance Tests
+
+Unit tests are offline and run by default. Real AppFlowy tests are opt-in because they
+mutate a disposable database:
+
+```bash
+APPFLOWY_LIVE_TESTS=true \
+APPFLOWY_LIVE_WORKSPACE_ID=<disposable_workspace_id> \
+APPFLOWY_LIVE_DATABASE_ID=<disposable_database_id> \
+APPFLOWY_ALLOW_WRITES=true \
+APPFLOWY_ALLOW_COLLAB_WRITES=true \
+uv run pytest tests/live -q
+```
+
+These tests verify the API/collab data plane. They do not treat AppFlowy Web Board
+rendering as authoritative because Board may be stale until Grid/refresh warm-up.
+
 ## Development
 
 ```bash

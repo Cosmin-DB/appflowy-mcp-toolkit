@@ -17,6 +17,8 @@ Implemented:
 - Data-plane row verification through REST row list/detail, database `row_orders`,
   DatabaseRow collab JSON, and optional blob/diff diagnostics.
 - Verified create path exposed through CLI/client/MCP for controlled task-row proof.
+- Opt-in live acceptance test for the managed task lifecycle data plane against a
+  disposable real AppFlowy database.
 - Experimental Yjs row delete through client, CLI, and MCP.
 - Safety gates for writes and collab writes.
 
@@ -170,6 +172,7 @@ Exit criteria:
 
 ## Immediate next step
 
-Finish Phase 1, item 1 by recording the verified-create evidence and the observed
-AppFlowy Web Board/Grid rendering limitation. Do not start edit, move, delete,
-packaging, or publication until that evidence is written down.
+Continue Phase 1 with browser/UI acceptance: record the managed lifecycle evidence,
+then test how AppFlowy Web Board/Grid renders the same lifecycle. Do not start
+packaging or publication until that UI limitation is documented as either supported
+with workaround or explicitly out of scope.
