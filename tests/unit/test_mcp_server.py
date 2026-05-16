@@ -31,6 +31,7 @@ EXPECTED_WRITE_TOOLS = {
     "appflowy_create_verified_database_row",
     "appflowy_upsert_database_row",
     "appflowy_upsert_managed_task",
+    "appflowy_upsert_verified_managed_task",
     "appflowy_move_managed_task_status",
     "appflowy_delete_database_row",
 }

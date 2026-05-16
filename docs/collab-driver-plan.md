@@ -152,6 +152,12 @@ Create proof result, 2026-05-16:
   list, REST detail, all three observed `row_orders`, and DatabaseRow collab.
   The same row did not immediately render in the browser snapshot, reinforcing that
   UI visibility must be tested separately from data-plane correctness.
+- Managed task live proof: `upsert_managed_task` with a stable `task_key` created row
+  `9c4d741a-7f4f-c2f1-292d-dcfc9d28bd37`, and `move_managed_task_status` with the
+  same key moved it to `Status = Doing` while preserving the row id. Data-plane
+  verification found the moved row in REST row list/detail, all three observed
+  `row_orders`, and DatabaseRow collab. This supports using `task_key`/`pre_hash` as
+  the stable MCP-owned task identity for create/edit/move operations.
 - Cosmin independently reproduced the Board/Grid bug in his own AppFlowy official
   workspace on Firefox and Chrome: refreshing/F5 on Board makes cards disappear, then
   opening Grid and returning to Board makes them reappear. Treat this as an AppFlowy

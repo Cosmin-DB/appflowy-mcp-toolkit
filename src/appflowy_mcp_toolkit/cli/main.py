@@ -124,6 +124,22 @@ def build_parser() -> argparse.ArgumentParser:
         "--execute", action="store_true", help="Actually upsert it; default is dry-run"
     )
 
+    managed_verified = sub.add_parser("managed-task-verified")
+    managed_verified.add_argument("--workspace-id", required=True)
+    managed_verified.add_argument("--database-id", required=True)
+    managed_verified.add_argument("--task-key", required=True)
+    managed_verified.add_argument("--description")
+    managed_verified.add_argument("--status")
+    managed_verified.add_argument("--document")
+    managed_verified.add_argument(
+        "--skip-blob-diff",
+        action="store_true",
+        help="Skip blob/diff verification; useful while AppFlowy Web reports pending live rows",
+    )
+    managed_verified.add_argument(
+        "--execute", action="store_true", help="Actually upsert it; default is dry-run"
+    )
+
     move = sub.add_parser("move-managed-task")
     move.add_argument("--workspace-id", required=True)
     move.add_argument("--database-id", required=True)
@@ -235,6 +251,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                 status=args.status,
                 document=args.document,
                 dry_run=not args.execute,
+            )
+        elif args.command == "managed-task-verified":
+            result = client.upsert_managed_task_verified(
+                args.workspace_id,
+                args.database_id,
+                task_key=args.task_key,
+                description=args.description,
+                status=args.status,
+                document=args.document,
+                dry_run=not args.execute,
+                include_blob_diff=not args.skip_blob_diff,
             )
         elif args.command == "move-managed-task":
             result = client.move_managed_task_status(

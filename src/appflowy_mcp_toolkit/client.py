@@ -298,6 +298,56 @@ class AppFlowyClient:
             dry_run=dry_run,
         )
 
+    def upsert_managed_task_verified(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        task_key: str,
+        description: str | None = None,
+        status: str | None = None,
+        document: str | None = None,
+        dry_run: bool = True,
+        include_blob_diff: bool = True,
+    ) -> dict[str, Any]:
+        """Create/update an MCP-managed task and verify its data-plane state."""
+        result = self.upsert_managed_task(
+            workspace_id,
+            database_id,
+            task_key=task_key,
+            description=description,
+            status=status,
+            document=document,
+            dry_run=dry_run,
+        )
+        if dry_run:
+            return {
+                **result,
+                "verification": {
+                    "would_check": [
+                        "REST row list",
+                        "REST row detail",
+                        "database row_orders",
+                        "DatabaseRow collab JSON",
+                        *(["database blob/diff"] if include_blob_diff else []),
+                    ],
+                },
+            }
+        row_id = _extract_row_id(result)
+        if row_id is None:
+            raise AppFlowySchemaError(
+                "Managed task upsert response did not include a row id", payload=result
+            )
+        return {
+            "upsert": result,
+            "verification": self.verify_database_row(
+                workspace_id,
+                database_id,
+                row_id,
+                include_blob_diff=include_blob_diff,
+            ),
+        }
+
     def move_managed_task_status(
         self,
         workspace_id: str,
@@ -326,6 +376,12 @@ class AppFlowyClient:
             result = {
                 **result,
                 "verified_row": self.get_database_rows(workspace_id, database_id, [row_id]),
+                "verification": self.verify_database_row(
+                    workspace_id,
+                    database_id,
+                    row_id,
+                    include_blob_diff=False,
+                ),
             }
         return result
 

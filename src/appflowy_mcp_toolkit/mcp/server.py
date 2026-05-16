@@ -261,6 +261,33 @@ def appflowy_upsert_managed_task(
         )
 
 
+@mcp.tool(name="appflowy_upsert_verified_managed_task", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_upsert_verified_managed_task(
+    workspace_id: str,
+    database_id: str,
+    task_key: str,
+    description: str | None = None,
+    status: str | None = None,
+    document: str | None = None,
+    dry_run: bool = True,
+    include_blob_diff: bool = True,
+) -> str:
+    """Create/update an MCP-managed task and verify API/collab visibility."""
+    with _client() as client:
+        return compact(
+            client.upsert_managed_task_verified(
+                workspace_id,
+                database_id,
+                task_key=task_key,
+                description=description,
+                status=status,
+                document=document,
+                dry_run=dry_run,
+                include_blob_diff=include_blob_diff,
+            )
+        )
+
+
 @mcp.tool(name="appflowy_move_managed_task_status", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
 def appflowy_move_managed_task_status(
     workspace_id: str,

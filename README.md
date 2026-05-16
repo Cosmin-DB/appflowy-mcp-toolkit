@@ -44,6 +44,7 @@ appflowy-toolkit row-orders --workspace-id <workspace_id> --database-id <databas
 appflowy-toolkit blob-diff --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit verify-row --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id>
 appflowy-toolkit create-verified-row --workspace-id <workspace_id> --database-id <database_id> --cells-json '{"Description":"Test"}'
+appflowy-toolkit managed-task-verified --workspace-id <workspace_id> --database-id <database_id> --task-key <stable_key> --description "Test"
 
 # Experimental: Yjs-based row delete (requires Node.js 18+ and npm install in collab/)
 appflowy-toolkit delete-row --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id>
@@ -78,6 +79,7 @@ Write tools exist for controlled testing, but dry-run by default and require
 - `appflowy_create_verified_database_row`
 - `appflowy_upsert_database_row`
 - `appflowy_upsert_managed_task`
+- `appflowy_upsert_verified_managed_task`
 - `appflowy_move_managed_task_status`
 
 Experimental write tool (dry-run by default; requires `APPFLOWY_ALLOW_WRITES=true` **and**

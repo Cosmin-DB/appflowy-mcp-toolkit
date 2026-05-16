@@ -321,10 +321,18 @@ def test_move_managed_task_status_validates_and_verifies():
             )
         if request.method == "PUT":
             return json_response({"data": "managed_row_001", "code": 0})
+        if request.method == "GET" and request.url.path == "/api/workspace/ws/database/db/row":
+            return json_response({"data": [{"id": "managed_row_001"}]})
         if request.url.path.endswith("/row/detail"):
             return json_response(
                 {"data": [{"id": "managed_row_001", "cells": {"Status": "✅ Done"}}]}
             )
+        if request.url.path == "/api/workspace/v1/ws/collab/db/json":
+            return json_response(
+                {"data": {"views": {"view_001": {"row_orders": ["managed_row_001"]}}}}
+            )
+        if request.url.path == "/api/workspace/v1/ws/collab/managed_row_001/json":
+            return json_response({"data": {"collab": {"database_row": {}}}})
         raise AssertionError(str(request.url))
 
     config = AppFlowyConfig(
@@ -349,7 +357,48 @@ def test_move_managed_task_status_validates_and_verifies():
 
     assert result["data"] == "managed_row_001"
     assert result["verified_row"][0]["cells"]["Status"] == "✅ Done"
+    assert result["verification"]["verified"] is True
     assert any(request.method == "PUT" for request in seen)
+
+
+def test_upsert_managed_task_verified_executes_then_verifies():
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if request.method == "PUT" and path == "/api/workspace/ws/database/db/row":
+            return json_response({"data": "managed-row", "code": 0})
+        if request.method == "GET" and path == "/api/workspace/ws/database/db/row":
+            return json_response({"data": [{"id": "managed-row"}]})
+        if path == "/api/workspace/ws/database/db/row/detail":
+            return json_response({"data": [{"id": "managed-row"}]})
+        if path == "/api/workspace/v1/ws/collab/db/json":
+            return json_response({"data": {"views": {"view_001": {"row_orders": ["managed-row"]}}}})
+        if path == "/api/workspace/v1/ws/collab/managed-row/json":
+            return json_response({"data": {"collab": {"database_row": {}}}})
+        raise AssertionError(path)
+
+    config = AppFlowyConfig(
+        base_url="https://example.test",
+        access_token="test-token",
+        allow_writes=True,
+    )
+    from appflowy_mcp_toolkit.client import AppFlowyClient
+
+    client = AppFlowyClient(
+        config,
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    result = client.upsert_managed_task_verified(
+        "ws",
+        "db",
+        task_key="task-1",
+        description="Managed",
+        dry_run=False,
+        include_blob_diff=False,
+    )
+
+    assert result["upsert"]["data"] == "managed-row"
+    assert result["verification"]["verified"] is True
 
 
 # ---------------------------------------------------------------------------
