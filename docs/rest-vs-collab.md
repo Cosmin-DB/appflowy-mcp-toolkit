@@ -17,6 +17,9 @@ route.
   browser created it manually.
 - Use **collab delete** when removing a row from database views; there is no
   confirmed public REST delete-row endpoint.
+- Use **database collab** for board column creation. A board column is a select
+  option on the grouped field, usually `Status`, plus a visible group entry in
+  the board view.
 
 ## Why This Is Confusing
 
@@ -65,6 +68,7 @@ collab row updates.
 | Update or move a task previously created with `task_key` | `update_task` / `move_task` | REST `pre_hash` path is deterministic and idempotent |
 | Update a row created manually in AppFlowy Web | `update-row-by-id` / `appflowy_update_database_row_by_id` | REST cannot target arbitrary existing row ids |
 | Move a manually-created task/card by row id | `move-task-by-id` / `appflowy_move_task_by_id` | Thin wrapper over collab row update for Status |
+| Add a board column/status option | `add-select-option` / `appflowy_add_select_option` | Board columns are stored in Database collab schema, not as rows |
 | Delete a row/card | `delete-row` / `appflowy_delete_database_row` | AppFlowy Web deletion is collab row-order mutation |
 | Reorder cards precisely inside a view/column | Not implemented yet | Needs separate row_orders collab mutation design |
 
@@ -95,6 +99,7 @@ Implemented:
 - delete database row from view row orders
 - update existing `DatabaseRow` cells by `row_id`
 - move an existing/manual task by setting its Status field through `row_id`
+- add select options, including board Status columns, through Database collab
 
 Not implemented yet:
 

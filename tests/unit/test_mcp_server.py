@@ -80,6 +80,7 @@ EXPECTED_WRITE_TOOLS = {
     "appflowy_create_verified_database_row",
     "appflowy_create_typed_database_row",
     "appflowy_create_database_field",
+    "appflowy_add_select_option",
     "appflowy_upsert_database_row",
     "appflowy_upsert_typed_database_row",
     "appflowy_upsert_managed_task",

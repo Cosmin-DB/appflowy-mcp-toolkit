@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import mimetypes
+import secrets
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -792,6 +793,113 @@ class AppFlowyClient:
         if not isinstance(options, list):
             return []
         return [item for item in options if isinstance(item, dict)]
+
+    def add_select_option_collab(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        field_name: str = "Status",
+        name: str,
+        color: str = "Purple",
+        option_id: str | None = None,
+        view_id: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Add an option to a select field through Database collab.
+
+        In board views, columns are not standalone objects. They are select
+        options from the grouped field, usually ``Status``. AppFlowy Web also
+        keeps a board group list in the Database collab, so this updates both
+        the field option list and matching board groups.
+        """
+        from appflowy_mcp_toolkit.collab.collab_delete import (
+            CollabHelperError,
+            allow_collab_writes,
+            invoke_yjs_add_select_option,
+        )
+
+        fields = self.list_database_fields(workspace_id, database_id)
+        field = next((item for item in fields if item.get("name") == field_name), None)
+        if field is None:
+            raise AppFlowyError(f"Field not found: {field_name}")
+        field_id = str(field.get("id") or "")
+        field_type_id = field.get("field_type_id")
+        if not field_id or not isinstance(field_type_id, int):
+            raise AppFlowySchemaError("Select field metadata is incomplete", payload=field)
+        if field_type_id not in {3, 4}:
+            raise AppFlowyError(
+                f"Field {field_name!r} is not a select field; field_type_id={field_type_id}"
+            )
+
+        existing_options = self.list_select_options(
+            workspace_id,
+            database_id,
+            field_name=field_name,
+        )
+        existing = next((item for item in existing_options if item.get("name") == name), None)
+        resolved_option_id = (option_id or str(existing.get("id"))) if existing else option_id
+        if resolved_option_id is None:
+            resolved_option_id = "mcp_" + secrets.token_urlsafe(4).replace("-", "_")
+
+        if not dry_run:
+            self._require_writes_enabled()
+            if not allow_collab_writes():
+                raise AppFlowyError(
+                    "Collab writes are disabled. "
+                    "Set APPFLOWY_ALLOW_COLLAB_WRITES=true to enable Yjs-based schema updates."
+                )
+
+        binary = self.get_binary_collab(workspace_id, database_id, collab_type="Database")
+        doc_state: list[int] = binary.get("doc_state", [])
+        if not doc_state:
+            raise AppFlowyError(
+                "Binary Database collab returned empty doc_state; cannot compute option delta."
+            )
+
+        try:
+            helper_result = invoke_yjs_add_select_option(
+                doc_state,
+                field_id=field_id,
+                field_type=field_type_id,
+                option_id=resolved_option_id,
+                name=name,
+                color=color,
+                view_id=view_id,
+            )
+        except CollabHelperError as exc:
+            raise AppFlowyError(str(exc)) from exc
+
+        summary: dict[str, Any] = {
+            "dry_run": dry_run,
+            "database_id": database_id,
+            "field_id": field_id,
+            "field_name": field_name,
+            "option": helper_result["option"],
+            "option_added": helper_result["option_added"],
+            "affected_views": helper_result["affected_views"],
+            "delta_update_bytes": len(helper_result["delta_update"]),
+            "path": f"/api/workspace/v1/{workspace_id}/collab/{database_id}/web-update",
+            "collab_type": _collab_type_int("Database"),
+        }
+        if dry_run:
+            return summary
+
+        post_data = self.request(
+            "POST",
+            f"/api/workspace/v1/{workspace_id}/collab/{database_id}/web-update",
+            json={
+                "doc_state": helper_result["delta_update"],
+                "collab_type": _collab_type_int("Database"),
+            },
+        )
+        summary["server_status"] = post_data.get("code")
+        summary["verified_options"] = self.list_select_options(
+            workspace_id,
+            database_id,
+            field_name=field_name,
+        )
+        return summary
 
     def list_database_row_ids(self, workspace_id: str, database_id: str) -> list[dict[str, Any]]:
         data = self.request("GET", f"/api/workspace/{workspace_id}/database/{database_id}/row")

@@ -241,6 +241,16 @@ def build_parser() -> argparse.ArgumentParser:
     create_field.add_argument("--type-option-data-json")
     create_field.add_argument("--execute", action="store_true")
 
+    add_select_option = sub.add_parser("add-select-option")
+    add_select_option.add_argument("--workspace-id", required=True)
+    add_select_option.add_argument("--database-id", required=True)
+    add_select_option.add_argument("--name", required=True)
+    add_select_option.add_argument("--field-name", default="Status")
+    add_select_option.add_argument("--color", default="Purple")
+    add_select_option.add_argument("--option-id")
+    add_select_option.add_argument("--view-id")
+    add_select_option.add_argument("--execute", action="store_true")
+
     rows = sub.add_parser("rows")
     rows.add_argument("--workspace-id", required=True)
     rows.add_argument("--database-id", required=True)
@@ -760,6 +770,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                 type_option_data=(
                     json.loads(args.type_option_data_json) if args.type_option_data_json else None
                 ),
+                dry_run=not args.execute,
+            )
+        elif args.command == "add-select-option":
+            result = client.add_select_option_collab(
+                args.workspace_id,
+                args.database_id,
+                field_name=args.field_name,
+                name=args.name,
+                color=args.color,
+                option_id=args.option_id,
+                view_id=args.view_id,
                 dry_run=not args.execute,
             )
         elif args.command == "rows":

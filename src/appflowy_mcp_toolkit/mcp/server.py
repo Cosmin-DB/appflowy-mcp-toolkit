@@ -560,6 +560,33 @@ def appflowy_create_database_field(
         )
 
 
+@mcp.tool(name="appflowy_add_select_option", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_add_select_option(
+    workspace_id: str,
+    database_id: str,
+    name: str,
+    field_name: str = "Status",
+    color: str = "Purple",
+    option_id: str | None = None,
+    view_id: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Add a select option, which appears as a board column when the field groups the view."""
+    with _client() as client:
+        return compact(
+            client.add_select_option_collab(
+                workspace_id,
+                database_id,
+                field_name=field_name,
+                name=name,
+                color=color,
+                option_id=option_id,
+                view_id=view_id,
+                dry_run=dry_run,
+            )
+        )
+
+
 @mcp.tool(name="appflowy_list_database_row_ids", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
 def appflowy_list_database_row_ids(workspace_id: str, database_id: str) -> str:
     """List row IDs for a database."""

@@ -134,7 +134,7 @@ function updateDatabaseRowCells(docStateBytes, cellUpdates) {
     throw new Error("data.data not found or not a YMap in DatabaseRow collab doc");
   }
   const cells = ensureMap(rowData, "cells");
-  const now = Date.now();
+  const now = Math.floor(Date.now() / 1000);
   const updatedFields = [];
 
   doc.transact(() => {
@@ -161,6 +161,136 @@ function updateDatabaseRowCells(docStateBytes, cellUpdates) {
   const deltaUpdate = Y.encodeStateAsUpdate(doc, svBefore);
   return {
     updatedFields,
+    deltaUpdate,
+  };
+}
+
+function mapFromObject(value) {
+  const map = new Y.Map();
+  for (const [key, item] of Object.entries(value || {})) {
+    if (Array.isArray(item)) {
+      const array = new Y.Array();
+      array.insert(
+        0,
+        item.map((child) =>
+          child instanceof Y.Map
+            ? child
+            : child && typeof child === "object"
+              ? mapFromObject(child)
+              : child
+        )
+      );
+      map.set(key, array);
+    } else {
+      map.set(key, item);
+    }
+  }
+  return map;
+}
+
+function childGroupId(group) {
+  if (group instanceof Y.Map) return group.get("id");
+  if (group && typeof group === "object") return group.id;
+  return undefined;
+}
+
+function normalizeGroupArray(array) {
+  for (let i = 0; i < array.length; i++) {
+    const item = array.get(i);
+    if (item instanceof Y.Map) {
+      const children = item.get("groups");
+      if (children instanceof Y.Array) normalizeGroupArray(children);
+      continue;
+    }
+    if (item && typeof item === "object" && !Array.isArray(item)) {
+      array.delete(i, 1);
+      array.insert(i, [mapFromObject(item)]);
+    }
+  }
+}
+
+function addSelectOptionToDatabase(docStateBytes, input) {
+  const doc = new Y.Doc();
+  Y.applyUpdate(doc, docStateBytes);
+
+  const svBefore = Y.encodeStateVector(doc);
+  const root = doc.getMap("data");
+  const database = root.get("database");
+  if (!(database instanceof Y.Map)) {
+    throw new Error("data.database not found or not a YMap in collab doc");
+  }
+  const fields = database.get("fields");
+  if (!(fields instanceof Y.Map)) {
+    throw new Error("data.database.fields not found or not a YMap in collab doc");
+  }
+
+  const field = fields.get(input.field_id);
+  if (!(field instanceof Y.Map)) {
+    throw new Error("Field not found in database collab: " + input.field_id);
+  }
+  const typeOption = field.get("type_option");
+  if (!(typeOption instanceof Y.Map)) {
+    throw new Error("Field type_option not found or not a YMap for field: " + input.field_id);
+  }
+
+  const selectOption = typeOption.get(String(input.field_type));
+  if (!(selectOption instanceof Y.Map)) {
+    throw new Error("Select field type option not found for field type: " + input.field_type);
+  }
+
+  const rawContent = selectOption.get("content");
+  const content = rawContent ? JSON.parse(rawContent) : { options: [], disable_color: false };
+  if (!Array.isArray(content.options)) content.options = [];
+
+  const existing = content.options.find((option) => option.id === input.option_id || option.name === input.name);
+  const option = existing || {
+    id: input.option_id,
+    name: input.name,
+    color: input.color || "Purple",
+  };
+
+  const affectedViews = [];
+  const now = Math.floor(Date.now() / 1000);
+
+  doc.transact(() => {
+    if (!existing) {
+      content.options.push(option);
+      selectOption.set("content", JSON.stringify(content));
+    }
+    field.set("last_modified", now);
+
+    const views = database.get("views");
+    if (views instanceof Y.Map) {
+      for (const [viewId, viewData] of views.entries()) {
+        if (!(viewData instanceof Y.Map)) continue;
+        if (input.view_id && viewId !== input.view_id) continue;
+        const groups = viewData.get("groups");
+        if (!(groups instanceof Y.Array)) continue;
+        normalizeGroupArray(groups);
+
+        for (let i = 0; i < groups.length; i++) {
+          const group = groups.get(i);
+          if (!(group instanceof Y.Map) || group.get("field_id") !== input.field_id) continue;
+          let childGroups = group.get("groups");
+          if (!(childGroups instanceof Y.Array)) {
+            childGroups = new Y.Array();
+            group.set("groups", childGroups);
+          }
+          normalizeGroupArray(childGroups);
+          if (!childGroups.toArray().some((child) => childGroupId(child) === input.option_id)) {
+            childGroups.push([mapFromObject({ id: input.option_id, visible: true })]);
+          }
+          affectedViews.push(viewId);
+        }
+      }
+    }
+  });
+
+  const deltaUpdate = Y.encodeStateAsUpdate(doc, svBefore);
+  return {
+    optionAdded: !existing,
+    option,
+    affectedViews: [...new Set(affectedViews)],
     deltaUpdate,
   };
 }
@@ -196,6 +326,13 @@ function main() {
           throw new Error("update_row_cells input must include cells (object)");
         }
         result = updateDatabaseRowCells(new Uint8Array(doc_state), input.cells);
+      } else if (operation === "add_select_option") {
+        for (const key of ["field_id", "field_type", "option_id", "name"]) {
+          if (input[key] === undefined || input[key] === null || input[key] === "") {
+            throw new Error("add_select_option input must include " + key);
+          }
+        }
+        result = addSelectOptionToDatabase(new Uint8Array(doc_state), input);
       } else {
         throw new Error("Unsupported operation: " + operation);
       }
@@ -215,13 +352,25 @@ function main() {
         })
       );
     } else {
-      process.stdout.write(
-        JSON.stringify({
-          ok: true,
-          updated_fields: result.updatedFields,
-          delta_update: Array.from(result.deltaUpdate),
-        })
-      );
+      if (operation === "add_select_option") {
+        process.stdout.write(
+          JSON.stringify({
+            ok: true,
+            option_added: result.optionAdded,
+            option: result.option,
+            affected_views: result.affectedViews,
+            delta_update: Array.from(result.deltaUpdate),
+          })
+        );
+      } else {
+        process.stdout.write(
+          JSON.stringify({
+            ok: true,
+            updated_fields: result.updatedFields,
+            delta_update: Array.from(result.deltaUpdate),
+          })
+        );
+      }
     }
   });
 }

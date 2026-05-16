@@ -242,6 +242,36 @@ def invoke_yjs_update_row_cells(
     )
 
 
+def invoke_yjs_add_select_option(
+    doc_state: list[int],
+    *,
+    field_id: str,
+    field_type: int,
+    option_id: str,
+    name: str,
+    color: str = "Purple",
+    view_id: str | None = None,
+) -> dict[str, Any]:
+    """Call the Yjs helper to add a select option to a database field.
+
+    Board columns are stored as options of the grouped select field, plus a
+    visible group entry in board views. This helper updates both in one Database
+    collab delta.
+    """
+    payload: dict[str, Any] = {
+        "operation": "add_select_option",
+        "doc_state": doc_state,
+        "field_id": field_id,
+        "field_type": field_type,
+        "option_id": option_id,
+        "name": name,
+        "color": color,
+    }
+    if view_id is not None:
+        payload["view_id"] = view_id
+    return _invoke_yjs_helper(payload)
+
+
 def allow_collab_writes() -> bool:
     """Return True if APPFLOWY_ALLOW_COLLAB_WRITES is set to a truthy value."""
     return os.getenv("APPFLOWY_ALLOW_COLLAB_WRITES", "false").lower() in {
