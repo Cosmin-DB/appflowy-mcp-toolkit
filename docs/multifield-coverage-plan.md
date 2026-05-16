@@ -159,6 +159,9 @@ Keep these out of the first multi-field release unless explicitly needed:
   belongs to the file-storage layer.
 - CreatedTime/LastEditedTime: read-only verification only.
 
+See `docs/deferred-field-decisions.md` for the exact evidence and decisions behind
+Relation, Translate, and Media uploads.
+
 ## Remaining Next Slice
 
 The typed API is usable for real task-card work now. The remaining completeness work is
@@ -172,3 +175,7 @@ Relation is listed here because local Docker accepted the field but did not retu
 written relation cell through the REST row-detail path. Translate is listed here because
 manual writes read back empty; it likely needs the AppFlowy AI/product route rather than
 a normal row cell write.
+
+Media is the only deferred item that looks like a strong next implementation slice.
+The storage API exists and is documented in upstream source, but it should be added as a
+dedicated file-storage workflow before it is connected to typed Media cells.

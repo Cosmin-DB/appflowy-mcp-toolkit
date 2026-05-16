@@ -47,7 +47,7 @@ Approximate coverage by object family:
 | Task board | list/create/update/move/delete implemented | implemented | implemented | implemented via Yjs row-order delete | high for data plane | Add browser UI acceptance for Grid/Board |
 | Row/card ordering | row_orders read implemented | n/a | reorder requires Yjs mutation | n/a | diagnostic only | Defer until browser behavior is mapped |
 | Collab documents | JSON/raw/blob diff read implemented | create collab route exists | web-update used only for row delete | delete collab route exists but dangerous | partial | Keep generic collab writes private/diagnostic; do not expose broad destructive collab delete |
-| File storage/blobs | usage/list/metadata implemented | upload routes exist | multipart complete routes exist | delete blob routes exist | read metadata implemented | Upload/delete deferred behind explicit gates |
+| File storage/blobs | usage/list/metadata implemented | v1 single-upload and multipart routes mapped in source | multipart complete routes mapped in source | delete blob route mapped in source | read metadata implemented; upload/download/delete documented but not exposed | Prove v1 upload/download/delete against Docker, then connect uploaded blob to Media cells |
 | Trash | trash list implemented | n/a | single restore implemented dry-run default | single delete-from-trash implemented dry-run default | partial | Bulk restore/delete deferred |
 | Favorites/recent | recent/favorite list implemented | add recent implemented dry-run default | favorite toggle/reorder implemented dry-run default | n/a | mostly implemented | Browser polish deferred |
 | Sharing/guests | list shared views exists | share view route exists | revoke/access detail routes exist | revoke route exists | missing | Safety-sensitive; require explicit gates |
@@ -85,7 +85,8 @@ Approximate coverage by object family:
 
 5. **Files**
    - Usage/list metadata/get metadata. **Done.**
-   - Blob download/upload/delete deferred until binary/file delivery semantics are designed.
+   - Blob download/upload/delete source routes are mapped, but still deferred until a
+     Docker proof covers binary upload, cleanup, and Media-cell linking.
 
 6. **Sharing/publishing/admin**
    - Document and test carefully.

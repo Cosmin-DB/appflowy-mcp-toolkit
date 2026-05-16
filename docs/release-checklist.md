@@ -17,7 +17,9 @@ Deferred:
 
 - Publishing/sharing/invites/member/admin mutations.
 - Imports and AI/chat routes.
-- Broad file upload/download/delete.
+- Broad file upload/download/delete. Network URL Media cells are covered; AppFlowy
+  file-storage uploads are mapped in source but not public until Docker proves upload,
+  download, delete, and Media-cell linking.
 - Account/workspace destructive administration.
 - Full AppFlowy Web visual parity for MCP-created rows.
 

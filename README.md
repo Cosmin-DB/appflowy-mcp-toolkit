@@ -243,7 +243,9 @@ blob metadata listing, and v0/v1 metadata lookup routes:
 `GET /api/file_storage/{workspace_id}/metadata/{file_id}`, and
 `GET /api/file_storage/{workspace_id}/v1/metadata/{parent_dir}/{file_id}`. Upload,
 delete, and raw blob download endpoints are intentionally not implemented in this
-slice.
+slice. The upstream upload/download/delete routes have been mapped and are documented
+in `docs/deferred-field-decisions.md`; the next safe slice is a Docker-proven v1
+upload/download/delete helper, then linking uploaded blobs into typed Media cells.
 
 Known AppFlowy Web limitation: Board rendering can be stale even when a row is already
 present in REST and collab state. In local browser testing, verified rows can still
