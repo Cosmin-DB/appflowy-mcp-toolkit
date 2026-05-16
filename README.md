@@ -35,6 +35,9 @@ APPFLOWY_REFRESH_TOKEN=...
 ```bash
 appflowy-toolkit health
 appflowy-toolkit setup-check  # local Node/npm/Yjs helper diagnostics
+appflowy-toolkit server-info
+appflowy-toolkit user-profile
+appflowy-toolkit user-workspace-info
 appflowy-toolkit workspaces
 appflowy-toolkit workspace-settings --workspace-id <workspace_id>
 appflowy-toolkit workspace-members --workspace-id <workspace_id>
@@ -65,6 +68,7 @@ appflowy-toolkit restore-all-pages --workspace-id <workspace_id>
 appflowy-toolkit delete-all-trash-pages --workspace-id <workspace_id>
 appflowy-toolkit databases --workspace-id <workspace_id>
 appflowy-toolkit fields --workspace-id <workspace_id> --database-id <database_id>
+appflowy-toolkit create-field --workspace-id <workspace_id> --database-id <database_id> --name "Priority" --field-type 0
 appflowy-toolkit rows --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit updated-rows --workspace-id <workspace_id> --database-id <database_id> --after 2026-05-16T10:00:00Z
 appflowy-toolkit quick-notes --workspace-id <workspace_id> --search-term "apple" --limit 10
@@ -99,6 +103,9 @@ appflowy-mcp-server
 Read-only tools:
 
 - `appflowy_health_check`
+- `appflowy_get_server_info`
+- `appflowy_get_user_profile`
+- `appflowy_get_user_workspace_info`
 - `appflowy_list_workspaces`
 - `appflowy_get_workspace_settings`
 - `appflowy_list_workspace_members`
@@ -131,6 +138,7 @@ Write tools exist for controlled testing, but dry-run by default and require
 
 - `appflowy_create_database_row`
 - `appflowy_create_verified_database_row`
+- `appflowy_create_database_field`
 - `appflowy_create_page_view`
 - `appflowy_update_page_view`
 - `appflowy_rename_page_view`

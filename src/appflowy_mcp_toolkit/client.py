@@ -112,6 +112,27 @@ class AppFlowyClient:
         )
         return self._extract_list(data)
 
+    def get_server_info(self) -> dict[str, Any]:
+        data = self.request("GET", "/api/server", require_auth=False)
+        server_info = self._extract_data(data)
+        if not isinstance(server_info, dict):
+            raise AppFlowySchemaError("Expected AppFlowy server info response", payload=data)
+        return server_info
+
+    def get_user_profile(self) -> dict[str, Any]:
+        data = self.request("GET", "/api/user/profile")
+        profile = self._extract_data(data)
+        if not isinstance(profile, dict):
+            raise AppFlowySchemaError("Expected AppFlowy user profile response", payload=data)
+        return profile
+
+    def get_user_workspace_info(self) -> dict[str, Any]:
+        data = self.request("GET", "/api/user/workspace")
+        info = self._extract_data(data)
+        if not isinstance(info, dict):
+            raise AppFlowySchemaError("Expected AppFlowy user workspace response", payload=data)
+        return info
+
     def get_workspace_settings(self, workspace_id: str) -> dict[str, Any]:
         data = self.request("GET", f"/api/workspace/{workspace_id}/settings")
         settings = self._extract_data(data)
@@ -471,6 +492,25 @@ class AppFlowyClient:
     def list_database_fields(self, workspace_id: str, database_id: str) -> list[dict[str, Any]]:
         data = self.request("GET", f"/api/workspace/{workspace_id}/database/{database_id}/fields")
         return self._extract_list(data)
+
+    def create_database_field(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        name: str,
+        field_type: int,
+        type_option_data: dict[str, Any] | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {"name": name, "field_type": field_type}
+        if type_option_data is not None:
+            payload["type_option_data"] = type_option_data
+        path = f"/api/workspace/{workspace_id}/database/{database_id}/fields"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("POST", path, json=payload)
 
     def list_select_options(
         self, workspace_id: str, database_id: str, *, field_name: str = "Status"

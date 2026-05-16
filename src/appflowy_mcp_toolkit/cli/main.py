@@ -22,6 +22,9 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     sub.add_parser("workspaces")
+    sub.add_parser("server-info")
+    sub.add_parser("user-profile")
+    sub.add_parser("user-workspace-info")
 
     workspace_settings = sub.add_parser("workspace-settings")
     workspace_settings.add_argument("--workspace-id", required=True)
@@ -173,6 +176,14 @@ def build_parser() -> argparse.ArgumentParser:
     fields = sub.add_parser("fields")
     fields.add_argument("--workspace-id", required=True)
     fields.add_argument("--database-id", required=True)
+
+    create_field = sub.add_parser("create-field")
+    create_field.add_argument("--workspace-id", required=True)
+    create_field.add_argument("--database-id", required=True)
+    create_field.add_argument("--name", required=True)
+    create_field.add_argument("--field-type", type=int, required=True)
+    create_field.add_argument("--type-option-data-json")
+    create_field.add_argument("--execute", action="store_true")
 
     rows = sub.add_parser("rows")
     rows.add_argument("--workspace-id", required=True)
@@ -414,6 +425,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             result: Any = client.health_check()
         elif args.command == "workspaces":
             result = client.list_workspaces(include_member_count=True, include_role=True)
+        elif args.command == "server-info":
+            result = client.get_server_info()
+        elif args.command == "user-profile":
+            result = client.get_user_profile()
+        elif args.command == "user-workspace-info":
+            result = client.get_user_workspace_info()
         elif args.command == "workspace-settings":
             result = client.get_workspace_settings(args.workspace_id)
         elif args.command == "workspace-members":
@@ -561,6 +578,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = client.list_databases(args.workspace_id)
         elif args.command == "fields":
             result = client.list_database_fields(args.workspace_id, args.database_id)
+        elif args.command == "create-field":
+            result = client.create_database_field(
+                args.workspace_id,
+                args.database_id,
+                name=args.name,
+                field_type=args.field_type,
+                type_option_data=(
+                    json.loads(args.type_option_data_json)
+                    if args.type_option_data_json
+                    else None
+                ),
+                dry_run=not args.execute,
+            )
         elif args.command == "rows":
             result = client.list_database_row_ids(args.workspace_id, args.database_id)
         elif args.command == "updated-rows":

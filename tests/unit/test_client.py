@@ -25,6 +25,25 @@ def test_list_workspaces_uses_bearer(make_client):
     assert seen[0].headers["authorization"] == "Bearer test-token"
 
 
+def test_global_readonly_routes(make_client):
+    seen: list[tuple[str, str | None]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((request.url.path, request.headers.get("authorization")))
+        return json_response({"data": {"ok": True}})
+
+    client = make_client(handler)
+
+    assert client.get_server_info() == {"ok": True}
+    assert client.get_user_profile() == {"ok": True}
+    assert client.get_user_workspace_info() == {"ok": True}
+    assert seen == [
+        ("/api/server", None),
+        ("/api/user/profile", "Bearer test-token"),
+        ("/api/user/workspace", "Bearer test-token"),
+    ]
+
+
 def test_workspace_settings_uses_settings_route(make_client):
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/workspace/ws_demo_001/settings"
@@ -457,6 +476,23 @@ def test_search_documents_can_use_server_defaults(make_client):
     client = make_client(handler)
 
     assert client.search_documents("ws", "roadmap") == []
+
+
+def test_create_database_field_is_dry_run_by_default(make_client):
+    client = make_client(lambda _request: json_response({"data": {}}))
+
+    assert client.create_database_field(
+        "ws",
+        "db",
+        name="Priority",
+        field_type=0,
+        type_option_data={"options": []},
+    ) == {
+        "dry_run": True,
+        "method": "POST",
+        "path": "/api/workspace/ws/database/db/fields",
+        "json": {"name": "Priority", "field_type": 0, "type_option_data": {"options": []}},
+    }
 
 
 def test_auth_error_is_typed(make_client):

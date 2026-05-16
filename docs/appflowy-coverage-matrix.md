@@ -16,10 +16,11 @@ Approximate coverage by object family:
 
 | Area | Current coverage | Confidence |
 |---|---:|---|
+| Server/user read | basic read | high |
 | Workspaces read/basic create | medium-high | high for read/create, low for admin |
 | Folder/view/page read | high | high for tree/page read, medium for mutations |
 | Database schema/rows/tasks | high | high for task lifecycle data plane |
-| Database fields | low-medium | read done, create candidate |
+| Database fields | medium | read/create done, field-type payloads are caller supplied |
 | Collab diagnostics/delete | medium | high for diagnostics/delete, low for arbitrary mutations |
 | Files/blobs | read metadata/usage | high for metadata, writes deferred |
 | Trash/favorites/recent | read implemented | high |
@@ -38,7 +39,7 @@ Approximate coverage by object family:
 | Folder/view/page tree | get folder/page-view implemented | page-view create/duplicate/database-view implemented dry-run default | update/rename/favorite/reorder/move implemented dry-run default | trash/restore/delete-trashed and bulk trash ops implemented dry-run default | broad page/view surface implemented | Add self-hosted page lifecycle smoke next |
 | Document/page body | row document text supported on row create/detail | append-block implemented dry-run default | collab/document updates are deeper | trash via page-view routes | partial | Defer full block editor |
 | Database list | list databases implemented | database-view route exists | view/layout routes likely collab-backed | page-view trash/delete | partial | Add database-view creation only after page/view work |
-| Database fields | list fields implemented | POST /database/{database_id}/fields route exists | no safe update/delete route confirmed from matrix yet | no safe delete route confirmed | partial | Implement create field only after payload schema is mapped and tested |
+| Database fields | list fields implemented | create field implemented dry-run default | no safe update/delete route confirmed from matrix yet | no safe delete route confirmed | partial | Add friendly field-type builders later; raw payload route exists now |
 | Database rows | list ids/details implemented | create/upsert implemented | upsert/update, status move implemented | no REST delete; Yjs row-order delete implemented | high | Add updated-row listing and broader field type tests |
 | Task board | list/create/update/move/delete implemented | implemented | implemented | implemented via Yjs row-order delete | high for data plane | Add browser UI acceptance for Grid/Board |
 | Row/card ordering | row_orders read implemented | n/a | reorder requires Yjs mutation | n/a | diagnostic only | Defer until browser behavior is mapped |

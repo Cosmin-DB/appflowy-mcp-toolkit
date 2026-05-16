@@ -13,6 +13,9 @@ from appflowy_mcp_toolkit.mcp.server import mcp
 
 EXPECTED_READ_TOOLS = {
     "appflowy_health_check",
+    "appflowy_get_server_info",
+    "appflowy_get_user_profile",
+    "appflowy_get_user_workspace_info",
     "appflowy_list_workspaces",
     "appflowy_get_workspace_settings",
     "appflowy_list_workspace_members",
@@ -67,6 +70,7 @@ EXPECTED_WRITE_TOOLS = {
     "appflowy_delete_all_pages_from_trash",
     "appflowy_create_database_row",
     "appflowy_create_verified_database_row",
+    "appflowy_create_database_field",
     "appflowy_upsert_database_row",
     "appflowy_upsert_managed_task",
     "appflowy_upsert_verified_managed_task",

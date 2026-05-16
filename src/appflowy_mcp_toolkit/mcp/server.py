@@ -33,6 +33,27 @@ def appflowy_list_workspaces(include_member_count: bool = False, include_role: b
         return compact(data)
 
 
+@mcp.tool(name="appflowy_get_server_info", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_get_server_info() -> str:
+    """Get public AppFlowy server capability information."""
+    with _client() as client:
+        return compact(client.get_server_info())
+
+
+@mcp.tool(name="appflowy_get_user_profile", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_get_user_profile() -> str:
+    """Get the authenticated AppFlowy user profile."""
+    with _client() as client:
+        return compact(client.get_user_profile())
+
+
+@mcp.tool(name="appflowy_get_user_workspace_info", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_get_user_workspace_info() -> str:
+    """Get workspace metadata for the authenticated AppFlowy user."""
+    with _client() as client:
+        return compact(client.get_user_workspace_info())
+
+
 @mcp.tool(name="appflowy_get_workspace_settings", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
 def appflowy_get_workspace_settings(workspace_id: str) -> str:
     """Get read-only settings for one AppFlowy workspace."""
@@ -374,6 +395,29 @@ def appflowy_get_database_schema(workspace_id: str, database_id: str) -> str:
     """List fields/schema for a database."""
     with _client() as client:
         return compact(client.list_database_fields(workspace_id, database_id))
+
+
+@mcp.tool(name="appflowy_create_database_field", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_create_database_field(
+    workspace_id: str,
+    database_id: str,
+    name: str,
+    field_type: int,
+    type_option_data: dict | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Create a database field from explicit AppFlowy field-type payloads."""
+    with _client() as client:
+        return compact(
+            client.create_database_field(
+                workspace_id,
+                database_id,
+                name=name,
+                field_type=field_type,
+                type_option_data=type_option_data,
+                dry_run=dry_run,
+            )
+        )
 
 
 @mcp.tool(name="appflowy_list_database_row_ids", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
