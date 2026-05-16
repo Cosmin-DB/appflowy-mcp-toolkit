@@ -112,6 +112,24 @@ class AppFlowyClient:
         )
         return self._extract_list(data)
 
+    def get_workspace_settings(self, workspace_id: str) -> dict[str, Any]:
+        data = self.request("GET", f"/api/workspace/{workspace_id}/settings")
+        settings = self._extract_data(data)
+        if not isinstance(settings, dict):
+            raise AppFlowySchemaError("Expected AppFlowy workspace settings response", payload=data)
+        return settings
+
+    def list_workspace_members(self, workspace_id: str) -> list[dict[str, Any]]:
+        data = self.request("GET", f"/api/workspace/{workspace_id}/member")
+        return self._extract_list(data)
+
+    def get_workspace_usage(self, workspace_id: str) -> dict[str, Any]:
+        data = self.request("GET", f"/api/workspace/{workspace_id}/usage")
+        usage = self._extract_data(data)
+        if not isinstance(usage, dict):
+            raise AppFlowySchemaError("Expected AppFlowy workspace usage response", payload=data)
+        return usage
+
     def create_workspace(self, name: str, *, dry_run: bool = True) -> dict[str, Any]:
         payload = {"workspace_name": name}
         if dry_run:
@@ -133,6 +151,18 @@ class AppFlowyClient:
             params["root_view_id"] = root_view_id
         data = self.request("GET", f"/api/workspace/{workspace_id}/folder", params=params or None)
         return self._extract_data(data)
+
+    def list_recent_views(self, workspace_id: str) -> list[dict[str, Any]]:
+        data = self.request("GET", f"/api/workspace/{workspace_id}/recent")
+        return self._extract_list(data)
+
+    def list_favorite_views(self, workspace_id: str) -> list[dict[str, Any]]:
+        data = self.request("GET", f"/api/workspace/{workspace_id}/favorite")
+        return self._extract_list(data)
+
+    def list_trash_views(self, workspace_id: str) -> list[dict[str, Any]]:
+        data = self.request("GET", f"/api/workspace/{workspace_id}/trash")
+        return self._extract_list(data)
 
     def list_databases(self, workspace_id: str) -> list[dict[str, Any]]:
         data = self.request("GET", f"/api/workspace/{workspace_id}/database")
@@ -171,6 +201,25 @@ class AppFlowyClient:
             f"/api/workspace/{workspace_id}/database/{database_id}/row/updated",
             params=params,
         )
+        return self._extract_list(data)
+
+    def search_documents(
+        self,
+        workspace_id: str,
+        query: str,
+        *,
+        limit: int | None = None,
+        preview_size: int | None = None,
+        score: float | None = None,
+    ) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {"query": query}
+        if limit is not None:
+            params["limit"] = limit
+        if preview_size is not None:
+            params["preview_size"] = preview_size
+        if score is not None:
+            params["score"] = score
+        data = self.request("GET", f"/api/search/{workspace_id}", params=params)
         return self._extract_list(data)
 
     def get_database_rows(
@@ -854,7 +903,7 @@ class AppFlowyClient:
         if isinstance(payload, list):
             return [item for item in payload if isinstance(item, dict)]
         if isinstance(payload, dict):
-            for key in ("items", "rows", "databases", "workspaces"):
+            for key in ("items", "rows", "databases", "workspaces", "members"):
                 value = payload.get(key)
                 if isinstance(value, list):
                     return [item for item in value if isinstance(item, dict)]

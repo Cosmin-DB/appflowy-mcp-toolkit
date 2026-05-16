@@ -33,6 +33,27 @@ def appflowy_list_workspaces(include_member_count: bool = False, include_role: b
         return compact(data)
 
 
+@mcp.tool(name="appflowy_get_workspace_settings", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_get_workspace_settings(workspace_id: str) -> str:
+    """Get read-only settings for one AppFlowy workspace."""
+    with _client() as client:
+        return compact(client.get_workspace_settings(workspace_id))
+
+
+@mcp.tool(name="appflowy_list_workspace_members", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_list_workspace_members(workspace_id: str) -> str:
+    """List members for one AppFlowy workspace."""
+    with _client() as client:
+        return compact(client.list_workspace_members(workspace_id))
+
+
+@mcp.tool(name="appflowy_get_workspace_usage", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_get_workspace_usage(workspace_id: str) -> str:
+    """Get read-only usage information for one AppFlowy workspace."""
+    with _client() as client:
+        return compact(client.get_workspace_usage(workspace_id))
+
+
 @mcp.tool(name="appflowy_get_folder", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
 def appflowy_get_folder(
     workspace_id: str,
@@ -42,6 +63,27 @@ def appflowy_get_folder(
     """Get a workspace folder/view tree or subtree."""
     with _client() as client:
         return compact(client.get_folder(workspace_id, depth=depth, root_view_id=root_view_id))
+
+
+@mcp.tool(name="appflowy_list_recent_views", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_list_recent_views(workspace_id: str) -> str:
+    """List recently visited views in a workspace."""
+    with _client() as client:
+        return compact(client.list_recent_views(workspace_id))
+
+
+@mcp.tool(name="appflowy_list_favorite_views", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_list_favorite_views(workspace_id: str) -> str:
+    """List favorite views in a workspace."""
+    with _client() as client:
+        return compact(client.list_favorite_views(workspace_id))
+
+
+@mcp.tool(name="appflowy_list_trash_views", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_list_trash_views(workspace_id: str) -> str:
+    """List views currently in workspace trash."""
+    with _client() as client:
+        return compact(client.list_trash_views(workspace_id))
 
 
 @mcp.tool(name="appflowy_list_databases", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
@@ -78,6 +120,31 @@ def appflowy_list_updated_database_rows(
                 workspace_id,
                 database_id,
                 after=after,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_search_documents", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_search_documents(
+    workspace_id: str,
+    query: str,
+    limit: int | None = None,
+    preview_size: int | None = None,
+    score: float | None = None,
+) -> str:
+    """Search indexed documents in a workspace.
+
+    This calls AppFlowy's read-only GET /api/search/{workspace_id}
+    endpoint. It does not call the AI summary endpoint.
+    """
+    with _client() as client:
+        return compact(
+            client.search_documents(
+                workspace_id,
+                query,
+                limit=limit,
+                preview_size=preview_size,
+                score=score,
             )
         )
 

@@ -102,6 +102,30 @@ def test_cli_row_orders(monkeypatch, capsys):
     assert parsed[0]["row_orders"] == ["row_aaa", "row_bbb"]
 
 
+def test_cli_navigation_lists(monkeypatch, capsys):
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
+        return httpx.Response(
+            200, json={"data": [{"view_id": request.url.path.rsplit("/", 1)[-1]}]}
+        )
+
+    _patch_client(monkeypatch, handler)
+
+    assert main(["recent", "--workspace-id", "ws_001"]) == 0
+    assert json.loads(capsys.readouterr().out) == [{"view_id": "recent"}]
+    assert main(["favorites", "--workspace-id", "ws_001"]) == 0
+    assert json.loads(capsys.readouterr().out) == [{"view_id": "favorite"}]
+    assert main(["trash", "--workspace-id", "ws_001"]) == 0
+    assert json.loads(capsys.readouterr().out) == [{"view_id": "trash"}]
+    assert seen == [
+        "/api/workspace/ws_001/recent",
+        "/api/workspace/ws_001/favorite",
+        "/api/workspace/ws_001/trash",
+    ]
+
+
 def test_cli_updated_rows(monkeypatch, capsys):
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/workspace/ws_001/database/db_001/row/updated"
@@ -126,6 +150,61 @@ def test_cli_updated_rows(monkeypatch, capsys):
     )
     parsed = json.loads(capsys.readouterr().out)
     assert parsed == [{"row_id": "row_aaa"}]
+
+
+def test_cli_search(monkeypatch, capsys):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/search/ws_001"
+        assert request.url.params["query"] == "roadmap"
+        assert request.url.params["limit"] == "3"
+        assert request.url.params["preview_size"] == "80"
+        assert request.url.params["score"] == "0.3"
+        return httpx.Response(200, json={"data": [{"object_id": "page_aaa"}]})
+
+    _patch_client(monkeypatch, handler)
+
+    assert (
+        main(
+            [
+                "search",
+                "--workspace-id",
+                "ws_001",
+                "--query",
+                "roadmap",
+                "--limit",
+                "3",
+                "--preview-size",
+                "80",
+                "--score",
+                "0.3",
+            ]
+        )
+        == 0
+    )
+    parsed = json.loads(capsys.readouterr().out)
+    assert parsed == [{"object_id": "page_aaa"}]
+
+
+def test_cli_workspace_readonly_commands(monkeypatch, capsys):
+    responses = {
+        "/api/workspace/ws_001/settings": {"data": {"workspace_id": "ws_001", "name": "Demo"}},
+        "/api/workspace/ws_001/member": {"data": [{"email": "demo@example.test"}]},
+        "/api/workspace/ws_001/usage": {"data": {"storage_bytes": 2048}},
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=responses[request.url.path])
+
+    _patch_client(monkeypatch, handler)
+
+    assert main(["workspace-settings", "--workspace-id", "ws_001"]) == 0
+    assert json.loads(capsys.readouterr().out) == {"workspace_id": "ws_001", "name": "Demo"}
+
+    assert main(["workspace-members", "--workspace-id", "ws_001"]) == 0
+    assert json.loads(capsys.readouterr().out) == [{"email": "demo@example.test"}]
+
+    assert main(["workspace-usage", "--workspace-id", "ws_001"]) == 0
+    assert json.loads(capsys.readouterr().out) == {"storage_bytes": 2048}
 
 
 def test_cli_blob_diff(monkeypatch, capsys):

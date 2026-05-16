@@ -23,6 +23,46 @@ def test_list_workspaces_uses_bearer(make_client):
     assert seen[0].headers["authorization"] == "Bearer test-token"
 
 
+def test_workspace_settings_uses_settings_route(make_client):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/workspace/ws_demo_001/settings"
+        return json_response({"data": {"workspace_id": "ws_demo_001", "name": "Demo"}})
+
+    client = make_client(handler)
+
+    assert client.get_workspace_settings("ws_demo_001") == {
+        "workspace_id": "ws_demo_001",
+        "name": "Demo",
+    }
+
+
+def test_workspace_members_uses_member_route(make_client):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/workspace/ws_demo_001/member"
+        return json_response(
+            {"data": {"members": [{"email": "demo@example.test", "role": "owner"}]}}
+        )
+
+    client = make_client(handler)
+
+    assert client.list_workspace_members("ws_demo_001") == [
+        {"email": "demo@example.test", "role": "owner"}
+    ]
+
+
+def test_workspace_usage_uses_usage_route(make_client):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/workspace/ws_demo_001/usage"
+        return json_response({"data": {"member_count": 1, "storage_bytes": 1024}})
+
+    client = make_client(handler)
+
+    assert client.get_workspace_usage("ws_demo_001") == {
+        "member_count": 1,
+        "storage_bytes": 1024,
+    }
+
+
 def test_get_folder_passes_depth_and_root(make_client):
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/workspace/ws_demo_001/folder"
@@ -35,6 +75,25 @@ def test_get_folder_passes_depth_and_root(make_client):
         client.get_folder("ws_demo_001", depth=2, root_view_id="view_demo_001")["view_id"]
         == "view_demo_001"
     )
+
+
+def test_navigation_view_lists_use_workspace_routes(make_client):
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
+        return json_response({"data": [{"view_id": request.url.path.rsplit("/", 1)[-1]}]})
+
+    client = make_client(handler)
+
+    assert client.list_recent_views("ws") == [{"view_id": "recent"}]
+    assert client.list_favorite_views("ws") == [{"view_id": "favorite"}]
+    assert client.list_trash_views("ws") == [{"view_id": "trash"}]
+    assert seen == [
+        "/api/workspace/ws/recent",
+        "/api/workspace/ws/favorite",
+        "/api/workspace/ws/trash",
+    ]
 
 
 def test_row_details_joins_ids(make_client):
@@ -70,6 +129,57 @@ def test_list_updated_database_rows_can_use_server_default(make_client):
     client = make_client(handler)
 
     assert client.list_updated_database_rows("ws", "db") == []
+
+
+def test_search_documents_passes_stable_query_params(make_client):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/search/ws"
+        assert request.url.params["query"] == "roadmap"
+        assert request.url.params["limit"] == "5"
+        assert request.url.params["preview_size"] == "120"
+        assert request.url.params["score"] == "0.4"
+        return json_response(
+            {
+                "data": [
+                    {
+                        "object_id": "page1",
+                        "workspace_id": "ws",
+                        "score": 0.72,
+                        "content_type": 0,
+                        "content": "full indexed content",
+                        "preview": "indexed content",
+                        "created_by": "Cosmin",
+                        "created_at": "2026-05-16T10:00:00Z",
+                    }
+                ]
+            }
+        )
+
+    client = make_client(handler)
+
+    result = client.search_documents(
+        "ws",
+        "roadmap",
+        limit=5,
+        preview_size=120,
+        score=0.4,
+    )
+
+    assert result[0]["object_id"] == "page1"
+
+
+def test_search_documents_can_use_server_defaults(make_client):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/search/ws"
+        assert request.url.params["query"] == "roadmap"
+        assert "limit" not in request.url.params
+        assert "preview_size" not in request.url.params
+        assert "score" not in request.url.params
+        return json_response({"data": []})
+
+    client = make_client(handler)
+
+    assert client.search_documents("ws", "roadmap") == []
 
 
 def test_auth_error_is_typed(make_client):

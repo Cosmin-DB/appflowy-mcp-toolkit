@@ -23,10 +23,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub.add_parser("workspaces")
 
+    workspace_settings = sub.add_parser("workspace-settings")
+    workspace_settings.add_argument("--workspace-id", required=True)
+
+    workspace_members = sub.add_parser("workspace-members")
+    workspace_members.add_argument("--workspace-id", required=True)
+
+    workspace_usage = sub.add_parser("workspace-usage")
+    workspace_usage.add_argument("--workspace-id", required=True)
+
     folder = sub.add_parser("folder")
     folder.add_argument("--workspace-id", required=True)
     folder.add_argument("--depth", type=int)
     folder.add_argument("--root-view-id")
+
+    recent = sub.add_parser("recent")
+    recent.add_argument("--workspace-id", required=True)
+
+    favorites = sub.add_parser("favorites")
+    favorites.add_argument("--workspace-id", required=True)
+
+    trash = sub.add_parser("trash")
+    trash.add_argument("--workspace-id", required=True)
 
     databases = sub.add_parser("databases")
     databases.add_argument("--workspace-id", required=True)
@@ -45,6 +63,17 @@ def build_parser() -> argparse.ArgumentParser:
     updated_rows.add_argument(
         "--after",
         help="Optional RFC3339 timestamp. Defaults server-side to about one hour ago.",
+    )
+
+    search = sub.add_parser("search")
+    search.add_argument("--workspace-id", required=True)
+    search.add_argument("--query", required=True)
+    search.add_argument("--limit", type=int)
+    search.add_argument("--preview-size", type=int)
+    search.add_argument(
+        "--score",
+        type=float,
+        help="Optional minimum relevance score. Defaults server-side to 0.2.",
     )
 
     details = sub.add_parser("row-details")
@@ -233,10 +262,22 @@ def main(argv: Sequence[str] | None = None) -> int:
             result: Any = client.health_check()
         elif args.command == "workspaces":
             result = client.list_workspaces(include_member_count=True, include_role=True)
+        elif args.command == "workspace-settings":
+            result = client.get_workspace_settings(args.workspace_id)
+        elif args.command == "workspace-members":
+            result = client.list_workspace_members(args.workspace_id)
+        elif args.command == "workspace-usage":
+            result = client.get_workspace_usage(args.workspace_id)
         elif args.command == "folder":
             result = client.get_folder(
                 args.workspace_id, depth=args.depth, root_view_id=args.root_view_id
             )
+        elif args.command == "recent":
+            result = client.list_recent_views(args.workspace_id)
+        elif args.command == "favorites":
+            result = client.list_favorite_views(args.workspace_id)
+        elif args.command == "trash":
+            result = client.list_trash_views(args.workspace_id)
         elif args.command == "databases":
             result = client.list_databases(args.workspace_id)
         elif args.command == "fields":
@@ -248,6 +289,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.workspace_id,
                 args.database_id,
                 after=args.after,
+            )
+        elif args.command == "search":
+            result = client.search_documents(
+                args.workspace_id,
+                args.query,
+                limit=args.limit,
+                preview_size=args.preview_size,
+                score=args.score,
             )
         elif args.command == "row-details":
             ids = [part.strip() for part in args.ids.split(",") if part.strip()]

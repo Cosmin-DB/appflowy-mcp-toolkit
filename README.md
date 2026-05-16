@@ -36,11 +36,18 @@ APPFLOWY_REFRESH_TOKEN=...
 appflowy-toolkit health
 appflowy-toolkit setup-check  # local Node/npm/Yjs helper diagnostics
 appflowy-toolkit workspaces
+appflowy-toolkit workspace-settings --workspace-id <workspace_id>
+appflowy-toolkit workspace-members --workspace-id <workspace_id>
+appflowy-toolkit workspace-usage --workspace-id <workspace_id>
 appflowy-toolkit folder --workspace-id <workspace_id> --depth 2
+appflowy-toolkit recent --workspace-id <workspace_id>
+appflowy-toolkit favorites --workspace-id <workspace_id>
+appflowy-toolkit trash --workspace-id <workspace_id>
 appflowy-toolkit databases --workspace-id <workspace_id>
 appflowy-toolkit fields --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit rows --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit updated-rows --workspace-id <workspace_id> --database-id <database_id> --after 2026-05-16T10:00:00Z
+appflowy-toolkit search --workspace-id <workspace_id> --query "roadmap" --limit 5
 appflowy-toolkit row-details --workspace-id <workspace_id> --database-id <database_id> --ids <row_id>
 appflowy-toolkit collab-json --workspace-id <workspace_id> --object-id <database_id> --collab-type Database
 appflowy-toolkit row-orders --workspace-id <workspace_id> --database-id <database_id>
@@ -69,11 +76,18 @@ Read-only tools:
 
 - `appflowy_health_check`
 - `appflowy_list_workspaces`
+- `appflowy_get_workspace_settings`
+- `appflowy_list_workspace_members`
+- `appflowy_get_workspace_usage`
 - `appflowy_get_folder`
+- `appflowy_list_recent_views`
+- `appflowy_list_favorite_views`
+- `appflowy_list_trash_views`
 - `appflowy_list_databases`
 - `appflowy_get_database_schema`
 - `appflowy_list_database_row_ids`
 - `appflowy_list_updated_database_rows`
+- `appflowy_search_documents`
 - `appflowy_get_database_rows`
 - `appflowy_list_select_options`
 - `appflowy_get_collab_json`
