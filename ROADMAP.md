@@ -83,6 +83,8 @@ MCP-side task-board contract:
 Then add the Docker/self-hosted phase: compose file, test env, seed user/workspace,
 healthcheck, destructive tests, and teardown/reset.
 
+Detailed Docker/self-hosted testing plan: [docs/self-hosted-test-plan.md](docs/self-hosted-test-plan.md).
+
 ### Deferred
 
 - `/api/v1/workspace/get_folder`: live-tested against `beta.appflowy.cloud` and returned

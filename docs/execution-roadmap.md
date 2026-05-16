@@ -223,3 +223,5 @@ against the official instance.
 After this checklist is done, start the self-hosted test rig as its own phase:
 `docker/appflowy-test/` or `tests/docker/`, with compose, env example, seed script,
 healthcheck/wait script, destructive tests, and teardown/reset instructions.
+
+Detailed plan: `docs/self-hosted-test-plan.md`.
