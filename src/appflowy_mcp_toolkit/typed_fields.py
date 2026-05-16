@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, time
@@ -267,7 +268,9 @@ def _build_collab_cell(field: Field, value: Any) -> Any:
         case FieldType.MULTI_SELECT:
             if isinstance(value, str) or not isinstance(value, Sequence):
                 raise TypedFieldError(f"Field {field.name!r} expects a list of option names or ids")
-            return [field.option_by_name_or_id(str(item)).id for item in value]
+            return ",".join(field.option_by_name_or_id(str(item)).id for item in value)
+        case FieldType.CHECKLIST:
+            return json.dumps(_build_checklist(field, value), separators=(",", ":"))
         case _:
             return _build_cell(field, value)
 

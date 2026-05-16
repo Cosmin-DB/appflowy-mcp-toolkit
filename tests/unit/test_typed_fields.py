@@ -138,9 +138,26 @@ def test_build_collab_cell_updates_uses_field_ids_and_select_option_ids() -> Non
             "data": "Ship release notes",
         },
         "status_id": {"field_name": "Status", "field_type": 3, "data": "doing"},
-        "labels_id": {"field_name": "Labels", "field_type": 4, "data": ["bug", "release"]},
+        "labels_id": {"field_name": "Labels", "field_type": 4, "data": "bug,release"},
         "blocked_id": {"field_name": "Blocked", "field_type": 5, "data": True},
     }
+
+
+def test_build_collab_cell_updates_serializes_checklist_like_database_row_collab() -> None:
+    updates = build_collab_cell_updates(
+        FIELDS,
+        {
+            "Tasks": [
+                {"id": "write", "checked": True},
+                {"name": "Run tests", "selected": False},
+            ],
+        },
+    )
+
+    assert updates["tasks_id"]["data"] == (
+        '{"options":[{"id":"write","name":"Write docs"},'
+        '{"id":"test","name":"Run tests"}],"selected_option_ids":["write"]}'
+    )
 
 
 def test_build_cells_accepts_existing_checklist_shape() -> None:
