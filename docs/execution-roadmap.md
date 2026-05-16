@@ -5,13 +5,15 @@ task-board MCP without depending on large, ambiguous work packets.
 
 ## Current baseline
 
-The repo is clean at commit `09473ad` (`Stabilize experimental AppFlowy collab delete`).
+The repo has advanced past the cleanup baseline. Latest committed checkpoint before the
+current blob/diff work is `bf326c3` (`Record AppFlowy board create proof`).
 
 Implemented:
 
 - Read-only AppFlowy inspection through CLI and MCP.
 - Guarded REST row creation/upsert/status operations.
 - Read-only collab JSON and row-order inspection.
+- Read-only blob/diff inspection for AppFlowy Web row-document seed diagnostics.
 - Experimental Yjs row delete through client, CLI, and MCP.
 - Safety gates for writes and collab writes.
 
@@ -41,6 +43,8 @@ Each item is a separate task.
    - Verify it appears in AppFlowy Web Grid.
    - Verify whether it appears in Board without manual repair.
    - Record REST row data and collab row_orders evidence.
+   - If the board does not render it, inspect the browser's blob/diff seed path
+     before moving on to edit/move tooling.
 
 2. **Edit proof**
    - Edit title/description/status fields on one disposable row.

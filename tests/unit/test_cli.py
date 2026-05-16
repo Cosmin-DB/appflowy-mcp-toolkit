@@ -73,6 +73,21 @@ def test_cli_row_orders(monkeypatch, capsys):
     assert parsed[0]["row_orders"] == ["row_aaa", "row_bbb"]
 
 
+def test_cli_blob_diff(monkeypatch, capsys):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/workspace/ws_001/database/db_001/blob/diff"
+        assert request.content == b"\x10\x01"
+        return httpx.Response(200, content=b"\x30\x00")
+
+    _patch_client(monkeypatch, handler)
+
+    assert main(["blob-diff", "--workspace-id", "ws_001", "--database-id", "db_001"]) == 0
+    out = capsys.readouterr().out
+    parsed = json.loads(out)
+    assert parsed["status"] == 0
+    assert parsed["counts"]["rows"] == 0
+
+
 def test_cli_delete_row_dry_run(monkeypatch, capsys):
     """delete-row dry-run: patches the client method directly, no real subprocess."""
     from unittest.mock import patch as _patch

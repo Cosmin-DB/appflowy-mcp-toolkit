@@ -5,6 +5,7 @@ from typing import Any
 
 import httpx
 
+from .blob_diff import decode_database_blob_diff_response, encode_database_blob_diff_request
 from .config import AppFlowyConfig
 from .errors import AppFlowyError, AppFlowySchemaError, classify_http_error
 
@@ -67,6 +68,39 @@ class AppFlowyClient:
         if not isinstance(data, dict):
             raise AppFlowySchemaError("AppFlowy response was not a JSON object", payload=data)
         return data
+
+    def request_bytes(
+        self,
+        method: str,
+        path: str,
+        *,
+        content: bytes,
+        content_type: str = "application/octet-stream",
+        require_auth: bool = True,
+        _retry_refresh: bool = True,
+    ) -> bytes:
+        url = self._url(path)
+        headers = {"Accept": "application/octet-stream", "Content-Type": content_type}
+        if require_auth:
+            headers["Authorization"] = f"Bearer {self.config.require_token()}"
+        response = self._client.request(method, url, headers=headers, content=content)
+        if response.status_code == 401 and _retry_refresh and self.config.refresh_token:
+            self._refresh_access_token()
+            return self.request_bytes(
+                method,
+                path,
+                content=content,
+                content_type=content_type,
+                require_auth=require_auth,
+                _retry_refresh=False,
+            )
+        if response.status_code >= 400:
+            raise classify_http_error(
+                response.status_code,
+                self._safe_error_message(response),
+                retry_after=response.headers.get("retry-after"),
+            )
+        return response.content
 
     def list_workspaces(
         self, *, include_member_count: bool = False, include_role: bool = False
@@ -283,6 +317,33 @@ class AppFlowyClient:
         """
         collab = self.get_collab_json(workspace_id, database_id, collab_type="Database")
         return _extract_row_orders(collab)
+
+    def get_database_blob_diff_summary(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        version: int = 1,
+        max_known_rid: dict[str, int] | None = None,
+    ) -> dict[str, Any]:
+        """Fetch and summarise AppFlowy Web's database blob/diff response.
+
+        This is a read-only diagnostic path used by AppFlowy Web to seed row
+        documents before rendering database views. The summary omits raw binary
+        doc-state bytes but reports row ids, operation type, RID values and
+        doc-state sizes so callers can compare REST/collab visibility with the
+        browser's blob/diff visibility.
+        """
+        payload = encode_database_blob_diff_request(
+            version=version,
+            max_known_rid=max_known_rid,
+        )
+        response = self.request_bytes(
+            "POST",
+            f"/api/workspace/{workspace_id}/database/{database_id}/blob/diff",
+            content=payload,
+        )
+        return decode_database_blob_diff_response(response)
 
     # ------------------------------------------------------------------
     # Experimental: Yjs-based collab row delete (M6.3)

@@ -22,6 +22,7 @@ EXPECTED_READ_TOOLS = {
     "appflowy_list_select_options",
     "appflowy_get_collab_json",
     "appflowy_get_database_row_orders",
+    "appflowy_get_database_blob_diff",
 }
 
 EXPECTED_WRITE_TOOLS = {

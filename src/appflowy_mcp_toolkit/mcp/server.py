@@ -115,6 +115,28 @@ def appflowy_get_database_row_orders(workspace_id: str, database_id: str) -> str
         return compact(client.get_database_row_orders(workspace_id, database_id))
 
 
+@mcp.tool(name="appflowy_get_database_blob_diff", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_get_database_blob_diff(
+    workspace_id: str,
+    database_id: str,
+    version: int = 1,
+) -> str:
+    """Summarise AppFlowy Web's database blob/diff response.
+
+    This is a read-only diagnostic for the browser's row-document seed path.
+    It returns row ids, operation types, RID values and doc-state byte counts,
+    but never returns the raw binary document state.
+    """
+    with _client() as client:
+        return compact(
+            client.get_database_blob_diff_summary(
+                workspace_id,
+                database_id,
+                version=version,
+            )
+        )
+
+
 @mcp.tool(name="appflowy_create_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
 def appflowy_create_database_row(
     workspace_id: str,

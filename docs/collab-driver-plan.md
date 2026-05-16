@@ -112,6 +112,24 @@ Create proof result, 2026-05-16:
 - AppFlowy Web at `appflowy.com/app/<workspace>/<board-view>` still rendered all
   board columns with count `0` after reload and after clearing the browser's AppFlowy
   IndexedDB caches.
+- Follow-up `blob/diff` inspection confirmed the browser-facing binary endpoint returns
+  row document seeds for the disposable database: 19 creates and 3 deletes. The deleted
+  proof row appears as a delete operation in `blob/diff`, and the currently ordered rows
+  appear as create operations with non-empty doc-state bytes.
+- Despite that, the live browser IndexedDB cache still showed `rows = 0` and the board
+  columns still rendered `0`. This narrows the gap: REST/collab row data and blob/diff
+  row seeds exist, but AppFlowy Web is not applying/rendering them in this disposable
+  workspace page. The next slice should inspect the web-side preload/apply failure or
+  test against a browser-created page/database as a control.
+- Browser-created control: pressing Enter in the web board's new-card input created an
+  `Untitled` card that immediately appeared in the `To Do` board column. The new row id
+  was inserted at the front of all three `row_orders` arrays and appeared in the REST row
+  id list, but `row/detail` returned an empty list and `blob/diff` changed to `PENDING`
+  with `database blob diff awaiting 1 live row`. This proves the web create path has a
+  live/local row state that is not equivalent to the existing REST create response.
+- The browser-created control row was cleaned up through the integrated `delete-row
+  --execute` path. It disappeared from AppFlowy Web, all three `row_orders`, and the REST
+  row id list; explicit row-detail lookup was also absent for this specific row.
 - Cleaning up that proof row through the integrated `delete-row --execute` path removed it
   from all three view `row_orders` and from the REST row-list endpoint. Explicit
   `row/detail?ids=<row_id>` still returned the row object, so the implementation now reports
@@ -120,10 +138,10 @@ Create proof result, 2026-05-16:
   importantly, REST success plus database `row_orders` membership is insufficient
   evidence for a real AppFlowy Web board card.
 
-Next investigation slice: compare the browser's row-loading/sync path against the
-REST-created row state. Do not promote REST create into a high-level
-`appflowy_create_task` tool until AppFlowy Web renders the card or the limitation is
-explicitly accepted.
+Next investigation slice: map the exact web create transaction for a card and compare it
+with the REST-created row shape. Do not promote REST create into a high-level
+`appflowy_create_task` tool until MCP create can reproduce the web-visible local/live row
+semantics or the limitation is explicitly accepted.
 
 ### M6.5 MCP Integration (partial — experimental gate only)
 

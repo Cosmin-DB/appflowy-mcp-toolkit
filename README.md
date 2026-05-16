@@ -41,6 +41,7 @@ appflowy-toolkit rows --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit row-details --workspace-id <workspace_id> --database-id <database_id> --ids <row_id>
 appflowy-toolkit collab-json --workspace-id <workspace_id> --object-id <database_id> --collab-type Database
 appflowy-toolkit row-orders --workspace-id <workspace_id> --database-id <database_id>
+appflowy-toolkit blob-diff --workspace-id <workspace_id> --database-id <database_id>
 
 # Experimental: Yjs-based row delete (requires Node.js 18+ and npm install in collab/)
 appflowy-toolkit delete-row --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id>
@@ -65,6 +66,7 @@ Initial tools are read-only:
 - `appflowy_list_select_options`
 - `appflowy_get_collab_json`
 - `appflowy_get_database_row_orders`
+- `appflowy_get_database_blob_diff`
 
 Write tools exist for controlled testing, but dry-run by default and require
 `APPFLOWY_ALLOW_WRITES=true` for real mutations:
@@ -89,6 +91,12 @@ Current API limitation: public AppFlowy REST does not expose a confirmed row-del
 endpoint. Row/card deletion in AppFlowy Web is a collab/Yjs update. The `appflowy_delete_database_row`
 tool implements this path experimentally; it has been live-tested against a disposable
 workspace but is not yet recommended for production use.
+
+Board-rendering investigation: AppFlowy Web also calls a binary `blob/diff` endpoint
+to seed row documents before rendering database views. `blob-diff` /
+`appflowy_get_database_blob_diff` decodes that response into a safe summary (row ids,
+operation types, RID values and doc-state byte counts) without exposing raw row document
+state. This is diagnostic only; it does not mutate AppFlowy.
 
 ## Development
 

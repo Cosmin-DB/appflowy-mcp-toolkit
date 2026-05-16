@@ -77,6 +77,18 @@ def build_parser() -> argparse.ArgumentParser:
     row_orders.add_argument("--workspace-id", required=True)
     row_orders.add_argument("--database-id", required=True)
 
+    blob_diff = sub.add_parser(
+        "blob-diff",
+        description=(
+            "Read-only diagnostic for AppFlowy Web's database blob/diff endpoint. "
+            "Returns row ids, operation types and doc-state byte counts without "
+            "printing raw binary document state."
+        ),
+    )
+    blob_diff.add_argument("--workspace-id", required=True)
+    blob_diff.add_argument("--database-id", required=True)
+    blob_diff.add_argument("--version", type=int, default=1)
+
     managed = sub.add_parser("managed-task")
     managed.add_argument("--workspace-id", required=True)
     managed.add_argument("--database-id", required=True)
@@ -168,6 +180,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         elif args.command == "row-orders":
             result = client.get_database_row_orders(args.workspace_id, args.database_id)
+        elif args.command == "blob-diff":
+            result = client.get_database_blob_diff_summary(
+                args.workspace_id,
+                args.database_id,
+                version=args.version,
+            )
         elif args.command == "managed-task":
             result = client.upsert_managed_task(
                 args.workspace_id,
