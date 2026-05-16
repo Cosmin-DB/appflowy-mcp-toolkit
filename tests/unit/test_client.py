@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import httpx
 import pytest
 
@@ -63,6 +65,63 @@ def test_workspace_usage_uses_usage_route(make_client):
     }
 
 
+def test_file_storage_readonly_routes(make_client):
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
+        responses = {
+            "/api/file_storage/ws_demo_001/usage": {
+                "data": {"consumed_capacity": 2048},
+            },
+            "/api/file_storage/ws_demo_001/blobs": {
+                "data": [
+                    {
+                        "workspace_id": "ws_demo_001",
+                        "file_id": "file_a",
+                        "file_type": "image/png",
+                        "file_size": 123,
+                        "modified_at": "2026-05-16T10:00:00Z",
+                    }
+                ],
+            },
+            "/api/file_storage/ws_demo_001/metadata/file_a": {
+                "data": {"file_id": "file_a", "file_size": 123},
+            },
+            "/api/file_storage/ws_demo_001/v1/metadata/parent_a/file_a": {
+                "data": {"file_id": "file_a", "file_size": 123},
+            },
+        }
+        return json_response(responses[request.url.path])
+
+    client = make_client(handler)
+
+    assert client.get_file_storage_usage("ws_demo_001") == {"consumed_capacity": 2048}
+    assert client.list_file_storage_blobs("ws_demo_001") == [
+        {
+            "workspace_id": "ws_demo_001",
+            "file_id": "file_a",
+            "file_type": "image/png",
+            "file_size": 123,
+            "modified_at": "2026-05-16T10:00:00Z",
+        }
+    ]
+    assert client.get_file_metadata("ws_demo_001", "file_a") == {
+        "file_id": "file_a",
+        "file_size": 123,
+    }
+    assert client.get_file_metadata_v1("ws_demo_001", "parent_a", "file_a") == {
+        "file_id": "file_a",
+        "file_size": 123,
+    }
+    assert seen == [
+        "/api/file_storage/ws_demo_001/usage",
+        "/api/file_storage/ws_demo_001/blobs",
+        "/api/file_storage/ws_demo_001/metadata/file_a",
+        "/api/file_storage/ws_demo_001/v1/metadata/parent_a/file_a",
+    ]
+
+
 def test_get_folder_passes_depth_and_root(make_client):
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/workspace/ws_demo_001/folder"
@@ -93,6 +152,99 @@ def test_navigation_view_lists_use_workspace_routes(make_client):
         "/api/workspace/ws/recent",
         "/api/workspace/ws/favorite",
         "/api/workspace/ws/trash",
+    ]
+
+
+def test_page_view_read_uses_page_route(make_client):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/workspace/ws/page-view/view1"
+        return json_response({"data": {"view": {"id": "view1"}, "encoded_collab": []}})
+
+    client = make_client(handler)
+
+    assert client.get_page_view("ws", "view1")["view"]["id"] == "view1"
+
+
+def test_page_view_mutations_are_dry_run_by_default(make_client):
+    client = make_client(lambda _request: json_response({"data": {}}))
+
+    assert client.create_page_view(
+        "ws",
+        parent_view_id="parent",
+        layout=0,
+        name="Page",
+        page_data={"blocks": []},
+    ) == {
+        "dry_run": True,
+        "method": "POST",
+        "path": "/api/workspace/ws/page-view",
+        "json": {
+            "parent_view_id": "parent",
+            "layout": 0,
+            "name": "Page",
+            "page_data": {"blocks": []},
+        },
+    }
+    assert client.update_page_name("ws", "view1", name="Renamed")["path"] == (
+        "/api/workspace/ws/page-view/view1/update-name"
+    )
+    assert client.favorite_page_view(
+        "ws",
+        "view1",
+        is_favorite=True,
+        is_pinned=False,
+    )["json"] == {"is_favorite": True, "is_pinned": False}
+    assert client.move_page_view(
+        "ws",
+        "view1",
+        new_parent_view_id="parent2",
+    )["json"] == {"new_parent_view_id": "parent2"}
+    assert client.move_page_view_to_trash("ws", "view1")["path"] == (
+        "/api/workspace/ws/page-view/view1/move-to-trash"
+    )
+    assert client.restore_page_view_from_trash("ws", "view1")["path"] == (
+        "/api/workspace/ws/page-view/view1/restore-from-trash"
+    )
+    assert client.delete_page_view_from_trash("ws", "view1") == {
+        "dry_run": True,
+        "method": "DELETE",
+        "path": "/api/workspace/ws/trash/view1",
+    }
+
+
+def test_page_view_mutations_execute_when_enabled(make_client):
+    seen: list[tuple[str, str, dict | None]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content.decode()) if request.content else None
+        seen.append((request.method, request.url.path, payload))
+        return json_response({"data": {"ok": True}})
+
+    client = make_client(handler, allow_writes=True)
+
+    assert client.update_page_view(
+        "ws",
+        "view1",
+        name="Page",
+        icon={"ty": 0, "value": "x"},
+        is_locked=True,
+        extra={"k": "v"},
+        dry_run=False,
+    ) == {"data": {"ok": True}}
+    assert client.move_page_view_to_trash("ws", "view1", dry_run=False) == {"data": {"ok": True}}
+
+    assert seen == [
+        (
+            "PATCH",
+            "/api/workspace/ws/page-view/view1",
+            {
+                "name": "Page",
+                "icon": {"ty": 0, "value": "x"},
+                "is_locked": True,
+                "extra": {"k": "v"},
+            },
+        ),
+        ("POST", "/api/workspace/ws/page-view/view1/move-to-trash", {}),
     ]
 
 
@@ -129,6 +281,102 @@ def test_list_updated_database_rows_can_use_server_default(make_client):
     client = make_client(handler)
 
     assert client.list_updated_database_rows("ws", "db") == []
+
+
+def test_list_quick_notes_passes_filters(make_client):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert request.url.path == "/api/workspace/ws/quick-note"
+        assert request.url.params["search_term"] == "pple"
+        assert request.url.params["offset"] == "1"
+        assert request.url.params["limit"] == "2"
+        return json_response(
+            {
+                "data": {
+                    "quick_notes": [
+                        {
+                            "id": "note_001",
+                            "data": [{"type": "paragraph"}],
+                            "created_at": "2026-05-16T11:00:00Z",
+                            "last_updated_at": "2026-05-16T11:01:00Z",
+                        }
+                    ],
+                    "has_more": False,
+                }
+            }
+        )
+
+    client = make_client(handler)
+
+    result = client.list_quick_notes("ws", search_term="pple", offset=1, limit=2)
+
+    assert result["quick_notes"][0]["id"] == "note_001"
+    assert result["has_more"] is False
+
+
+def test_create_quick_note_dry_run_does_not_call_network(make_client):
+    def handler(_request: httpx.Request) -> httpx.Response:
+        raise AssertionError("dry-run should not call network")
+
+    client = make_client(handler)
+
+    result = client.create_quick_note("ws_demo_001", data=[{"type": "paragraph"}])
+
+    assert result == {
+        "dry_run": True,
+        "method": "POST",
+        "path": "/api/workspace/ws_demo_001/quick-note",
+        "json": {"data": [{"type": "paragraph"}]},
+    }
+
+
+def test_create_quick_note_requires_write_flag(make_client):
+    client = make_client(lambda _request: json_response({"data": {"id": "note_001"}}))
+
+    with pytest.raises(AppFlowyError, match="Writes are disabled"):
+        client.create_quick_note("ws_demo_001", data=None, dry_run=False)
+
+
+def test_quick_note_mutations_execute_when_enabled():
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if request.method == "POST":
+            assert json.loads(request.content) == {"data": None}
+            return json_response({"data": {"id": "note_001", "data": None}, "code": 0})
+        if request.method == "PUT":
+            assert json.loads(request.content) == {"data": [{"type": "paragraph"}]}
+            return json_response({"code": 0})
+        if request.method == "DELETE":
+            return json_response({"code": 0})
+        raise AssertionError(request.method)
+
+    config = AppFlowyConfig(
+        base_url="https://example.test",
+        access_token="test-token",
+        allow_writes=True,
+    )
+    from appflowy_mcp_toolkit.client import AppFlowyClient
+
+    client = AppFlowyClient(
+        config,
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    created = client.create_quick_note("ws", data=None, dry_run=False)
+    updated = client.update_quick_note(
+        "ws", "note_001", data=[{"type": "paragraph"}], dry_run=False
+    )
+    deleted = client.delete_quick_note("ws", "note_001", dry_run=False)
+
+    assert created["id"] == "note_001"
+    assert updated["code"] == 0
+    assert deleted["code"] == 0
+    assert [request.method for request in seen] == ["POST", "PUT", "DELETE"]
+    assert seen[0].url.path == "/api/workspace/ws/quick-note"
+    assert seen[1].url.path == "/api/workspace/ws/quick-note/note_001"
+    assert seen[2].url.path == "/api/workspace/ws/quick-note/note_001"
 
 
 def test_search_documents_passes_stable_query_params(make_client):

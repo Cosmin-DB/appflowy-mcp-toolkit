@@ -32,10 +32,88 @@ def build_parser() -> argparse.ArgumentParser:
     workspace_usage = sub.add_parser("workspace-usage")
     workspace_usage.add_argument("--workspace-id", required=True)
 
+    file_storage_usage = sub.add_parser("file-storage-usage")
+    file_storage_usage.add_argument("--workspace-id", required=True)
+
+    file_storage_blobs = sub.add_parser("file-storage-blobs")
+    file_storage_blobs.add_argument("--workspace-id", required=True)
+
+    file_metadata = sub.add_parser("file-metadata")
+    file_metadata.add_argument("--workspace-id", required=True)
+    file_metadata.add_argument("--file-id", required=True)
+
+    file_metadata_v1 = sub.add_parser("file-metadata-v1")
+    file_metadata_v1.add_argument("--workspace-id", required=True)
+    file_metadata_v1.add_argument("--parent-dir", required=True)
+    file_metadata_v1.add_argument("--file-id", required=True)
+
     folder = sub.add_parser("folder")
     folder.add_argument("--workspace-id", required=True)
     folder.add_argument("--depth", type=int)
     folder.add_argument("--root-view-id")
+
+    page = sub.add_parser("page-view")
+    page.add_argument("--workspace-id", required=True)
+    page.add_argument("--view-id", required=True)
+
+    create_page = sub.add_parser("create-page")
+    create_page.add_argument("--workspace-id", required=True)
+    create_page.add_argument("--parent-view-id", required=True)
+    create_page.add_argument("--layout", type=int, default=0, help="AppFlowy ViewLayout integer")
+    create_page.add_argument("--name")
+    create_page.add_argument("--page-data-json")
+    create_page.add_argument("--view-id")
+    create_page.add_argument("--collab-id")
+    create_page.add_argument("--execute", action="store_true")
+
+    update_page = sub.add_parser("update-page")
+    update_page.add_argument("--workspace-id", required=True)
+    update_page.add_argument("--view-id", required=True)
+    update_page.add_argument("--name", required=True)
+    update_page.add_argument("--icon-json")
+    update_page.add_argument("--is-locked", action=argparse.BooleanOptionalAction, default=None)
+    update_page.add_argument("--extra-json")
+    update_page.add_argument("--execute", action="store_true")
+
+    rename_page = sub.add_parser("rename-page")
+    rename_page.add_argument("--workspace-id", required=True)
+    rename_page.add_argument("--view-id", required=True)
+    rename_page.add_argument("--name", required=True)
+    rename_page.add_argument("--execute", action="store_true")
+
+    favorite_page = sub.add_parser("favorite-page")
+    favorite_page.add_argument("--workspace-id", required=True)
+    favorite_page.add_argument("--view-id", required=True)
+    favorite_page.add_argument(
+        "--is-favorite",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Use --no-is-favorite to remove the page from favorites.",
+    )
+    favorite_page.add_argument("--is-pinned", action=argparse.BooleanOptionalAction, default=False)
+    favorite_page.add_argument("--execute", action="store_true")
+
+    move_page = sub.add_parser("move-page")
+    move_page.add_argument("--workspace-id", required=True)
+    move_page.add_argument("--view-id", required=True)
+    move_page.add_argument("--new-parent-view-id", required=True)
+    move_page.add_argument("--prev-view-id")
+    move_page.add_argument("--execute", action="store_true")
+
+    trash_page = sub.add_parser("trash-page")
+    trash_page.add_argument("--workspace-id", required=True)
+    trash_page.add_argument("--view-id", required=True)
+    trash_page.add_argument("--execute", action="store_true")
+
+    restore_page = sub.add_parser("restore-page")
+    restore_page.add_argument("--workspace-id", required=True)
+    restore_page.add_argument("--view-id", required=True)
+    restore_page.add_argument("--execute", action="store_true")
+
+    delete_trash_page = sub.add_parser("delete-trash-page")
+    delete_trash_page.add_argument("--workspace-id", required=True)
+    delete_trash_page.add_argument("--view-id", required=True)
+    delete_trash_page.add_argument("--execute", action="store_true")
 
     recent = sub.add_parser("recent")
     recent.add_argument("--workspace-id", required=True)
@@ -63,6 +141,37 @@ def build_parser() -> argparse.ArgumentParser:
     updated_rows.add_argument(
         "--after",
         help="Optional RFC3339 timestamp. Defaults server-side to about one hour ago.",
+    )
+
+    quick_notes = sub.add_parser("quick-notes")
+    quick_notes.add_argument("--workspace-id", required=True)
+    quick_notes.add_argument("--search-term")
+    quick_notes.add_argument("--offset", type=int)
+    quick_notes.add_argument("--limit", type=int)
+
+    create_quick_note = sub.add_parser("create-quick-note")
+    create_quick_note.add_argument("--workspace-id", required=True)
+    create_quick_note.add_argument(
+        "--data-json",
+        help="Quick-note JSON data. If omitted, AppFlowy receives data=null.",
+    )
+    create_quick_note.add_argument(
+        "--execute", action="store_true", help="Actually create it; default is dry-run"
+    )
+
+    update_quick_note = sub.add_parser("update-quick-note")
+    update_quick_note.add_argument("--workspace-id", required=True)
+    update_quick_note.add_argument("--quick-note-id", required=True)
+    update_quick_note.add_argument("--data-json", required=True)
+    update_quick_note.add_argument(
+        "--execute", action="store_true", help="Actually update it; default is dry-run"
+    )
+
+    delete_quick_note = sub.add_parser("delete-quick-note")
+    delete_quick_note.add_argument("--workspace-id", required=True)
+    delete_quick_note.add_argument("--quick-note-id", required=True)
+    delete_quick_note.add_argument(
+        "--execute", action="store_true", help="Actually delete it; default is dry-run"
     )
 
     search = sub.add_parser("search")
@@ -268,9 +377,85 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = client.list_workspace_members(args.workspace_id)
         elif args.command == "workspace-usage":
             result = client.get_workspace_usage(args.workspace_id)
+        elif args.command == "file-storage-usage":
+            result = client.get_file_storage_usage(args.workspace_id)
+        elif args.command == "file-storage-blobs":
+            result = client.list_file_storage_blobs(args.workspace_id)
+        elif args.command == "file-metadata":
+            result = client.get_file_metadata(args.workspace_id, args.file_id)
+        elif args.command == "file-metadata-v1":
+            result = client.get_file_metadata_v1(
+                args.workspace_id,
+                args.parent_dir,
+                args.file_id,
+            )
         elif args.command == "folder":
             result = client.get_folder(
                 args.workspace_id, depth=args.depth, root_view_id=args.root_view_id
+            )
+        elif args.command == "page-view":
+            result = client.get_page_view(args.workspace_id, args.view_id)
+        elif args.command == "create-page":
+            result = client.create_page_view(
+                args.workspace_id,
+                parent_view_id=args.parent_view_id,
+                layout=args.layout,
+                name=args.name,
+                page_data=json.loads(args.page_data_json) if args.page_data_json else None,
+                view_id=args.view_id,
+                collab_id=args.collab_id,
+                dry_run=not args.execute,
+            )
+        elif args.command == "update-page":
+            result = client.update_page_view(
+                args.workspace_id,
+                args.view_id,
+                name=args.name,
+                icon=json.loads(args.icon_json) if args.icon_json else None,
+                is_locked=args.is_locked,
+                extra=json.loads(args.extra_json) if args.extra_json else None,
+                dry_run=not args.execute,
+            )
+        elif args.command == "rename-page":
+            result = client.update_page_name(
+                args.workspace_id,
+                args.view_id,
+                name=args.name,
+                dry_run=not args.execute,
+            )
+        elif args.command == "favorite-page":
+            result = client.favorite_page_view(
+                args.workspace_id,
+                args.view_id,
+                is_favorite=args.is_favorite,
+                is_pinned=args.is_pinned,
+                dry_run=not args.execute,
+            )
+        elif args.command == "move-page":
+            result = client.move_page_view(
+                args.workspace_id,
+                args.view_id,
+                new_parent_view_id=args.new_parent_view_id,
+                prev_view_id=args.prev_view_id,
+                dry_run=not args.execute,
+            )
+        elif args.command == "trash-page":
+            result = client.move_page_view_to_trash(
+                args.workspace_id,
+                args.view_id,
+                dry_run=not args.execute,
+            )
+        elif args.command == "restore-page":
+            result = client.restore_page_view_from_trash(
+                args.workspace_id,
+                args.view_id,
+                dry_run=not args.execute,
+            )
+        elif args.command == "delete-trash-page":
+            result = client.delete_page_view_from_trash(
+                args.workspace_id,
+                args.view_id,
+                dry_run=not args.execute,
             )
         elif args.command == "recent":
             result = client.list_recent_views(args.workspace_id)
@@ -289,6 +474,32 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.workspace_id,
                 args.database_id,
                 after=args.after,
+            )
+        elif args.command == "quick-notes":
+            result = client.list_quick_notes(
+                args.workspace_id,
+                search_term=args.search_term,
+                offset=args.offset,
+                limit=args.limit,
+            )
+        elif args.command == "create-quick-note":
+            result = client.create_quick_note(
+                args.workspace_id,
+                data=json.loads(args.data_json) if args.data_json is not None else None,
+                dry_run=not args.execute,
+            )
+        elif args.command == "update-quick-note":
+            result = client.update_quick_note(
+                args.workspace_id,
+                args.quick_note_id,
+                data=json.loads(args.data_json),
+                dry_run=not args.execute,
+            )
+        elif args.command == "delete-quick-note":
+            result = client.delete_quick_note(
+                args.workspace_id,
+                args.quick_note_id,
+                dry_run=not args.execute,
             )
         elif args.command == "search":
             result = client.search_documents(

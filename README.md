@@ -39,14 +39,30 @@ appflowy-toolkit workspaces
 appflowy-toolkit workspace-settings --workspace-id <workspace_id>
 appflowy-toolkit workspace-members --workspace-id <workspace_id>
 appflowy-toolkit workspace-usage --workspace-id <workspace_id>
+appflowy-toolkit file-storage-usage --workspace-id <workspace_id>
+appflowy-toolkit file-storage-blobs --workspace-id <workspace_id>
+appflowy-toolkit file-metadata --workspace-id <workspace_id> --file-id <file_id>
+appflowy-toolkit file-metadata-v1 --workspace-id <workspace_id> --parent-dir <parent_dir> --file-id <file_id>
 appflowy-toolkit folder --workspace-id <workspace_id> --depth 2
 appflowy-toolkit recent --workspace-id <workspace_id>
 appflowy-toolkit favorites --workspace-id <workspace_id>
 appflowy-toolkit trash --workspace-id <workspace_id>
+appflowy-toolkit page-view --workspace-id <workspace_id> --view-id <view_id>
+appflowy-toolkit create-page --workspace-id <workspace_id> --parent-view-id <parent_view_id> --name "New page"
+appflowy-toolkit rename-page --workspace-id <workspace_id> --view-id <view_id> --name "Renamed page"
+appflowy-toolkit favorite-page --workspace-id <workspace_id> --view-id <view_id>
+appflowy-toolkit move-page --workspace-id <workspace_id> --view-id <view_id> --new-parent-view-id <parent_view_id>
+appflowy-toolkit trash-page --workspace-id <workspace_id> --view-id <view_id>
+appflowy-toolkit restore-page --workspace-id <workspace_id> --view-id <view_id>
+appflowy-toolkit delete-trash-page --workspace-id <workspace_id> --view-id <view_id>
 appflowy-toolkit databases --workspace-id <workspace_id>
 appflowy-toolkit fields --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit rows --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit updated-rows --workspace-id <workspace_id> --database-id <database_id> --after 2026-05-16T10:00:00Z
+appflowy-toolkit quick-notes --workspace-id <workspace_id> --search-term "apple" --limit 10
+appflowy-toolkit create-quick-note --workspace-id <workspace_id> --data-json '[{"type":"paragraph","delta":{"insert":"Note"}}]'
+appflowy-toolkit update-quick-note --workspace-id <workspace_id> --quick-note-id <quick_note_id> --data-json '[{"type":"paragraph","delta":{"insert":"Updated"}}]'
+appflowy-toolkit delete-quick-note --workspace-id <workspace_id> --quick-note-id <quick_note_id>
 appflowy-toolkit search --workspace-id <workspace_id> --query "roadmap" --limit 5
 appflowy-toolkit row-details --workspace-id <workspace_id> --database-id <database_id> --ids <row_id>
 appflowy-toolkit collab-json --workspace-id <workspace_id> --object-id <database_id> --collab-type Database
@@ -79,14 +95,20 @@ Read-only tools:
 - `appflowy_get_workspace_settings`
 - `appflowy_list_workspace_members`
 - `appflowy_get_workspace_usage`
+- `appflowy_get_file_storage_usage`
+- `appflowy_list_file_storage_blobs`
+- `appflowy_get_file_metadata`
+- `appflowy_get_file_metadata_v1`
 - `appflowy_get_folder`
 - `appflowy_list_recent_views`
 - `appflowy_list_favorite_views`
 - `appflowy_list_trash_views`
+- `appflowy_get_page_view`
 - `appflowy_list_databases`
 - `appflowy_get_database_schema`
 - `appflowy_list_database_row_ids`
 - `appflowy_list_updated_database_rows`
+- `appflowy_list_quick_notes`
 - `appflowy_search_documents`
 - `appflowy_get_database_rows`
 - `appflowy_list_select_options`
@@ -101,10 +123,21 @@ Write tools exist for controlled testing, but dry-run by default and require
 
 - `appflowy_create_database_row`
 - `appflowy_create_verified_database_row`
+- `appflowy_create_page_view`
+- `appflowy_update_page_view`
+- `appflowy_rename_page_view`
+- `appflowy_favorite_page_view`
+- `appflowy_move_page_view`
+- `appflowy_trash_page_view`
+- `appflowy_restore_page_view`
+- `appflowy_delete_trashed_page_view`
 - `appflowy_create_task`
 - `appflowy_update_task`
 - `appflowy_move_task`
 - `appflowy_delete_task`
+- `appflowy_create_quick_note`
+- `appflowy_update_quick_note`
+- `appflowy_delete_quick_note`
 - `appflowy_upsert_database_row`
 - `appflowy_upsert_managed_task`
 - `appflowy_upsert_verified_managed_task`
@@ -138,6 +171,15 @@ to seed row documents before rendering database views. `blob-diff` /
 `appflowy_get_database_blob_diff` decodes that response into a safe summary (row ids,
 operation types, RID values and doc-state byte counts) without exposing raw row document
 state. This is diagnostic only; it does not mutate AppFlowy.
+
+File storage coverage is metadata-only for now. The toolkit exposes read-only usage,
+blob metadata listing, and v0/v1 metadata lookup routes:
+`GET /api/file_storage/{workspace_id}/usage`,
+`GET /api/file_storage/{workspace_id}/blobs`,
+`GET /api/file_storage/{workspace_id}/metadata/{file_id}`, and
+`GET /api/file_storage/{workspace_id}/v1/metadata/{parent_dir}/{file_id}`. Upload,
+delete, and raw blob download endpoints are intentionally not implemented in this
+slice.
 
 Known AppFlowy Web limitation: Board rendering can be stale even when a row is already
 present in REST and collab state. In live AppFlowy official testing, refreshing Board

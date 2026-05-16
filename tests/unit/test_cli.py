@@ -126,6 +126,58 @@ def test_cli_navigation_lists(monkeypatch, capsys):
     ]
 
 
+def test_cli_page_view_commands_dry_run(monkeypatch, capsys):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/workspace/ws_001/page-view/view_001"
+        return httpx.Response(200, json={"data": {"view": {"id": "view_001"}}})
+
+    _patch_client(monkeypatch, handler)
+
+    assert main(["page-view", "--workspace-id", "ws_001", "--view-id", "view_001"]) == 0
+    assert json.loads(capsys.readouterr().out)["view"]["id"] == "view_001"
+
+    assert (
+        main(
+            [
+                "create-page",
+                "--workspace-id",
+                "ws_001",
+                "--parent-view-id",
+                "parent",
+                "--layout",
+                "0",
+                "--name",
+                "Page",
+                "--page-data-json",
+                "{}",
+            ]
+        )
+        == 0
+    )
+    created = json.loads(capsys.readouterr().out)
+    assert created["dry_run"] is True
+    assert created["path"] == "/api/workspace/ws_001/page-view"
+    assert created["json"]["parent_view_id"] == "parent"
+
+    assert (
+        main(
+            [
+                "move-page",
+                "--workspace-id",
+                "ws_001",
+                "--view-id",
+                "view_001",
+                "--new-parent-view-id",
+                "parent2",
+            ]
+        )
+        == 0
+    )
+    moved = json.loads(capsys.readouterr().out)
+    assert moved["path"] == "/api/workspace/ws_001/page-view/view_001/move"
+    assert moved["json"] == {"new_parent_view_id": "parent2"}
+
+
 def test_cli_updated_rows(monkeypatch, capsys):
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/workspace/ws_001/database/db_001/row/updated"
@@ -150,6 +202,114 @@ def test_cli_updated_rows(monkeypatch, capsys):
     )
     parsed = json.loads(capsys.readouterr().out)
     assert parsed == [{"row_id": "row_aaa"}]
+
+
+def test_cli_quick_notes(monkeypatch, capsys):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/workspace/ws_001/quick-note"
+        assert request.url.params["search_term"] == "pple"
+        assert request.url.params["offset"] == "1"
+        assert request.url.params["limit"] == "2"
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "quick_notes": [{"id": "note_001", "data": []}],
+                    "has_more": False,
+                }
+            },
+        )
+
+    _patch_client(monkeypatch, handler)
+
+    assert (
+        main(
+            [
+                "quick-notes",
+                "--workspace-id",
+                "ws_001",
+                "--search-term",
+                "pple",
+                "--offset",
+                "1",
+                "--limit",
+                "2",
+            ]
+        )
+        == 0
+    )
+    parsed = json.loads(capsys.readouterr().out)
+    assert parsed["quick_notes"][0]["id"] == "note_001"
+    assert parsed["has_more"] is False
+
+
+def test_cli_quick_note_mutations_are_dry_run(monkeypatch, capsys):
+    from unittest.mock import patch as _patch
+
+    monkeypatch.setenv("APPFLOWY_BASE_URL", "https://example.test")
+    monkeypatch.setenv("APPFLOWY_ACCESS_TOKEN", "test-token")
+
+    with _patch(
+        "appflowy_mcp_toolkit.client.AppFlowyClient.create_quick_note",
+        return_value={"dry_run": True, "method": "POST"},
+    ) as mock_create:
+        rc = main(
+            [
+                "create-quick-note",
+                "--workspace-id",
+                "ws_001",
+                "--data-json",
+                '[{"type":"paragraph"}]',
+            ]
+        )
+    assert rc == 0
+    assert json.loads(capsys.readouterr().out)["dry_run"] is True
+    mock_create.assert_called_once_with(
+        "ws_001",
+        data=[{"type": "paragraph"}],
+        dry_run=True,
+    )
+
+    with _patch(
+        "appflowy_mcp_toolkit.client.AppFlowyClient.update_quick_note",
+        return_value={"dry_run": True, "method": "PUT"},
+    ) as mock_update:
+        rc = main(
+            [
+                "update-quick-note",
+                "--workspace-id",
+                "ws_001",
+                "--quick-note-id",
+                "note_001",
+                "--data-json",
+                '{"text":"updated"}',
+            ]
+        )
+    assert rc == 0
+    assert json.loads(capsys.readouterr().out)["dry_run"] is True
+    mock_update.assert_called_once_with(
+        "ws_001",
+        "note_001",
+        data={"text": "updated"},
+        dry_run=True,
+    )
+
+    with _patch(
+        "appflowy_mcp_toolkit.client.AppFlowyClient.delete_quick_note",
+        return_value={"dry_run": True, "method": "DELETE"},
+    ) as mock_delete:
+        rc = main(
+            [
+                "delete-quick-note",
+                "--workspace-id",
+                "ws_001",
+                "--quick-note-id",
+                "note_001",
+            ]
+        )
+    assert rc == 0
+    assert json.loads(capsys.readouterr().out)["dry_run"] is True
+    mock_delete.assert_called_once_with("ws_001", "note_001", dry_run=True)
 
 
 def test_cli_search(monkeypatch, capsys):
@@ -190,6 +350,14 @@ def test_cli_workspace_readonly_commands(monkeypatch, capsys):
         "/api/workspace/ws_001/settings": {"data": {"workspace_id": "ws_001", "name": "Demo"}},
         "/api/workspace/ws_001/member": {"data": [{"email": "demo@example.test"}]},
         "/api/workspace/ws_001/usage": {"data": {"storage_bytes": 2048}},
+        "/api/file_storage/ws_001/usage": {"data": {"consumed_capacity": 4096}},
+        "/api/file_storage/ws_001/blobs": {"data": [{"file_id": "file_a"}]},
+        "/api/file_storage/ws_001/metadata/file_a": {
+            "data": {"file_id": "file_a", "file_size": 123}
+        },
+        "/api/file_storage/ws_001/v1/metadata/parent_a/file_a": {
+            "data": {"file_id": "file_a", "file_size": 123}
+        },
     }
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -205,6 +373,31 @@ def test_cli_workspace_readonly_commands(monkeypatch, capsys):
 
     assert main(["workspace-usage", "--workspace-id", "ws_001"]) == 0
     assert json.loads(capsys.readouterr().out) == {"storage_bytes": 2048}
+
+    assert main(["file-storage-usage", "--workspace-id", "ws_001"]) == 0
+    assert json.loads(capsys.readouterr().out) == {"consumed_capacity": 4096}
+
+    assert main(["file-storage-blobs", "--workspace-id", "ws_001"]) == 0
+    assert json.loads(capsys.readouterr().out) == [{"file_id": "file_a"}]
+
+    assert main(["file-metadata", "--workspace-id", "ws_001", "--file-id", "file_a"]) == 0
+    assert json.loads(capsys.readouterr().out) == {"file_id": "file_a", "file_size": 123}
+
+    assert (
+        main(
+            [
+                "file-metadata-v1",
+                "--workspace-id",
+                "ws_001",
+                "--parent-dir",
+                "parent_a",
+                "--file-id",
+                "file_a",
+            ]
+        )
+        == 0
+    )
+    assert json.loads(capsys.readouterr().out) == {"file_id": "file_a", "file_size": 123}
 
 
 def test_cli_blob_diff(monkeypatch, capsys):

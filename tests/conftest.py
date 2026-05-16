@@ -17,10 +17,20 @@ def config() -> AppFlowyConfig:
 @pytest.fixture
 def make_client(
     config: AppFlowyConfig,
-) -> Callable[[Callable[[httpx.Request], httpx.Response]], AppFlowyClient]:
-    def factory(handler: Callable[[httpx.Request], httpx.Response]) -> AppFlowyClient:
+) -> Callable[[Callable[[httpx.Request], httpx.Response], bool], AppFlowyClient]:
+    def factory(
+        handler: Callable[[httpx.Request], httpx.Response],
+        allow_writes: bool = False,
+    ) -> AppFlowyClient:
+        test_config = AppFlowyConfig(
+            base_url=config.base_url,
+            access_token=config.access_token,
+            refresh_token=config.refresh_token,
+            timeout_seconds=config.timeout_seconds,
+            allow_writes=allow_writes,
+        )
         return AppFlowyClient(
-            config, http_client=httpx.Client(transport=httpx.MockTransport(handler))
+            test_config, http_client=httpx.Client(transport=httpx.MockTransport(handler))
         )
 
     return factory

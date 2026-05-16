@@ -130,6 +130,39 @@ class AppFlowyClient:
             raise AppFlowySchemaError("Expected AppFlowy workspace usage response", payload=data)
         return usage
 
+    def get_file_storage_usage(self, workspace_id: str) -> dict[str, Any]:
+        data = self.request("GET", f"/api/file_storage/{workspace_id}/usage")
+        usage = self._extract_data(data)
+        if not isinstance(usage, dict):
+            raise AppFlowySchemaError("Expected AppFlowy file-storage usage response", payload=data)
+        return usage
+
+    def list_file_storage_blobs(self, workspace_id: str) -> list[dict[str, Any]]:
+        data = self.request("GET", f"/api/file_storage/{workspace_id}/blobs")
+        return self._extract_list(data)
+
+    def get_file_metadata(self, workspace_id: str, file_id: str) -> dict[str, Any]:
+        data = self.request("GET", f"/api/file_storage/{workspace_id}/metadata/{file_id}")
+        metadata = self._extract_data(data)
+        if not isinstance(metadata, dict):
+            raise AppFlowySchemaError("Expected AppFlowy file metadata response", payload=data)
+        return metadata
+
+    def get_file_metadata_v1(
+        self,
+        workspace_id: str,
+        parent_dir: str,
+        file_id: str,
+    ) -> dict[str, Any]:
+        data = self.request(
+            "GET",
+            f"/api/file_storage/{workspace_id}/v1/metadata/{parent_dir}/{file_id}",
+        )
+        metadata = self._extract_data(data)
+        if not isinstance(metadata, dict):
+            raise AppFlowySchemaError("Expected AppFlowy v1 file metadata response", payload=data)
+        return metadata
+
     def create_workspace(self, name: str, *, dry_run: bool = True) -> dict[str, Any]:
         payload = {"workspace_name": name}
         if dry_run:
@@ -151,6 +184,155 @@ class AppFlowyClient:
             params["root_view_id"] = root_view_id
         data = self.request("GET", f"/api/workspace/{workspace_id}/folder", params=params or None)
         return self._extract_data(data)
+
+    def get_page_view(self, workspace_id: str, view_id: str) -> dict[str, Any]:
+        data = self.request("GET", f"/api/workspace/{workspace_id}/page-view/{view_id}")
+        page = self._extract_data(data)
+        if not isinstance(page, dict):
+            raise AppFlowySchemaError("Expected AppFlowy page-view response", payload=data)
+        return page
+
+    def create_page_view(
+        self,
+        workspace_id: str,
+        *,
+        parent_view_id: str,
+        layout: int = 0,
+        name: str | None = None,
+        page_data: dict[str, Any] | None = None,
+        view_id: str | None = None,
+        collab_id: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "parent_view_id": parent_view_id,
+            "layout": layout,
+        }
+        if name is not None:
+            payload["name"] = name
+        if page_data is not None:
+            payload["page_data"] = page_data
+        if view_id is not None:
+            payload["view_id"] = view_id
+        if collab_id is not None:
+            payload["collab_id"] = collab_id
+        path = f"/api/workspace/{workspace_id}/page-view"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("POST", path, json=payload)
+
+    def update_page_view(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        name: str,
+        icon: dict[str, Any] | None = None,
+        is_locked: bool | None = None,
+        extra: dict[str, Any] | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {"name": name}
+        if icon is not None:
+            payload["icon"] = icon
+        if is_locked is not None:
+            payload["is_locked"] = is_locked
+        if extra is not None:
+            payload["extra"] = extra
+        path = f"/api/workspace/{workspace_id}/page-view/{view_id}"
+        if dry_run:
+            return {"dry_run": True, "method": "PATCH", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("PATCH", path, json=payload)
+
+    def update_page_name(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        name: str,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload = {"name": name}
+        path = f"/api/workspace/{workspace_id}/page-view/{view_id}/update-name"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("POST", path, json=payload)
+
+    def favorite_page_view(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        is_favorite: bool,
+        is_pinned: bool = False,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload = {"is_favorite": is_favorite, "is_pinned": is_pinned}
+        path = f"/api/workspace/{workspace_id}/page-view/{view_id}/favorite"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("POST", path, json=payload)
+
+    def move_page_view(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        new_parent_view_id: str,
+        prev_view_id: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {"new_parent_view_id": new_parent_view_id}
+        if prev_view_id is not None:
+            payload["prev_view_id"] = prev_view_id
+        path = f"/api/workspace/{workspace_id}/page-view/{view_id}/move"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("POST", path, json=payload)
+
+    def move_page_view_to_trash(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        path = f"/api/workspace/{workspace_id}/page-view/{view_id}/move-to-trash"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": {}}
+        self._require_writes_enabled()
+        return self.request("POST", path, json={})
+
+    def restore_page_view_from_trash(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        path = f"/api/workspace/{workspace_id}/page-view/{view_id}/restore-from-trash"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": {}}
+        self._require_writes_enabled()
+        return self.request("POST", path, json={})
+
+    def delete_page_view_from_trash(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        path = f"/api/workspace/{workspace_id}/trash/{view_id}"
+        if dry_run:
+            return {"dry_run": True, "method": "DELETE", "path": path}
+        self._require_writes_enabled()
+        return self.request("DELETE", path)
 
     def list_recent_views(self, workspace_id: str) -> list[dict[str, Any]]:
         data = self.request("GET", f"/api/workspace/{workspace_id}/recent")
@@ -202,6 +384,77 @@ class AppFlowyClient:
             params=params,
         )
         return self._extract_list(data)
+
+    def list_quick_notes(
+        self,
+        workspace_id: str,
+        *,
+        search_term: str | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {}
+        if search_term is not None:
+            params["search_term"] = search_term
+        if offset is not None:
+            params["offset"] = offset
+        if limit is not None:
+            params["limit"] = limit
+        data = self.request(
+            "GET",
+            f"/api/workspace/{workspace_id}/quick-note",
+            params=params or None,
+        )
+        quick_notes = self._extract_data(data)
+        if not isinstance(quick_notes, dict):
+            raise AppFlowySchemaError("Expected AppFlowy quick notes response", payload=data)
+        return quick_notes
+
+    def create_quick_note(
+        self,
+        workspace_id: str,
+        *,
+        data: Any | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload = {"data": data}
+        path = f"/api/workspace/{workspace_id}/quick-note"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_writes_enabled()
+        response = self.request("POST", path, json=payload)
+        quick_note = self._extract_data(response)
+        if not isinstance(quick_note, dict):
+            raise AppFlowySchemaError("Expected AppFlowy quick note response", payload=response)
+        return quick_note
+
+    def update_quick_note(
+        self,
+        workspace_id: str,
+        quick_note_id: str,
+        *,
+        data: Any,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        payload = {"data": data}
+        path = f"/api/workspace/{workspace_id}/quick-note/{quick_note_id}"
+        if dry_run:
+            return {"dry_run": True, "method": "PUT", "path": path, "json": payload}
+        self._require_writes_enabled()
+        return self.request("PUT", path, json=payload)
+
+    def delete_quick_note(
+        self,
+        workspace_id: str,
+        quick_note_id: str,
+        *,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        path = f"/api/workspace/{workspace_id}/quick-note/{quick_note_id}"
+        if dry_run:
+            return {"dry_run": True, "method": "DELETE", "path": path}
+        self._require_writes_enabled()
+        return self.request("DELETE", path)
 
     def search_documents(
         self,
@@ -903,7 +1156,7 @@ class AppFlowyClient:
         if isinstance(payload, list):
             return [item for item in payload if isinstance(item, dict)]
         if isinstance(payload, dict):
-            for key in ("items", "rows", "databases", "workspaces", "members"):
+            for key in ("items", "rows", "databases", "workspaces", "members", "blobs"):
                 value = payload.get(key)
                 if isinstance(value, list):
                     return [item for item in value if isinstance(item, dict)]

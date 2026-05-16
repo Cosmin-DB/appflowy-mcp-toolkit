@@ -54,6 +54,34 @@ def appflowy_get_workspace_usage(workspace_id: str) -> str:
         return compact(client.get_workspace_usage(workspace_id))
 
 
+@mcp.tool(name="appflowy_get_file_storage_usage", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_get_file_storage_usage(workspace_id: str) -> str:
+    """Get read-only file-storage capacity usage for one workspace."""
+    with _client() as client:
+        return compact(client.get_file_storage_usage(workspace_id))
+
+
+@mcp.tool(name="appflowy_list_file_storage_blobs", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_list_file_storage_blobs(workspace_id: str) -> str:
+    """List file-storage blob metadata for one workspace without fetching blob bytes."""
+    with _client() as client:
+        return compact(client.list_file_storage_blobs(workspace_id))
+
+
+@mcp.tool(name="appflowy_get_file_metadata", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_get_file_metadata(workspace_id: str, file_id: str) -> str:
+    """Get v0 file metadata by file id without downloading blob content."""
+    with _client() as client:
+        return compact(client.get_file_metadata(workspace_id, file_id))
+
+
+@mcp.tool(name="appflowy_get_file_metadata_v1", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_get_file_metadata_v1(workspace_id: str, parent_dir: str, file_id: str) -> str:
+    """Get v1 file metadata by parent directory and file id without blob content."""
+    with _client() as client:
+        return compact(client.get_file_metadata_v1(workspace_id, parent_dir, file_id))
+
+
 @mcp.tool(name="appflowy_get_folder", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
 def appflowy_get_folder(
     workspace_id: str,
@@ -63,6 +91,144 @@ def appflowy_get_folder(
     """Get a workspace folder/view tree or subtree."""
     with _client() as client:
         return compact(client.get_folder(workspace_id, depth=depth, root_view_id=root_view_id))
+
+
+@mcp.tool(name="appflowy_get_page_view", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_get_page_view(workspace_id: str, view_id: str) -> str:
+    """Get a page/view collab payload by view id."""
+    with _client() as client:
+        return compact(client.get_page_view(workspace_id, view_id))
+
+
+@mcp.tool(name="appflowy_create_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_create_page_view(
+    workspace_id: str,
+    parent_view_id: str,
+    layout: int = 0,
+    name: str | None = None,
+    page_data: dict | None = None,
+    view_id: str | None = None,
+    collab_id: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Create an AppFlowy page view. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.create_page_view(
+                workspace_id,
+                parent_view_id=parent_view_id,
+                layout=layout,
+                name=name,
+                page_data=page_data,
+                view_id=view_id,
+                collab_id=collab_id,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_update_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_update_page_view(
+    workspace_id: str,
+    view_id: str,
+    name: str,
+    icon: dict | None = None,
+    is_locked: bool | None = None,
+    extra: dict | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Update page metadata. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.update_page_view(
+                workspace_id,
+                view_id,
+                name=name,
+                icon=icon,
+                is_locked=is_locked,
+                extra=extra,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_rename_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_rename_page_view(
+    workspace_id: str,
+    view_id: str,
+    name: str,
+    dry_run: bool = True,
+) -> str:
+    """Rename a page view. Dry-run by default."""
+    with _client() as client:
+        return compact(client.update_page_name(workspace_id, view_id, name=name, dry_run=dry_run))
+
+
+@mcp.tool(name="appflowy_favorite_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_favorite_page_view(
+    workspace_id: str,
+    view_id: str,
+    is_favorite: bool = True,
+    is_pinned: bool = False,
+    dry_run: bool = True,
+) -> str:
+    """Add/remove a page from favorites. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.favorite_page_view(
+                workspace_id,
+                view_id,
+                is_favorite=is_favorite,
+                is_pinned=is_pinned,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_move_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_move_page_view(
+    workspace_id: str,
+    view_id: str,
+    new_parent_view_id: str,
+    prev_view_id: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Move a page under a new parent. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.move_page_view(
+                workspace_id,
+                view_id,
+                new_parent_view_id=new_parent_view_id,
+                prev_view_id=prev_view_id,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_trash_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_trash_page_view(workspace_id: str, view_id: str, dry_run: bool = True) -> str:
+    """Move a page view to trash. Dry-run by default."""
+    with _client() as client:
+        return compact(client.move_page_view_to_trash(workspace_id, view_id, dry_run=dry_run))
+
+
+@mcp.tool(name="appflowy_restore_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_restore_page_view(workspace_id: str, view_id: str, dry_run: bool = True) -> str:
+    """Restore a page view from trash. Dry-run by default."""
+    with _client() as client:
+        return compact(client.restore_page_view_from_trash(workspace_id, view_id, dry_run=dry_run))
+
+
+@mcp.tool(name="appflowy_delete_trashed_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_delete_trashed_page_view(
+    workspace_id: str,
+    view_id: str,
+    dry_run: bool = True,
+) -> str:
+    """Permanently delete a trashed page view. Dry-run by default."""
+    with _client() as client:
+        return compact(client.delete_page_view_from_trash(workspace_id, view_id, dry_run=dry_run))
 
 
 @mcp.tool(name="appflowy_list_recent_views", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
@@ -122,6 +288,75 @@ def appflowy_list_updated_database_rows(
                 after=after,
             )
         )
+
+
+@mcp.tool(name="appflowy_list_quick_notes", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_list_quick_notes(
+    workspace_id: str,
+    search_term: str | None = None,
+    offset: int | None = None,
+    limit: int | None = None,
+) -> str:
+    """List quick notes in a workspace with optional search/pagination."""
+    with _client() as client:
+        return compact(
+            client.list_quick_notes(
+                workspace_id,
+                search_term=search_term,
+                offset=offset,
+                limit=limit,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_create_quick_note", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_create_quick_note(
+    workspace_id: str,
+    data: object | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Create a quick note.
+
+    Dry-run by default; real writes require APPFLOWY_ALLOW_WRITES=true.
+    """
+    with _client() as client:
+        return compact(client.create_quick_note(workspace_id, data=data, dry_run=dry_run))
+
+
+@mcp.tool(name="appflowy_update_quick_note", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_update_quick_note(
+    workspace_id: str,
+    quick_note_id: str,
+    data: object,
+    dry_run: bool = True,
+) -> str:
+    """Update a quick note's JSON data.
+
+    Dry-run by default; real writes require APPFLOWY_ALLOW_WRITES=true.
+    """
+    with _client() as client:
+        return compact(
+            client.update_quick_note(
+                workspace_id,
+                quick_note_id,
+                data=data,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_delete_quick_note", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_delete_quick_note(
+    workspace_id: str,
+    quick_note_id: str,
+    dry_run: bool = True,
+) -> str:
+    """Delete a quick note.
+
+    Dry-run by default; real writes require APPFLOWY_ALLOW_WRITES=true.
+    """
+    with _client() as client:
+        return compact(client.delete_quick_note(workspace_id, quick_note_id, dry_run=dry_run))
 
 
 @mcp.tool(name="appflowy_search_documents", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
