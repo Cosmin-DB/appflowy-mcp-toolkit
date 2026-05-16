@@ -57,10 +57,8 @@
 Current status: Yjs delete is integrated as an experimental tool (`appflowy_delete_database_row`)
 behind two explicit env gates (`APPFLOWY_ALLOW_WRITES` + `APPFLOWY_ALLOW_COLLAB_WRITES`)
 and a Node.js runtime requirement. Live-tested against a disposable workspace (M6.3).
-Board create/edit/move equivalence is not yet proven (M6.4 pending).
-
-Before adding more AppFlowy features, pause for stabilization: review the M6 diff,
-align docs, keep dependencies explicit, and commit a coherent experimental baseline.
+Board create/edit/move/delete data-plane lifecycle is covered by the opt-in live smoke.
+Browser Board rendering remains a separate AppFlowy Web cache/rendering concern.
 
 See [docs/collab-driver-plan.md](docs/collab-driver-plan.md).
 Execution plan: [docs/execution-roadmap.md](docs/execution-roadmap.md).
@@ -70,15 +68,15 @@ Execution plan: [docs/execution-roadmap.md](docs/execution-roadmap.md).
 Before building a self-hosted Docker rig for destructive testing, finish the current
 MCP-side task-board contract:
 
-- [ ] Freeze `task_key`/`pre_hash` as the public managed-task identity.
-- [ ] Add final task-facing tool names (`create_task`, `update_task`, `move_task`,
+- [x] Freeze `task_key`/`pre_hash` as the public managed-task identity.
+- [x] Add final task-facing tool names (`create_task`, `update_task`, `move_task`,
   `delete_task`, `list_tasks`) as safe wrappers around the verified managed-task/data-plane
   implementation.
-- [ ] Keep low-level row/collab tools as diagnostics, not the main public workflow.
-- [ ] Add one browser/UI acceptance skeleton for Grid/Board rendering, documenting the
+- [x] Keep low-level row/collab tools as diagnostics, not the main public workflow.
+- [x] Add one browser/UI acceptance skeleton for Grid/Board rendering, documenting the
   known AppFlowy Web Board refresh/cache bug separately from data-plane correctness.
-- [ ] Align README, DESIGN, ROADMAP and collab-driver docs with the verified live smoke.
-- [ ] Re-run unit gates and the official opt-in live smoke.
+- [x] Align README, DESIGN, ROADMAP and collab-driver docs with the verified live smoke.
+- [x] Re-run unit gates and the official opt-in live smoke.
 
 Then add the Docker/self-hosted phase: compose file, test env, seed user/workspace,
 healthcheck, destructive tests, and teardown/reset.

@@ -183,12 +183,12 @@ Do these MCP-side items before spending effort on a local AppFlowy Docker test r
 The goal is to avoid using Docker to discover problems we can already define and close
 against the official instance.
 
-1. **Freeze the task-board contract**
+1. **Freeze the task-board contract** — done
    - Decide the public task identity: `task_key` as the MCP-owned stable id.
    - Define required fields: `Description` and `Status` for the current board shape.
    - Document that `task_key` maps to AppFlowy `pre_hash` and returns/keeps a row id.
 
-2. **Expose final task tools, still behind safety gates**
+2. **Expose final task tools, still behind safety gates** — done
    - Add thin public aliases/wrappers for:
      - `appflowy_create_task`
      - `appflowy_update_task`
@@ -198,22 +198,22 @@ against the official instance.
    - Keep lower-level row/collab tools available as diagnostics.
    - Keep dry-run defaults and write/collab gates.
 
-3. **Complete one official-instance task lifecycle evidence note**
+3. **Complete one official-instance task lifecycle evidence note** — done
    - Record create/update/move/delete data-plane results from the live smoke.
    - Record what the AppFlowy Web UI does separately from data-plane verification.
    - Explicitly mark the known Board/Grid refresh bug as upstream UI behavior.
 
-4. **Add browser/UI acceptance skeleton**
+4. **Add browser/UI acceptance skeleton** — done
    - Add a documented manual or opt-in browser check for Grid/Board rendering.
    - Do not block task data-plane correctness on AppFlowy Web Board cache behavior.
 
-5. **Clean release-facing docs**
+5. **Clean release-facing docs** — done
    - README says what is stable, experimental, and known-limited.
    - DESIGN documents the task model and verification model.
    - ROADMAP no longer says M6.4 is pending if the data-plane lifecycle is already
      covered by live tests.
 
-6. **Run the current gates before starting Docker work**
+6. **Run the current gates before starting Docker work** — done
    - `uv run ruff format .`
    - `uv run ruff check .`
    - `uv run mypy src`

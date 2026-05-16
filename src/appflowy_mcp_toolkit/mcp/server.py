@@ -137,6 +137,17 @@ def appflowy_get_database_blob_diff(
         )
 
 
+@mcp.tool(name="appflowy_list_tasks", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_list_tasks(
+    workspace_id: str,
+    database_id: str,
+    with_doc: bool = False,
+) -> str:
+    """List task rows from one AppFlowy database."""
+    with _client() as client:
+        return compact(client.list_tasks(workspace_id, database_id, with_doc=with_doc))
+
+
 @mcp.tool(name="appflowy_verify_database_row", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
 def appflowy_verify_database_row(
     workspace_id: str,
@@ -158,6 +169,93 @@ def appflowy_verify_database_row(
                 include_blob_diff=include_blob_diff,
             )
         )
+
+
+@mcp.tool(name="appflowy_create_task", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_create_task(
+    workspace_id: str,
+    database_id: str,
+    task_key: str,
+    description: str,
+    status: str = "To Do",
+    document: str | None = None,
+    dry_run: bool = True,
+    include_blob_diff: bool = True,
+) -> str:
+    """Create a managed task with a stable task_key and post-write verification."""
+    with _client() as client:
+        return compact(
+            client.create_task(
+                workspace_id,
+                database_id,
+                task_key=task_key,
+                description=description,
+                status=status,
+                document=document,
+                dry_run=dry_run,
+                include_blob_diff=include_blob_diff,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_update_task", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_update_task(
+    workspace_id: str,
+    database_id: str,
+    task_key: str,
+    description: str | None = None,
+    status: str | None = None,
+    document: str | None = None,
+    dry_run: bool = True,
+    include_blob_diff: bool = True,
+) -> str:
+    """Update a managed task by stable task_key and verify API/collab state."""
+    with _client() as client:
+        return compact(
+            client.update_task(
+                workspace_id,
+                database_id,
+                task_key=task_key,
+                description=description,
+                status=status,
+                document=document,
+                dry_run=dry_run,
+                include_blob_diff=include_blob_diff,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_move_task", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_move_task(
+    workspace_id: str,
+    database_id: str,
+    task_key: str,
+    status: str,
+    dry_run: bool = True,
+) -> str:
+    """Move a managed task to another Status option."""
+    with _client() as client:
+        return compact(
+            client.move_task(
+                workspace_id,
+                database_id,
+                task_key=task_key,
+                status=status,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_delete_task", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_delete_task(
+    workspace_id: str,
+    database_id: str,
+    row_id: str,
+    dry_run: bool = True,
+) -> str:
+    """Delete a task by row id from all database views via the Yjs collab path."""
+    with _client() as client:
+        return compact(client.delete_task(workspace_id, database_id, row_id, dry_run=dry_run))
 
 
 @mcp.tool(name="appflowy_create_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]

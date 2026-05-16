@@ -401,6 +401,67 @@ def test_upsert_managed_task_verified_executes_then_verifies():
     assert result["verification"]["verified"] is True
 
 
+def test_task_facing_methods_delegate_to_verified_managed_operations(monkeypatch):
+    from appflowy_mcp_toolkit.client import AppFlowyClient
+
+    client = AppFlowyClient(AppFlowyConfig(base_url="https://example.test", access_token="t"))
+    calls: list[tuple[str, dict[str, object]]] = []
+
+    def fake_upsert(*_args: object, **kwargs: object) -> dict[str, object]:
+        calls.append(("upsert", dict(kwargs)))
+        return {"ok": True}
+
+    def fake_move(*_args: object, **kwargs: object) -> dict[str, object]:
+        calls.append(("move", dict(kwargs)))
+        return {"ok": True}
+
+    def fake_delete(*_args: object, **kwargs: object) -> dict[str, object]:
+        calls.append(("delete", dict(kwargs)))
+        return {"ok": True}
+
+    monkeypatch.setattr(client, "upsert_managed_task_verified", fake_upsert)
+    monkeypatch.setattr(client, "move_managed_task_status", fake_move)
+    monkeypatch.setattr(client, "delete_database_row_collab", fake_delete)
+
+    assert client.create_task("ws", "db", task_key="k", description="D") == {"ok": True}
+    assert client.update_task("ws", "db", task_key="k", status="Doing") == {"ok": True}
+    assert client.move_task("ws", "db", task_key="k", status="Done") == {"ok": True}
+    assert client.delete_task("ws", "db", "row-1") == {"ok": True}
+
+    assert calls[0] == (
+        "upsert",
+        {
+            "task_key": "k",
+            "description": "D",
+            "status": "To Do",
+            "document": None,
+            "dry_run": True,
+            "include_blob_diff": True,
+        },
+    )
+    assert calls[1][0] == "upsert"
+    assert calls[1][1]["status"] == "Doing"
+    assert calls[2] == ("move", {"task_key": "k", "status": "Done", "dry_run": True})
+    assert calls[3] == ("delete", {"dry_run": True})
+
+
+def test_list_tasks_fetches_row_details(make_client):
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/workspace/ws/database/db/row":
+            return json_response({"data": [{"id": "row-1"}, {"id": "row-2"}]})
+        if request.url.path == "/api/workspace/ws/database/db/row/detail":
+            assert request.url.params["ids"] == "row-1,row-2"
+            return json_response({"data": [{"id": "row-1"}, {"id": "row-2"}]})
+        raise AssertionError(str(request.url))
+
+    client = make_client(handler)
+
+    result = client.list_tasks("ws", "db")
+
+    assert result["row_ids"] == ["row-1", "row-2"]
+    assert [row["id"] for row in result["rows"]] == ["row-1", "row-2"]
+
+
 # ---------------------------------------------------------------------------
 # Collab inspector
 # ---------------------------------------------------------------------------

@@ -171,22 +171,21 @@ Create proof result, 2026-05-16:
   Web Board cache/preload/rendering issue and not an MCP data-write failure unless a
   future data-plane check contradicts it.
 
-Next investigation slice: verify whether REST-created rows reliably appear in Grid and
-Board after refresh/warm-up, then test edit and move semantics. Do not promote REST create
-into a high-level `appflowy_create_task` tool until the required warm-up/verification
-behavior is understood and documented.
+Task-facing create/update/move/delete tools now use the verified data-plane path. Browser
+Grid/Board rendering is intentionally not used as the source of truth because the AppFlowy
+Web Board can be stale until Grid/refresh warm-up.
 
 Before starting a self-hosted AppFlowy Docker test rig, finish the MCP-side task-board
 surface so the Docker work validates a coherent contract instead of a moving target:
 
-- Promote the verified managed-task operations into final task-facing tool names.
-- Keep diagnostic row/collab tools separate from the main public workflow.
-- Document the task model: `task_key`, row id, required fields, status movement, and
+- [x] Promote the verified managed-task operations into final task-facing tool names.
+- [x] Keep diagnostic row/collab tools separate from the main public workflow.
+- [x] Document the task model: `task_key`, row id, required fields, status movement, and
   ordering limitations.
-- Add/update one official live-smoke evidence note for data-plane lifecycle.
-- Add a browser/UI acceptance skeleton that records Grid/Board behavior separately from
+- [x] Add/update one official live-smoke evidence note for data-plane lifecycle.
+- [x] Add a browser/UI acceptance skeleton that records Grid/Board behavior separately from
   data-plane correctness.
-- Re-run unit/type/lint gates and the official opt-in live smoke.
+- [x] Re-run unit/type/lint gates and the official opt-in live smoke.
 
 Only after that should the project add `docker/appflowy-test/` or `tests/docker/` for
 self-hosted destructive tests.
@@ -198,12 +197,11 @@ self-hosted destructive tests.
 - [x] Keep dry-run behavior (default).
 - [x] Check binary collab presence before delete; surface `row_found=False` on lag.
 - [x] Keep destructive tools explicit and narrow.
-- [ ] Add task tools beyond delete only after M6.4 passes.
-- [ ] Full board create/edit/move/delete loop, not just delete.
+- [x] Add task tools beyond delete only after M6.4 passes.
+- [x] Full data-plane create/edit/move/delete loop, not just delete.
 
-Current stabilization note: M6.5 is integrated but should be treated as a frozen
-experimental baseline until reviewed and committed. Do not start new task operations
-or broader collab mutations before M6.4 proves the full disposable board loop.
+Current stabilization note: M6.5 is integrated as an experimental baseline. Do not add
+broader collab mutations until the self-hosted rig can run destructive tests repeatedly.
 
 ### M6.5.1 Stabilization Checkpoint
 

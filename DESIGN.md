@@ -96,6 +96,27 @@ server-side semantics of `pre_hash` (e.g. whether it is a true idempotency key o
 content hash) are not part of the public API documentation, so this toolkit deliberately
 limits its use to this one controlled pattern rather than exposing it as a general feature.
 
+## Task-facing API
+
+The public task surface is intentionally narrower than the lower-level row/collab
+diagnostics:
+
+- `list_tasks` reads task row ids and row details from the database data plane.
+- `create_task` creates an MCP-managed task using a stable `task_key`.
+- `update_task` updates description/status/document fields for the same stable `task_key`.
+- `move_task` is a status-only wrapper for common board movement.
+- `delete_task` deletes by AppFlowy `row_id` through the experimental Yjs collab path.
+
+For the current board shape, the required task fields are `Description` and `Status`.
+The toolkit returns the AppFlowy row id from create/list so callers can later delete the
+same row. Delete deliberately does not accept only `task_key`: AppFlowy does not expose
+a confirmed lookup-by-`pre_hash` delete path, and a delete operation must never create or
+upsert a missing task merely to discover its row id.
+
+Verification is data-plane first: REST row list/detail, database `row_orders`, row collab,
+and optionally blob/diff. Browser Board rendering is tracked separately because AppFlowy
+Web can show stale Board cards until Grid/refresh warm-up.
+
 ## API namespace
 
 The toolkit targets the `/api/workspace/...` endpoints documented in the public AppFlowy

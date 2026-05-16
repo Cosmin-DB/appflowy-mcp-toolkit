@@ -385,6 +385,110 @@ class AppFlowyClient:
             }
         return result
 
+    def list_tasks(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        with_doc: bool = False,
+    ) -> dict[str, Any]:
+        """List task rows from one AppFlowy database with current row details."""
+        row_ids: list[str] = []
+        for item in self.list_database_row_ids(workspace_id, database_id):
+            row_id = item.get("id")
+            if isinstance(row_id, str):
+                row_ids.append(row_id)
+        rows = self.get_database_rows(workspace_id, database_id, row_ids, with_doc=with_doc)
+        return {"row_ids": row_ids, "rows": rows}
+
+    def create_task(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        task_key: str,
+        description: str,
+        status: str = "To Do",
+        document: str | None = None,
+        dry_run: bool = True,
+        include_blob_diff: bool = True,
+    ) -> dict[str, Any]:
+        """Create an MCP-managed task using the public task-facing API."""
+        return self.upsert_managed_task_verified(
+            workspace_id,
+            database_id,
+            task_key=task_key,
+            description=description,
+            status=status,
+            document=document,
+            dry_run=dry_run,
+            include_blob_diff=include_blob_diff,
+        )
+
+    def update_task(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        task_key: str,
+        description: str | None = None,
+        status: str | None = None,
+        document: str | None = None,
+        dry_run: bool = True,
+        include_blob_diff: bool = True,
+    ) -> dict[str, Any]:
+        """Update an MCP-managed task by its stable task key."""
+        return self.upsert_managed_task_verified(
+            workspace_id,
+            database_id,
+            task_key=task_key,
+            description=description,
+            status=status,
+            document=document,
+            dry_run=dry_run,
+            include_blob_diff=include_blob_diff,
+        )
+
+    def move_task(
+        self,
+        workspace_id: str,
+        database_id: str,
+        *,
+        task_key: str,
+        status: str,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Move an MCP-managed task to a status group."""
+        return self.move_managed_task_status(
+            workspace_id,
+            database_id,
+            task_key=task_key,
+            status=status,
+            dry_run=dry_run,
+        )
+
+    def delete_task(
+        self,
+        workspace_id: str,
+        database_id: str,
+        row_id: str,
+        *,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Delete a task row from all database views.
+
+        Deletion currently requires the AppFlowy row id. The stable task_key
+        is used for create/update/move, but AppFlowy does not expose a safe
+        lookup-by-pre_hash endpoint, and delete must not create a missing task
+        just to discover its row id.
+        """
+        return self.delete_database_row_collab(
+            workspace_id,
+            database_id,
+            row_id,
+            dry_run=dry_run,
+        )
+
     def verify_database_row(
         self,
         workspace_id: str,

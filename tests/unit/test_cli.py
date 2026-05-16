@@ -213,6 +213,71 @@ def test_cli_managed_task_verified_dry_run(monkeypatch, capsys):
     )
 
 
+def test_cli_task_commands_delegate_to_task_methods(monkeypatch, capsys):
+    from unittest.mock import patch as _patch
+
+    monkeypatch.setenv("APPFLOWY_BASE_URL", "https://example.test")
+    monkeypatch.setenv("APPFLOWY_ACCESS_TOKEN", "test-token")
+
+    with _patch(
+        "appflowy_mcp_toolkit.client.AppFlowyClient.create_task",
+        return_value={"dry_run": True},
+    ) as mock_create:
+        rc = main(
+            [
+                "create-task",
+                "--workspace-id",
+                "ws_001",
+                "--database-id",
+                "db_001",
+                "--task-key",
+                "task-1",
+                "--description",
+                "Test",
+                "--skip-blob-diff",
+            ]
+        )
+    assert rc == 0
+    assert json.loads(capsys.readouterr().out)["dry_run"] is True
+    mock_create.assert_called_once_with(
+        "ws_001",
+        "db_001",
+        task_key="task-1",
+        description="Test",
+        status="To Do",
+        document=None,
+        dry_run=True,
+        include_blob_diff=False,
+    )
+
+    with _patch(
+        "appflowy_mcp_toolkit.client.AppFlowyClient.move_task",
+        return_value={"dry_run": True},
+    ) as mock_move:
+        rc = main(
+            [
+                "move-task",
+                "--workspace-id",
+                "ws_001",
+                "--database-id",
+                "db_001",
+                "--task-key",
+                "task-1",
+                "--status",
+                "Doing",
+            ]
+        )
+    assert rc == 0
+    assert json.loads(capsys.readouterr().out)["dry_run"] is True
+    mock_move.assert_called_once_with(
+        "ws_001",
+        "db_001",
+        task_key="task-1",
+        status="Doing",
+        dry_run=True,
+    )
+
+
 def test_cli_delete_row_dry_run(monkeypatch, capsys):
     """delete-row dry-run: patches the client method directly, no real subprocess."""
     from unittest.mock import patch as _patch

@@ -23,10 +23,15 @@ EXPECTED_READ_TOOLS = {
     "appflowy_get_collab_json",
     "appflowy_get_database_row_orders",
     "appflowy_get_database_blob_diff",
+    "appflowy_list_tasks",
     "appflowy_verify_database_row",
 }
 
 EXPECTED_WRITE_TOOLS = {
+    "appflowy_create_task",
+    "appflowy_update_task",
+    "appflowy_move_task",
+    "appflowy_delete_task",
     "appflowy_create_database_row",
     "appflowy_create_verified_database_row",
     "appflowy_upsert_database_row",

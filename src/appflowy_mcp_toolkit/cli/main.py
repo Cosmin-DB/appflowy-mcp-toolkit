@@ -113,6 +113,44 @@ def build_parser() -> argparse.ArgumentParser:
     blob_diff.add_argument("--database-id", required=True)
     blob_diff.add_argument("--version", type=int, default=1)
 
+    list_tasks = sub.add_parser("tasks")
+    list_tasks.add_argument("--workspace-id", required=True)
+    list_tasks.add_argument("--database-id", required=True)
+    list_tasks.add_argument("--with-doc", action="store_true")
+
+    create_task = sub.add_parser("create-task")
+    create_task.add_argument("--workspace-id", required=True)
+    create_task.add_argument("--database-id", required=True)
+    create_task.add_argument("--task-key", required=True)
+    create_task.add_argument("--description", required=True)
+    create_task.add_argument("--status", default="To Do")
+    create_task.add_argument("--document")
+    create_task.add_argument("--skip-blob-diff", action="store_true")
+    create_task.add_argument("--execute", action="store_true")
+
+    update_task = sub.add_parser("update-task")
+    update_task.add_argument("--workspace-id", required=True)
+    update_task.add_argument("--database-id", required=True)
+    update_task.add_argument("--task-key", required=True)
+    update_task.add_argument("--description")
+    update_task.add_argument("--status")
+    update_task.add_argument("--document")
+    update_task.add_argument("--skip-blob-diff", action="store_true")
+    update_task.add_argument("--execute", action="store_true")
+
+    move_task = sub.add_parser("move-task")
+    move_task.add_argument("--workspace-id", required=True)
+    move_task.add_argument("--database-id", required=True)
+    move_task.add_argument("--task-key", required=True)
+    move_task.add_argument("--status", required=True)
+    move_task.add_argument("--execute", action="store_true")
+
+    delete_task = sub.add_parser("delete-task")
+    delete_task.add_argument("--workspace-id", required=True)
+    delete_task.add_argument("--database-id", required=True)
+    delete_task.add_argument("--row-id", required=True)
+    delete_task.add_argument("--execute", action="store_true")
+
     managed = sub.add_parser("managed-task")
     managed.add_argument("--workspace-id", required=True)
     managed.add_argument("--database-id", required=True)
@@ -241,6 +279,49 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.workspace_id,
                 args.database_id,
                 version=args.version,
+            )
+        elif args.command == "tasks":
+            result = client.list_tasks(
+                args.workspace_id,
+                args.database_id,
+                with_doc=args.with_doc,
+            )
+        elif args.command == "create-task":
+            result = client.create_task(
+                args.workspace_id,
+                args.database_id,
+                task_key=args.task_key,
+                description=args.description,
+                status=args.status,
+                document=args.document,
+                dry_run=not args.execute,
+                include_blob_diff=not args.skip_blob_diff,
+            )
+        elif args.command == "update-task":
+            result = client.update_task(
+                args.workspace_id,
+                args.database_id,
+                task_key=args.task_key,
+                description=args.description,
+                status=args.status,
+                document=args.document,
+                dry_run=not args.execute,
+                include_blob_diff=not args.skip_blob_diff,
+            )
+        elif args.command == "move-task":
+            result = client.move_task(
+                args.workspace_id,
+                args.database_id,
+                task_key=args.task_key,
+                status=args.status,
+                dry_run=not args.execute,
+            )
+        elif args.command == "delete-task":
+            result = client.delete_task(
+                args.workspace_id,
+                args.database_id,
+                args.row_id,
+                dry_run=not args.execute,
             )
         elif args.command == "managed-task":
             result = client.upsert_managed_task(

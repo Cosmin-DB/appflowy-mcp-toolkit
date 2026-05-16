@@ -44,6 +44,11 @@ appflowy-toolkit row-orders --workspace-id <workspace_id> --database-id <databas
 appflowy-toolkit blob-diff --workspace-id <workspace_id> --database-id <database_id>
 appflowy-toolkit verify-row --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id>
 appflowy-toolkit create-verified-row --workspace-id <workspace_id> --database-id <database_id> --cells-json '{"Description":"Test"}'
+appflowy-toolkit tasks --workspace-id <workspace_id> --database-id <database_id>
+appflowy-toolkit create-task --workspace-id <workspace_id> --database-id <database_id> --task-key <stable_key> --description "Test"
+appflowy-toolkit update-task --workspace-id <workspace_id> --database-id <database_id> --task-key <stable_key> --status "Doing"
+appflowy-toolkit move-task --workspace-id <workspace_id> --database-id <database_id> --task-key <stable_key> --status "Done"
+appflowy-toolkit delete-task --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id>
 appflowy-toolkit managed-task-verified --workspace-id <workspace_id> --database-id <database_id> --task-key <stable_key> --description "Test"
 
 # Experimental: Yjs-based row delete (requires Node.js 18+ and npm install in collab/)
@@ -70,6 +75,7 @@ Initial tools are read-only:
 - `appflowy_get_collab_json`
 - `appflowy_get_database_row_orders`
 - `appflowy_get_database_blob_diff`
+- `appflowy_list_tasks`
 - `appflowy_verify_database_row`
 
 Write tools exist for controlled testing, but dry-run by default and require
@@ -77,10 +83,20 @@ Write tools exist for controlled testing, but dry-run by default and require
 
 - `appflowy_create_database_row`
 - `appflowy_create_verified_database_row`
+- `appflowy_create_task`
+- `appflowy_update_task`
+- `appflowy_move_task`
+- `appflowy_delete_task`
 - `appflowy_upsert_database_row`
 - `appflowy_upsert_managed_task`
 - `appflowy_upsert_verified_managed_task`
 - `appflowy_move_managed_task_status`
+
+Task-facing tools are the preferred public workflow for board-like task databases.
+`create_task`, `update_task`, and `move_task` use a caller-supplied stable
+`task_key`, mapped to AppFlowy's `pre_hash`, and verify the resulting data-plane
+state. `delete_task` currently requires the AppFlowy `row_id` returned by create/list
+because there is no confirmed safe lookup-by-`pre_hash` delete endpoint.
 
 Experimental write tool (dry-run by default; requires `APPFLOWY_ALLOW_WRITES=true` **and**
 `APPFLOWY_ALLOW_COLLAB_WRITES=true`; requires Node.js 18+ with `npm install` in
@@ -126,6 +142,8 @@ uv run pytest tests/live -q
 
 These tests verify the API/collab data plane. They do not treat AppFlowy Web Board
 rendering as authoritative because Board may be stale until Grid/refresh warm-up.
+Browser acceptance is tracked separately in
+[`docs/browser-ui-acceptance.md`](docs/browser-ui-acceptance.md).
 
 ## Development
 
