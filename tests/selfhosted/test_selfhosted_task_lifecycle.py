@@ -671,6 +671,72 @@ def test_selfhosted_typed_scalar_field_lifecycle() -> None:
             _delete_created(client, workspace_id, database_id, created_row_ids)
 
 
+def test_selfhosted_media_upload_lifecycle(tmp_path: Path) -> None:
+    workspace_id, database_id = _selfhosted_ids()
+    suffix = time.time_ns()
+    source = tmp_path / "mcp-media.txt"
+    source.write_text(f"media payload {suffix}", encoding="utf-8")
+    created_row_ids: list[str] = []
+    uploaded_file_id: str | None = None
+
+    with AppFlowyClient() as client:
+        _ensure_database_field(
+            client,
+            workspace_id,
+            database_id,
+            name="MCP Uploaded Media",
+            field_type=14,
+        )
+        try:
+            uploaded = client.upload_file_as_media(
+                workspace_id,
+                database_id,
+                source,
+                name="Uploaded spec",
+                dry_run=False,
+            )
+            media = uploaded["media"]
+            uploaded_file_id = media["id"]
+            assert media["upload_type"] == "Cloud"
+            assert media["file_type"] == "Text"
+
+            content_type, content = client.get_file_blob_v1(
+                workspace_id,
+                database_id,
+                uploaded_file_id,
+            )
+            assert content_type.startswith("text/plain")
+            assert content.decode("utf-8") == f"media payload {suffix}"
+
+            created = client.create_typed_database_row_verified(
+                workspace_id,
+                database_id,
+                values={
+                    "Description": f"Uploaded media field {suffix}",
+                    "Status": "To Do",
+                    "MCP Uploaded Media": [media],
+                },
+                dry_run=False,
+                include_blob_diff=False,
+            )
+            row_id = created["result"]["verification"]["row_id"]
+            created_row_ids.append(row_id)
+            row = _row_by_id(client, workspace_id, database_id, row_id, with_doc=True)
+            cells = row["cells"]
+            assert cells["MCP Uploaded Media"]["files"][0]["url"] == media["url"]
+            assert cells["MCP Uploaded Media"]["files"][0]["upload_type"] == 2
+        finally:
+            _delete_created(client, workspace_id, database_id, created_row_ids)
+            if uploaded_file_id is not None:
+                with suppress(AppFlowyError):
+                    client.delete_file_blob_v1(
+                        workspace_id,
+                        database_id,
+                        uploaded_file_id,
+                        dry_run=False,
+                    )
+
+
 def test_selfhosted_multi_task_lifecycle_with_updates_and_cleanup() -> None:
     workspace_id, database_id = _selfhosted_ids()
     created_row_ids: list[str] = []

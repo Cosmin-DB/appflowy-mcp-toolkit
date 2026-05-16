@@ -71,6 +71,9 @@ EXPECTED_WRITE_TOOLS = {
     "appflowy_add_recent_pages",
     "appflowy_restore_all_pages_from_trash",
     "appflowy_delete_all_pages_from_trash",
+    "appflowy_upload_file_blob_v1",
+    "appflowy_delete_file_blob_v1",
+    "appflowy_upload_file_as_media",
     "appflowy_create_database_row",
     "appflowy_create_verified_database_row",
     "appflowy_create_typed_database_row",
@@ -353,6 +356,80 @@ def test_file_storage_readonly_tools_delegate_to_client() -> None:
     assert json.loads(blobs_raw[0][0].text) == [{"file_id": "file_a"}]
     assert json.loads(metadata_raw[0][0].text) == {"file_id": "file_a", "file_size": 123}
     assert json.loads(metadata_v1_raw[0][0].text) == {"file_id": "file_a", "file_size": 123}
+
+
+def test_file_storage_write_tools_delegate_to_client() -> None:
+    with patch(
+        "appflowy_mcp_toolkit.mcp.server.AppFlowyClient",
+        autospec=True,
+    ) as MockClient:
+        instance = MockClient.return_value.__enter__.return_value
+        instance.upload_local_file_blob_v1.return_value = {"file_id": "file_a"}
+        instance.delete_file_blob_v1.return_value = {"deleted": True}
+        instance.upload_file_as_media.return_value = {
+            "media": {"url": "https://example.test/file_a", "upload_type": "Cloud"}
+        }
+
+        upload_raw: Any = asyncio.run(
+            mcp.call_tool(
+                "appflowy_upload_file_blob_v1",
+                {
+                    "workspace_id": "ws",
+                    "parent_dir": "db",
+                    "file_path": "/tmp/spec.txt",
+                    "dry_run": False,
+                },
+            )
+        )
+        delete_raw: Any = asyncio.run(
+            mcp.call_tool(
+                "appflowy_delete_file_blob_v1",
+                {
+                    "workspace_id": "ws",
+                    "parent_dir": "db",
+                    "file_id": "file_a",
+                    "dry_run": False,
+                },
+            )
+        )
+        media_raw: Any = asyncio.run(
+            mcp.call_tool(
+                "appflowy_upload_file_as_media",
+                {
+                    "workspace_id": "ws",
+                    "database_id": "db",
+                    "file_path": "/tmp/spec.txt",
+                    "name": "Spec",
+                    "dry_run": False,
+                },
+            )
+        )
+
+    instance.upload_local_file_blob_v1.assert_called_once_with(
+        "ws",
+        "db",
+        "/tmp/spec.txt",
+        content_type=None,
+        dry_run=False,
+    )
+    instance.delete_file_blob_v1.assert_called_once_with(
+        "ws",
+        "db",
+        "file_a",
+        dry_run=False,
+    )
+    instance.upload_file_as_media.assert_called_once_with(
+        "ws",
+        "db",
+        "/tmp/spec.txt",
+        name="Spec",
+        content_type=None,
+        file_type=None,
+        dry_run=False,
+    )
+    assert json.loads(upload_raw[0][0].text) == {"file_id": "file_a"}
+    assert json.loads(delete_raw[0][0].text) == {"deleted": True}
+    assert json.loads(media_raw[0][0].text)["media"]["upload_type"] == "Cloud"
 
 
 def test_navigation_readonly_tools_delegate_to_client() -> None:

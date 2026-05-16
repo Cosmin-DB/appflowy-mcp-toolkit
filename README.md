@@ -50,6 +50,10 @@ appflowy-toolkit file-storage-usage --workspace-id <workspace_id>
 appflowy-toolkit file-storage-blobs --workspace-id <workspace_id>
 appflowy-toolkit file-metadata --workspace-id <workspace_id> --file-id <file_id>
 appflowy-toolkit file-metadata-v1 --workspace-id <workspace_id> --parent-dir <parent_dir> --file-id <file_id>
+appflowy-toolkit upload-file-v1 --workspace-id <workspace_id> --parent-dir <parent_dir> --file-path ./spec.txt --execute
+appflowy-toolkit download-file-v1 --workspace-id <workspace_id> --parent-dir <parent_dir> --file-id <file_id> --output ./spec.txt
+appflowy-toolkit delete-file-v1 --workspace-id <workspace_id> --parent-dir <parent_dir> --file-id <file_id> --execute
+appflowy-toolkit upload-media-file --workspace-id <workspace_id> --database-id <database_id> --file-path ./spec.txt --execute
 appflowy-toolkit folder --workspace-id <workspace_id> --depth 2
 appflowy-toolkit create-folder --workspace-id <workspace_id> --parent-view-id <parent_view_id> --name "Folder"
 appflowy-toolkit recent --workspace-id <workspace_id>
@@ -201,6 +205,9 @@ Write tools exist for controlled testing, but dry-run by default and require
 - `appflowy_create_quick_note`
 - `appflowy_update_quick_note`
 - `appflowy_delete_quick_note`
+- `appflowy_upload_file_blob_v1`
+- `appflowy_delete_file_blob_v1`
+- `appflowy_upload_file_as_media`
 - `appflowy_upsert_database_row`
 - `appflowy_upsert_typed_database_row`
 - `appflowy_upsert_managed_task`
@@ -236,16 +243,17 @@ to seed row documents before rendering database views. `blob-diff` /
 operation types, RID values and doc-state byte counts) without exposing raw row document
 state. This is diagnostic only; it does not mutate AppFlowy.
 
-File storage coverage is metadata-only for now. The toolkit exposes read-only usage,
-blob metadata listing, and v0/v1 metadata lookup routes:
+File storage coverage now includes read-only usage/metadata, v1 upload/download/delete
+helpers, and a helper that uploads a local file and returns a typed Media-cell object:
 `GET /api/file_storage/{workspace_id}/usage`,
 `GET /api/file_storage/{workspace_id}/blobs`,
 `GET /api/file_storage/{workspace_id}/metadata/{file_id}`, and
-`GET /api/file_storage/{workspace_id}/v1/metadata/{parent_dir}/{file_id}`. Upload,
-delete, and raw blob download endpoints are intentionally not implemented in this
-slice. The upstream upload/download/delete routes have been mapped and are documented
-in `docs/deferred-field-decisions.md`; the next safe slice is a Docker-proven v1
-upload/download/delete helper, then linking uploaded blobs into typed Media cells.
+`GET /api/file_storage/{workspace_id}/v1/metadata/{parent_dir}/{file_id}` plus
+`PUT` / `GET` / `DELETE` for
+`/api/file_storage/{workspace_id}/v1/blob/{parent_dir}/{file_id}`. File writes remain
+dry-run/gated by default. For database Media fields, the proven convention is
+`parent_dir = database_id`; `upload-media-file` returns the object that can be used in
+typed row values with `upload_type = Cloud`.
 
 Known AppFlowy Web limitation: Board rendering can be stale even when a row is already
 present in REST and collab state. In local browser testing, verified rows can still

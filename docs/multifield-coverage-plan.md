@@ -37,8 +37,8 @@ The current AppFlowy `FieldType` enum in the upstream source is:
 - 11 Summary: supported for explicit/manual string values and proven against Docker.
 - 12 Translate: deferred; AI/product-specific.
 - 13 Time: supported as seconds since midnight or HH:MM / HH:MM:SS and proven against Docker.
-- 14 Media: supported for network URL media entries and proven against Docker; file upload is
-  still outside this typed-cell layer.
+- 14 Media: supported for network URL media entries and uploaded AppFlowy file-storage
+  media objects; both are proven against Docker.
 
 User-facing docs also mention email/phone-like field concepts in some contexts, but the
 current upstream enum does not expose separate Email/Phone variants in the inspected
@@ -155,8 +155,8 @@ Keep these out of the first multi-field release unless explicitly needed:
   relation cell, so the public typed API still rejects it.
 - Translate: the source writer accepts strings, but Docker REST reads return an empty value
   for manual writes, so this needs product/AI flow investigation before exposing.
-- Media uploads: network media entries are supported; actual upload/download/delete workflow
-  belongs to the file-storage layer.
+- Media uploads: v1 single-file upload/download/delete is supported in the file-storage
+  layer; multipart upload remains deferred.
 - CreatedTime/LastEditedTime: read-only verification only.
 
 See `docs/deferred-field-decisions.md` for the exact evidence and decisions behind
@@ -169,13 +169,13 @@ limited to deferred/high-complexity field families:
 
 - Relation
 - Translate
-- Media upload/download/delete workflows
+- Multipart Media upload for large files
 
 Relation is listed here because local Docker accepted the field but did not return a
 written relation cell through the REST row-detail path. Translate is listed here because
 manual writes read back empty; it likely needs the AppFlowy AI/product route rather than
 a normal row cell write.
 
-Media is the only deferred item that looks like a strong next implementation slice.
-The storage API exists and is documented in upstream source, but it should be added as a
-dedicated file-storage workflow before it is connected to typed Media cells.
+The common Media upload workflow is now implemented as a dedicated file-storage helper,
+then linked into typed Media cells. The remaining Media work is about large-file
+multipart behavior and UI preview evidence, not the core task-card data model.

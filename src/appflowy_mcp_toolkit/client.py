@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import mimetypes
 from collections.abc import Iterable
+from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -103,6 +106,74 @@ class AppFlowyClient:
             )
         return response.content
 
+    def request_content_json(
+        self,
+        method: str,
+        path: str,
+        *,
+        content: bytes,
+        content_type: str = "application/octet-stream",
+        require_auth: bool = True,
+        _retry_refresh: bool = True,
+    ) -> dict[str, Any]:
+        url = self._url(path)
+        headers = {"Accept": "application/json", "Content-Type": content_type}
+        if require_auth:
+            headers["Authorization"] = f"Bearer {self.config.require_token()}"
+        response = self._client.request(method, url, headers=headers, content=content)
+        if response.status_code == 401 and _retry_refresh and self.config.refresh_token:
+            self._refresh_access_token()
+            return self.request_content_json(
+                method,
+                path,
+                content=content,
+                content_type=content_type,
+                require_auth=require_auth,
+                _retry_refresh=False,
+            )
+        if response.status_code >= 400:
+            raise classify_http_error(
+                response.status_code,
+                self._safe_error_message(response),
+                retry_after=response.headers.get("retry-after"),
+            )
+        try:
+            data = response.json()
+        except ValueError as exc:
+            raise AppFlowySchemaError("AppFlowy returned non-JSON response") from exc
+        if not isinstance(data, dict):
+            raise AppFlowySchemaError("AppFlowy response was not a JSON object", payload=data)
+        return data
+
+    def request_bytes_with_headers(
+        self,
+        method: str,
+        path: str,
+        *,
+        require_auth: bool = True,
+        _retry_refresh: bool = True,
+    ) -> tuple[str, bytes]:
+        url = self._url(path)
+        headers = {"Accept": "application/octet-stream"}
+        if require_auth:
+            headers["Authorization"] = f"Bearer {self.config.require_token()}"
+        response = self._client.request(method, url, headers=headers)
+        if response.status_code == 401 and _retry_refresh and self.config.refresh_token:
+            self._refresh_access_token()
+            return self.request_bytes_with_headers(
+                method,
+                path,
+                require_auth=require_auth,
+                _retry_refresh=False,
+            )
+        if response.status_code >= 400:
+            raise classify_http_error(
+                response.status_code,
+                self._safe_error_message(response),
+                retry_after=response.headers.get("retry-after"),
+            )
+        return response.headers.get("content-type", "application/octet-stream"), response.content
+
     def list_workspaces(
         self, *, include_member_count: bool = False, include_role: bool = False
     ) -> list[dict[str, Any]]:
@@ -184,6 +255,128 @@ class AppFlowyClient:
         if not isinstance(metadata, dict):
             raise AppFlowySchemaError("Expected AppFlowy v1 file metadata response", payload=data)
         return metadata
+
+    def upload_file_blob_v1(
+        self,
+        workspace_id: str,
+        parent_dir: str,
+        *,
+        content: bytes,
+        content_type: str = "application/octet-stream",
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        encoded_parent_dir = quote(parent_dir, safe="")
+        path = f"/api/file_storage/{workspace_id}/v1/blob/{encoded_parent_dir}"
+        if dry_run:
+            return {
+                "dry_run": True,
+                "method": "PUT",
+                "path": path,
+                "content_type": content_type,
+                "content_length": len(content),
+            }
+        self._require_writes_enabled()
+        data = self.request_content_json("PUT", path, content=content, content_type=content_type)
+        payload = self._extract_data(data)
+        if not isinstance(payload, dict):
+            raise AppFlowySchemaError("Expected AppFlowy v1 file upload response", payload=data)
+        file_id = payload.get("file_id")
+        if not isinstance(file_id, str) or not file_id:
+            raise AppFlowySchemaError(
+                "AppFlowy v1 upload response did not include file_id", payload=data
+            )
+        return {
+            **payload,
+            "workspace_id": workspace_id,
+            "parent_dir": parent_dir,
+            "url": self.file_blob_url_v1(workspace_id, parent_dir, file_id),
+            "content_type": content_type,
+            "content_length": len(content),
+        }
+
+    def upload_local_file_blob_v1(
+        self,
+        workspace_id: str,
+        parent_dir: str,
+        file_path: str | Path,
+        *,
+        content_type: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        path = Path(file_path)
+        guessed_type = (
+            content_type or mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+        )
+        content = path.read_bytes()
+        return self.upload_file_blob_v1(
+            workspace_id,
+            parent_dir,
+            content=content,
+            content_type=guessed_type,
+            dry_run=dry_run,
+        )
+
+    def get_file_blob_v1(
+        self, workspace_id: str, parent_dir: str, file_id: str
+    ) -> tuple[str, bytes]:
+        encoded_parent_dir = quote(parent_dir, safe="")
+        return self.request_bytes_with_headers(
+            "GET",
+            f"/api/file_storage/{workspace_id}/v1/blob/{encoded_parent_dir}/{file_id}",
+        )
+
+    def delete_file_blob_v1(
+        self,
+        workspace_id: str,
+        parent_dir: str,
+        file_id: str,
+        *,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        encoded_parent_dir = quote(parent_dir, safe="")
+        path = f"/api/file_storage/{workspace_id}/v1/blob/{encoded_parent_dir}/{file_id}"
+        if dry_run:
+            return {"dry_run": True, "method": "DELETE", "path": path}
+        self._require_writes_enabled()
+        self.request("DELETE", path)
+        return {
+            "deleted": True,
+            "workspace_id": workspace_id,
+            "parent_dir": parent_dir,
+            "file_id": file_id,
+        }
+
+    def file_blob_url_v1(self, workspace_id: str, parent_dir: str, file_id: str) -> str:
+        encoded_parent_dir = quote(parent_dir, safe="")
+        return self._url(f"/api/file_storage/{workspace_id}/v1/blob/{encoded_parent_dir}/{file_id}")
+
+    def upload_file_as_media(
+        self,
+        workspace_id: str,
+        database_id: str,
+        file_path: str | Path,
+        *,
+        name: str | None = None,
+        content_type: str | None = None,
+        file_type: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        path = Path(file_path)
+        upload = self.upload_local_file_blob_v1(
+            workspace_id,
+            database_id,
+            path,
+            content_type=content_type,
+            dry_run=dry_run,
+        )
+        media_file = {
+            "id": upload.get("file_id", ""),
+            "name": name or path.name,
+            "url": upload.get("url", self.file_blob_url_v1(workspace_id, database_id, "<file_id>")),
+            "upload_type": "Cloud",
+            "file_type": file_type or self._infer_media_file_type(path),
+        }
+        return {"upload": upload, "media": media_file}
 
     def create_workspace(self, name: str, *, dry_run: bool = True) -> dict[str, Any]:
         payload = {"workspace_name": name}
@@ -1443,6 +1636,25 @@ class AppFlowyClient:
             raise AppFlowyError(
                 "Writes are disabled. Set APPFLOWY_ALLOW_WRITES=true or use dry_run=True."
             )
+
+    @staticmethod
+    def _infer_media_file_type(path: Path) -> str:
+        suffix = path.suffix.lower().lstrip(".")
+        if suffix in {"jpg", "jpeg", "png", "gif"}:
+            return "Image"
+        if suffix in {"zip", "rar", "tar"}:
+            return "Archive"
+        if suffix in {"mp4", "mov", "avi"}:
+            return "Video"
+        if suffix in {"mp3", "wav"}:
+            return "Audio"
+        if suffix == "txt":
+            return "Text"
+        if suffix in {"doc", "docx"}:
+            return "Document"
+        if suffix in {"html", "htm"}:
+            return "Link"
+        return "Other"
 
     @staticmethod
     def _extract_data(data: dict[str, Any]) -> Any:

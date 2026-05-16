@@ -181,6 +181,87 @@ def test_file_storage_readonly_routes(make_client):
     ]
 
 
+def test_file_storage_v1_upload_download_delete(make_client, tmp_path):
+    fixture = tmp_path / "spec.txt"
+    fixture.write_text("hello media", encoding="utf-8")
+    seen: list[tuple[str, str, bytes]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = request.read()
+        seen.append((request.method, request.url.path, body))
+        if request.method == "PUT":
+            assert request.url.path == "/api/file_storage/ws_demo_001/v1/blob/db_demo_001"
+            assert request.headers["content-type"] == "text/plain"
+            assert body == b"hello media"
+            return json_response({"data": {"file_id": "file_demo_001"}})
+        if request.method == "GET":
+            assert request.url.path == (
+                "/api/file_storage/ws_demo_001/v1/blob/db_demo_001/file_demo_001"
+            )
+            return httpx.Response(
+                200, headers={"content-type": "text/plain"}, content=b"hello media"
+            )
+        if request.method == "DELETE":
+            assert request.url.path == (
+                "/api/file_storage/ws_demo_001/v1/blob/db_demo_001/file_demo_001"
+            )
+            return json_response({"data": {}})
+        raise AssertionError(request)
+
+    client = make_client(handler, allow_writes=True)
+
+    uploaded = client.upload_local_file_blob_v1(
+        "ws_demo_001",
+        "db_demo_001",
+        fixture,
+        dry_run=False,
+    )
+    assert uploaded["file_id"] == "file_demo_001"
+    assert uploaded["url"] == (
+        "https://example.test/api/file_storage/ws_demo_001/v1/blob/db_demo_001/file_demo_001"
+    )
+    content_type, content = client.get_file_blob_v1("ws_demo_001", "db_demo_001", "file_demo_001")
+    assert content_type == "text/plain"
+    assert content == b"hello media"
+    assert (
+        client.delete_file_blob_v1(
+            "ws_demo_001",
+            "db_demo_001",
+            "file_demo_001",
+            dry_run=False,
+        )["deleted"]
+        is True
+    )
+    assert [item[0] for item in seen] == ["PUT", "GET", "DELETE"]
+
+
+def test_upload_file_as_media_returns_cloud_media_object(make_client, tmp_path):
+    fixture = tmp_path / "spec.txt"
+    fixture.write_text("hello media", encoding="utf-8")
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return json_response({"data": {"file_id": "file_demo_001"}})
+
+    client = make_client(handler, allow_writes=True)
+
+    result = client.upload_file_as_media(
+        "ws_demo_001",
+        "db_demo_001",
+        fixture,
+        name="Spec",
+        dry_run=False,
+    )
+    assert result["media"] == {
+        "id": "file_demo_001",
+        "name": "Spec",
+        "url": (
+            "https://example.test/api/file_storage/ws_demo_001/v1/blob/db_demo_001/file_demo_001"
+        ),
+        "upload_type": "Cloud",
+        "file_type": "Text",
+    }
+
+
 def test_get_folder_passes_depth_and_root(make_client):
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/workspace/ws_demo_001/folder"

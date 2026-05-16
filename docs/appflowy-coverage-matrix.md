@@ -22,9 +22,9 @@ Approximate coverage by object family:
 | Folder/view/page read | high | high for tree/page read, medium for mutations |
 | Database schema/rows/tasks | high | high for task lifecycle data plane |
 | Database fields | medium | read/create done, field-type payloads are caller supplied |
-| Database typed fields | high | most task-card/scalar fields covered; relation/translate and media uploads deferred |
+| Database typed fields | high | most task-card/scalar fields and Media uploads covered; relation/translate deferred |
 | Collab diagnostics/delete | medium | high for diagnostics/delete, low for arbitrary mutations |
-| Files/blobs | read metadata/usage | high for metadata, writes deferred |
+| Files/blobs | metadata plus v1 upload/download/delete | high for Docker-proven single-file flow |
 | Trash/favorites/recent | read implemented | high |
 | Sharing/publishing | none | candidate but safety-sensitive |
 | Search | read implemented | medium; depends on search service |
@@ -47,7 +47,7 @@ Approximate coverage by object family:
 | Task board | list/create/update/move/delete implemented | implemented | implemented | implemented via Yjs row-order delete | high for data plane | Add browser UI acceptance for Grid/Board |
 | Row/card ordering | row_orders read implemented | n/a | reorder requires Yjs mutation | n/a | diagnostic only | Defer until browser behavior is mapped |
 | Collab documents | JSON/raw/blob diff read implemented | create collab route exists | web-update used only for row delete | delete collab route exists but dangerous | partial | Keep generic collab writes private/diagnostic; do not expose broad destructive collab delete |
-| File storage/blobs | usage/list/metadata implemented | v1 single-upload and multipart routes mapped in source | multipart complete routes mapped in source | delete blob route mapped in source | read metadata implemented; upload/download/delete documented but not exposed | Prove v1 upload/download/delete against Docker, then connect uploaded blob to Media cells |
+| File storage/blobs | usage/list/metadata and v1 blob download implemented | v1 single-upload implemented; multipart routes mapped but deferred | multipart complete routes mapped but deferred | v1 blob delete implemented | v1 upload/download/delete Docker-proven; Media-cell linking Docker-proven | Add multipart only if large-file demand appears |
 | Trash | trash list implemented | n/a | single restore implemented dry-run default | single delete-from-trash implemented dry-run default | partial | Bulk restore/delete deferred |
 | Favorites/recent | recent/favorite list implemented | add recent implemented dry-run default | favorite toggle/reorder implemented dry-run default | n/a | mostly implemented | Browser polish deferred |
 | Sharing/guests | list shared views exists | share view route exists | revoke/access detail routes exist | revoke route exists | missing | Safety-sensitive; require explicit gates |
@@ -85,8 +85,9 @@ Approximate coverage by object family:
 
 5. **Files**
    - Usage/list metadata/get metadata. **Done.**
-   - Blob download/upload/delete source routes are mapped, but still deferred until a
-     Docker proof covers binary upload, cleanup, and Media-cell linking.
+   - V1 single-file upload/download/delete. **Done, Docker-proven.**
+   - Uploaded file to typed Media-cell linking. **Done, Docker-proven.**
+   - Multipart upload. **Deferred until large-file demand appears.**
 
 6. **Sharing/publishing/admin**
    - Document and test carefully.

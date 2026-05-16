@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any
 
 from appflowy_mcp_toolkit.client import AppFlowyClient
@@ -67,6 +68,34 @@ def build_parser() -> argparse.ArgumentParser:
     file_metadata_v1.add_argument("--workspace-id", required=True)
     file_metadata_v1.add_argument("--parent-dir", required=True)
     file_metadata_v1.add_argument("--file-id", required=True)
+
+    upload_file_v1 = sub.add_parser("upload-file-v1")
+    upload_file_v1.add_argument("--workspace-id", required=True)
+    upload_file_v1.add_argument("--parent-dir", required=True)
+    upload_file_v1.add_argument("--file-path", required=True)
+    upload_file_v1.add_argument("--content-type")
+    upload_file_v1.add_argument("--execute", action="store_true")
+
+    download_file_v1 = sub.add_parser("download-file-v1")
+    download_file_v1.add_argument("--workspace-id", required=True)
+    download_file_v1.add_argument("--parent-dir", required=True)
+    download_file_v1.add_argument("--file-id", required=True)
+    download_file_v1.add_argument("--output", required=True)
+
+    delete_file_v1 = sub.add_parser("delete-file-v1")
+    delete_file_v1.add_argument("--workspace-id", required=True)
+    delete_file_v1.add_argument("--parent-dir", required=True)
+    delete_file_v1.add_argument("--file-id", required=True)
+    delete_file_v1.add_argument("--execute", action="store_true")
+
+    upload_media = sub.add_parser("upload-media-file")
+    upload_media.add_argument("--workspace-id", required=True)
+    upload_media.add_argument("--database-id", required=True)
+    upload_media.add_argument("--file-path", required=True)
+    upload_media.add_argument("--name")
+    upload_media.add_argument("--content-type")
+    upload_media.add_argument("--file-type")
+    upload_media.add_argument("--execute", action="store_true")
 
     folder = sub.add_parser("folder")
     folder.add_argument("--workspace-id", required=True)
@@ -527,6 +556,43 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.workspace_id,
                 args.parent_dir,
                 args.file_id,
+            )
+        elif args.command == "upload-file-v1":
+            result = client.upload_local_file_blob_v1(
+                args.workspace_id,
+                args.parent_dir,
+                args.file_path,
+                content_type=args.content_type,
+                dry_run=not args.execute,
+            )
+        elif args.command == "download-file-v1":
+            content_type, content = client.get_file_blob_v1(
+                args.workspace_id,
+                args.parent_dir,
+                args.file_id,
+            )
+            Path(args.output).write_bytes(content)
+            result = {
+                "output": args.output,
+                "content_type": content_type,
+                "content_length": len(content),
+            }
+        elif args.command == "delete-file-v1":
+            result = client.delete_file_blob_v1(
+                args.workspace_id,
+                args.parent_dir,
+                args.file_id,
+                dry_run=not args.execute,
+            )
+        elif args.command == "upload-media-file":
+            result = client.upload_file_as_media(
+                args.workspace_id,
+                args.database_id,
+                args.file_path,
+                name=args.name,
+                content_type=args.content_type,
+                file_type=args.file_type,
+                dry_run=not args.execute,
             )
         elif args.command == "folder":
             result = client.get_folder(

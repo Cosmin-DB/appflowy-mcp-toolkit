@@ -438,6 +438,118 @@ def test_cli_workspace_readonly_commands(monkeypatch, capsys):
     assert json.loads(capsys.readouterr().out) == {"file_id": "file_a", "file_size": 123}
 
 
+def test_cli_file_storage_write_commands(monkeypatch, capsys, tmp_path):
+    monkeypatch.setenv("APPFLOWY_ALLOW_WRITES", "true")
+    source = tmp_path / "spec.txt"
+    source.write_text("hello media", encoding="utf-8")
+    output = tmp_path / "downloaded.txt"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "PUT":
+            assert request.url.path == "/api/file_storage/ws_001/v1/blob/db_001"
+            assert request.content == b"hello media"
+            return httpx.Response(200, json={"data": {"file_id": "file_a"}})
+        if request.method == "GET":
+            assert request.url.path == "/api/file_storage/ws_001/v1/blob/db_001/file_a"
+            return httpx.Response(
+                200, headers={"content-type": "text/plain"}, content=b"hello media"
+            )
+        if request.method == "DELETE":
+            assert request.url.path == "/api/file_storage/ws_001/v1/blob/db_001/file_a"
+            return httpx.Response(200, json={"data": {}})
+        raise AssertionError(request)
+
+    _patch_client(monkeypatch, handler)
+
+    assert (
+        main(
+            [
+                "upload-file-v1",
+                "--workspace-id",
+                "ws_001",
+                "--parent-dir",
+                "db_001",
+                "--file-path",
+                str(source),
+                "--execute",
+            ]
+        )
+        == 0
+    )
+    uploaded = json.loads(capsys.readouterr().out)
+    assert uploaded["file_id"] == "file_a"
+
+    assert (
+        main(
+            [
+                "download-file-v1",
+                "--workspace-id",
+                "ws_001",
+                "--parent-dir",
+                "db_001",
+                "--file-id",
+                "file_a",
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+    downloaded = json.loads(capsys.readouterr().out)
+    assert downloaded["content_length"] == len("hello media")
+    assert output.read_text(encoding="utf-8") == "hello media"
+
+    assert (
+        main(
+            [
+                "delete-file-v1",
+                "--workspace-id",
+                "ws_001",
+                "--parent-dir",
+                "db_001",
+                "--file-id",
+                "file_a",
+                "--execute",
+            ]
+        )
+        == 0
+    )
+    assert json.loads(capsys.readouterr().out)["deleted"] is True
+
+
+def test_cli_upload_media_file_returns_media_object(monkeypatch, capsys, tmp_path):
+    monkeypatch.setenv("APPFLOWY_ALLOW_WRITES", "true")
+    source = tmp_path / "spec.txt"
+    source.write_text("hello media", encoding="utf-8")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "PUT"
+        return httpx.Response(200, json={"data": {"file_id": "file_a"}})
+
+    _patch_client(monkeypatch, handler)
+
+    assert (
+        main(
+            [
+                "upload-media-file",
+                "--workspace-id",
+                "ws_001",
+                "--database-id",
+                "db_001",
+                "--file-path",
+                str(source),
+                "--name",
+                "Spec",
+                "--execute",
+            ]
+        )
+        == 0
+    )
+    parsed = json.loads(capsys.readouterr().out)
+    assert parsed["media"]["upload_type"] == "Cloud"
+    assert parsed["media"]["url"].endswith("/api/file_storage/ws_001/v1/blob/db_001/file_a")
+
+
 def test_cli_blob_diff(monkeypatch, capsys):
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/workspace/ws_001/database/db_001/blob/diff"

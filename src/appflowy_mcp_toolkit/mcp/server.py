@@ -153,6 +153,71 @@ def appflowy_get_file_metadata_v1(workspace_id: str, parent_dir: str, file_id: s
         return compact(client.get_file_metadata_v1(workspace_id, parent_dir, file_id))
 
 
+@mcp.tool(name="appflowy_upload_file_blob_v1", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_upload_file_blob_v1(
+    workspace_id: str,
+    parent_dir: str,
+    file_path: str,
+    content_type: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Upload a local file to AppFlowy v1 file storage. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.upload_local_file_blob_v1(
+                workspace_id,
+                parent_dir,
+                file_path,
+                content_type=content_type,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_delete_file_blob_v1", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_delete_file_blob_v1(
+    workspace_id: str,
+    parent_dir: str,
+    file_id: str,
+    dry_run: bool = True,
+) -> str:
+    """Delete a v1 file-storage blob. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.delete_file_blob_v1(
+                workspace_id,
+                parent_dir,
+                file_id,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_upload_file_as_media", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_upload_file_as_media(
+    workspace_id: str,
+    database_id: str,
+    file_path: str,
+    name: str | None = None,
+    content_type: str | None = None,
+    file_type: str | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Upload a local file and return a typed Media-cell object. Dry-run by default."""
+    with _client() as client:
+        return compact(
+            client.upload_file_as_media(
+                workspace_id,
+                database_id,
+                file_path,
+                name=name,
+                content_type=content_type,
+                file_type=file_type,
+                dry_run=dry_run,
+            )
+        )
+
+
 @mcp.tool(name="appflowy_get_folder", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
 def appflowy_get_folder(
     workspace_id: str,

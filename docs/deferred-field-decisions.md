@@ -53,7 +53,8 @@ current behavior looks product-managed, so a low-level write API would be mislea
 
 ## Media Uploads
 
-Status: partially supported; upload workflow deferred.
+Status: implemented for v1 single-file upload/download/delete and typed Media-cell
+linking; multipart upload remains deferred.
 
 What already works:
 
@@ -61,14 +62,20 @@ What already works:
 - Docker proves that a media field can store and read back a network media entry.
 - The returned AppFlowy shape normalizes `upload_type` to numeric `1`, which maps
   to `Network`.
+- `upload_file_blob_v1` uploads local bytes to AppFlowy file storage.
+- `get_file_blob_v1` downloads the stored bytes.
+- `delete_file_blob_v1` deletes the stored blob.
+- `upload_file_as_media` uploads a local file and returns a Media-cell object with
+  `upload_type = Cloud`.
+- Docker proves the flow with `parent_dir = database_id`: upload text file, download it,
+  attach it to a Media field, read the row back with `upload_type = 2`, then clean up
+  both row and blob.
 
 What remains:
 
-- Uploading bytes into AppFlowy file storage.
-- Reading raw blob bytes back.
-- Deleting uploaded blobs.
-- Linking the uploaded blob URL into a Media cell with `upload_type = Cloud`.
-- Proving the parent directory convention for database-card attachments.
+- Multipart upload for large files.
+- Public size-limit policy and streaming behavior for larger blobs.
+- Broader browser/UI visual proof for uploaded media previews.
 
 Evidence from upstream source:
 
@@ -92,19 +99,15 @@ Evidence from upstream source:
 
 Decision:
 
-Treat media upload as the next interesting slice, but keep it outside the current
-typed-cell release. The right implementation is a dedicated file-storage layer first,
-then a small helper that uploads a local file and returns a Media-cell object that can
-be written by `create_typed_database_row` / `upsert_typed_database_row`.
+Ship the v1 single-file workflow as the first upload slice. Keep it separate from the
+generic typed row writer: callers upload the file first, receive a Media-cell object,
+then pass that object to `create_typed_database_row` / `upsert_typed_database_row`.
 
 Recommended next tasks:
 
-1. Add a private client proof for v1 single-file upload against Docker.
-2. Verify download, metadata, and delete for the returned `file_id`.
-3. Decide and prove the `parent_dir` convention for database media attachments.
-4. Write a Docker smoke that uploads a tiny disposable file, links it into a Media
-   field as `Cloud`, reads the row back, then deletes both row and blob.
-5. Only then expose public MCP tools, behind write gates and with size limits.
+1. Add multipart upload support for large files if users need it.
+2. Add explicit public size limits and streaming behavior.
+3. Add browser/UI preview evidence if AppFlowy Web reliably renders uploaded media.
 
 Why it matters:
 
@@ -112,4 +115,3 @@ Network media is enough for many task-card use cases. Uploading real files is mo
 valuable, but it crosses into binary payload handling, storage cleanup, and possible
 quota/security concerns. It should be implemented deliberately rather than hidden
 inside a generic row writer.
-
