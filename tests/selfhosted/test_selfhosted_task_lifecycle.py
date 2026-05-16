@@ -396,6 +396,120 @@ def test_selfhosted_organizational_structure_lifecycle() -> None:
             _delete_views(client, workspace_id, created_view_ids)
 
 
+def test_selfhosted_read_surface_smoke() -> None:
+    workspace_id, database_id = _selfhosted_ids()
+
+    with AppFlowyClient() as client:
+        assert client.health_check()["ok"] is True
+
+        profile = client.get_user_profile()
+        assert isinstance(profile.get("email"), str)
+
+        workspace_info = client.get_user_workspace_info()
+        assert isinstance(workspace_info, dict)
+
+        workspaces = client.list_workspaces(include_member_count=True, include_role=True)
+        assert any(item.get("workspace_id") == workspace_id for item in workspaces)
+
+        settings = client.get_workspace_settings(workspace_id)
+        assert isinstance(settings, dict)
+
+        members = client.list_workspace_members(workspace_id)
+        assert isinstance(members, list)
+
+        usage = client.get_workspace_usage(workspace_id)
+        assert isinstance(usage, dict)
+
+        folder = client.get_folder(workspace_id, depth=2)
+        assert isinstance(folder.get("children"), list)
+
+        assert isinstance(client.list_recent_views(workspace_id), list)
+        assert isinstance(client.list_favorite_views(workspace_id), list)
+        assert isinstance(client.list_trash_views(workspace_id), list)
+
+        databases = client.list_databases(workspace_id)
+        assert any(
+            _extract_id(database, "database_id", "id", "databaseId") == database_id
+            for database in databases
+        )
+
+        fields = client.list_database_fields(workspace_id, database_id)
+        field_names = {field.get("name") for field in fields}
+        assert {"Description", "Status"}.issubset(field_names)
+
+        assert isinstance(client.list_database_row_ids(workspace_id, database_id), list)
+        assert isinstance(
+            client.list_updated_database_rows(
+                workspace_id,
+                database_id,
+                after="1970-01-01T00:00:00Z",
+            ),
+            list,
+        )
+        assert client.get_database_row_orders(workspace_id, database_id)
+        assert client.list_select_options(workspace_id, database_id)
+
+        blob_diff = client.get_database_blob_diff_summary(workspace_id, database_id)
+        assert "status_name" in blob_diff
+        assert isinstance(blob_diff.get("rows"), list)
+
+        quick_notes = client.list_quick_notes(workspace_id, limit=5)
+        assert isinstance(quick_notes.get("quick_notes"), list)
+
+        file_usage = client.get_file_storage_usage(workspace_id)
+        assert isinstance(file_usage, dict)
+        assert isinstance(client.list_file_storage_blobs(workspace_id), list)
+
+
+def test_selfhosted_quick_note_lifecycle() -> None:
+    workspace_id, _database_id = _selfhosted_ids()
+    note_id: str | None = None
+    suffix = time.time_ns()
+
+    with AppFlowyClient() as client:
+        try:
+            created = client.create_quick_note(
+                workspace_id,
+                data=[
+                    {
+                        "type": "paragraph",
+                        "delta": {"insert": f"MCP quick note {suffix}"},
+                    }
+                ],
+                dry_run=False,
+            )
+            note_id = _extract_id(created, "quick_note_id", "id")
+
+            def assert_note_visible() -> None:
+                notes = client.list_quick_notes(workspace_id, search_term=str(suffix), limit=10)
+                items = notes.get("quick_notes")
+                assert isinstance(items, list)
+                assert any(item.get("id") == note_id for item in items if isinstance(item, dict))
+
+            _eventually(assert_note_visible)
+
+            updated = client.update_quick_note(
+                workspace_id,
+                note_id,
+                data=[
+                    {
+                        "type": "paragraph",
+                        "delta": {"insert": f"MCP quick note edited {suffix}"},
+                    }
+                ],
+                dry_run=False,
+            )
+            assert updated.get("code") == 0
+
+            deleted = client.delete_quick_note(workspace_id, note_id, dry_run=False)
+            assert deleted.get("code") == 0
+            note_id = None
+        finally:
+            if note_id is not None:
+                with suppress(AppFlowyError):
+                    client.delete_quick_note(workspace_id, note_id, dry_run=False)
+
+
 def test_selfhosted_multi_task_lifecycle_with_updates_and_cleanup() -> None:
     workspace_id, database_id = _selfhosted_ids()
     created_row_ids: list[str] = []
