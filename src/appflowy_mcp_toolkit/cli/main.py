@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import sys
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -10,15 +12,137 @@ from appflowy_mcp_toolkit.client import AppFlowyClient
 from appflowy_mcp_toolkit.formatting import to_json
 
 
+def _run_doctor(*, network: bool) -> dict[str, Any]:  # noqa: C901
+    """Build the doctor report.  Safe offline by default."""
+    import importlib.metadata
+    import importlib.util
+
+    # ---------- package version ----------
+    try:
+        pkg_version = importlib.metadata.version("appflowy-mcp-toolkit")
+    except importlib.metadata.PackageNotFoundError:
+        pkg_version = "unknown (editable install?)"
+
+    # ---------- environment / credentials ----------
+    base_url_raw = os.environ.get("APPFLOWY_BASE_URL", "")
+    token_raw = os.environ.get("APPFLOWY_ACCESS_TOKEN", "")
+    env: dict[str, Any] = {
+        "APPFLOWY_BASE_URL": base_url_raw or "(default: https://beta.appflowy.cloud)",
+        "APPFLOWY_ACCESS_TOKEN_present": bool(token_raw),
+        "APPFLOWY_ALLOW_WRITES": os.environ.get("APPFLOWY_ALLOW_WRITES", "") or "(not set)",
+        "APPFLOWY_ALLOW_COLLAB_WRITES": (
+            os.environ.get("APPFLOWY_ALLOW_COLLAB_WRITES", "") or "(not set)"
+        ),
+    }
+
+    # ---------- runtime basics ----------
+    runtime: dict[str, Any] = {
+        "python_version": sys.version,
+        "python_executable": sys.executable,
+    }
+
+    # ---------- collab helper (local, no network) ----------
+    from appflowy_mcp_toolkit.collab.collab_delete import check_collab_helper_setup
+
+    collab_setup = check_collab_helper_setup()
+
+    # ---------- MCP server import ----------
+    mcp_available = importlib.util.find_spec("mcp") is not None
+    mcp_import_error: str | None
+    try:
+        import appflowy_mcp_toolkit.mcp.server  # noqa: F401
+
+        mcp_server_importable = True
+    except Exception as exc:  # pragma: no cover
+        mcp_server_importable = False
+        mcp_import_error = str(exc)
+    else:
+        mcp_import_error = None
+
+    mcp_info: dict[str, Any] = {
+        "mcp_package_available": mcp_available,
+        "mcp_server_importable": mcp_server_importable,
+    }
+    if mcp_import_error is not None:
+        mcp_info["mcp_import_error"] = mcp_import_error
+
+    # ---------- optional network check ----------
+    network_result: dict[str, Any] | None = None
+    if network:
+        if not token_raw:
+            network_result = {
+                "ok": False,
+                "error": "APPFLOWY_ACCESS_TOKEN is not set; cannot perform network check",
+            }
+        else:
+            try:
+                with AppFlowyClient() as client:
+                    network_result = client.health_check()
+            except Exception as exc:
+                network_result = {"ok": False, "error": str(exc)}
+
+    # ---------- recommended actions ----------
+    actions: list[str] = []
+    if not token_raw:
+        actions.append(
+            "Set APPFLOWY_ACCESS_TOKEN to your AppFlowy personal token to enable API commands."
+        )
+    if not base_url_raw:
+        actions.append(
+            "Set APPFLOWY_BASE_URL if you are using a self-hosted instance "
+            "(default is https://beta.appflowy.cloud)."
+        )
+    if not collab_setup.get("ok"):
+        actions.append(
+            "Run: " + collab_setup.get("install_command", "npm install in the collab helper dir")
+        )
+    if not mcp_available:
+        actions.append(
+            "Install or reinstall the package so the MCP server dependency is available: "
+            "pipx install --force appflowy-mcp-toolkit"
+        )
+    if not actions:
+        actions.append("All checks passed. Run `appflowy-toolkit workspaces` to get started.")
+
+    report: dict[str, Any] = {
+        "version": pkg_version,
+        "runtime": runtime,
+        "env": env,
+        "collab_helper": collab_setup,
+        "mcp": mcp_info,
+        "next_steps": actions,
+    }
+    if network:
+        report["network_check"] = network_result
+    return report
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="appflowy-toolkit")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    doctor = sub.add_parser(
+        "doctor",
+        description=(
+            "Check local installation, environment, and optional network connectivity. "
+            "Safe to run offline; does not require AppFlowy credentials by default."
+        ),
+    )
+    doctor.add_argument(
+        "--network",
+        "--check-appflowy",
+        action="store_true",
+        default=False,
+        dest="network",
+        help="Also call health_check via AppFlowyClient (requires APPFLOWY_ACCESS_TOKEN).",
+    )
 
     sub.add_parser("health")
     sub.add_parser(
         "setup-check",
         description=(
-            "Check local runtime setup for optional collab/Yjs commands. "
+            "Check local collab/Yjs helper setup only. "
+            "Alias for the collab section of `doctor`. "
             "Does not require AppFlowy credentials or network access."
         ),
     )
@@ -618,6 +742,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "doctor":
+        print(to_json(_run_doctor(network=args.network)))
+        return 0
+
     if args.command == "setup-check":
         from appflowy_mcp_toolkit.collab.collab_delete import check_collab_helper_setup
 

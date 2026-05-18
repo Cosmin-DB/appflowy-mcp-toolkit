@@ -6,15 +6,167 @@ import httpx
 
 from appflowy_mcp_toolkit.cli.main import main
 
+# ---------------------------------------------------------------------------
+# doctor tests
+# ---------------------------------------------------------------------------
+
+
+def test_doctor_offline_no_client(monkeypatch, capsys):
+    """doctor without --network must not instantiate AppFlowyClient."""
+    from unittest.mock import patch as _patch
+
+    monkeypatch.delenv("APPFLOWY_ACCESS_TOKEN", raising=False)
+    monkeypatch.delenv("APPFLOWY_BASE_URL", raising=False)
+
+    collab_stub = {"ok": False, "checks": {}}
+
+    with (
+        _patch(
+            "appflowy_mcp_toolkit.collab.collab_delete.check_collab_helper_setup",
+            return_value=collab_stub,
+        ),
+        _patch(
+            "appflowy_mcp_toolkit.cli.main.AppFlowyClient",
+            side_effect=AssertionError("doctor must not create a client without --network"),
+        ),
+    ):
+        rc = main(["doctor"])
+
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert "version" in out
+    assert "env" in out
+    assert "collab_helper" in out
+    assert "mcp" in out
+    assert "network_check" not in out  # only present with --network
+
+
+def test_doctor_masks_token_value(monkeypatch, capsys):
+    """doctor must report only a boolean for APPFLOWY_ACCESS_TOKEN, never its value."""
+    from unittest.mock import patch as _patch
+
+    monkeypatch.setenv("APPFLOWY_ACCESS_TOKEN", "super-secret-token")
+    monkeypatch.setenv("APPFLOWY_BASE_URL", "https://my.selfhosted.example")
+
+    with _patch(
+        "appflowy_mcp_toolkit.collab.collab_delete.check_collab_helper_setup",
+        return_value={"ok": True, "checks": {}},
+    ):
+        rc = main(["doctor"])
+
+    assert rc == 0
+    raw = capsys.readouterr().out
+    # Token value must not appear anywhere in the output
+    assert "super-secret-token" not in raw
+    out = json.loads(raw)
+    assert out["env"]["APPFLOWY_ACCESS_TOKEN_present"] is True
+    assert out["env"]["APPFLOWY_BASE_URL"] == "https://my.selfhosted.example"
+
+
+def test_doctor_token_absent_reports_false(monkeypatch, capsys):
+    from unittest.mock import patch as _patch
+
+    monkeypatch.delenv("APPFLOWY_ACCESS_TOKEN", raising=False)
+
+    with _patch(
+        "appflowy_mcp_toolkit.collab.collab_delete.check_collab_helper_setup",
+        return_value={"ok": False, "checks": {}},
+    ):
+        rc = main(["doctor"])
+
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["env"]["APPFLOWY_ACCESS_TOKEN_present"] is False
+
+
+def test_doctor_with_network_calls_health_check(monkeypatch, capsys):
+    """doctor --network must call health_check via AppFlowyClient."""
+    from unittest.mock import MagicMock
+    from unittest.mock import patch as _patch
+
+    monkeypatch.setenv("APPFLOWY_ACCESS_TOKEN", "test-token")
+    monkeypatch.setenv("APPFLOWY_BASE_URL", "https://example.test")
+
+    health_result = {"ok": True, "code": 0}
+    mock_client = MagicMock()
+    mock_client.__enter__ = MagicMock(return_value=mock_client)
+    mock_client.__exit__ = MagicMock(return_value=False)
+    mock_client.health_check.return_value = health_result
+
+    with (
+        _patch(
+            "appflowy_mcp_toolkit.collab.collab_delete.check_collab_helper_setup",
+            return_value={"ok": True, "checks": {}},
+        ),
+        _patch(
+            "appflowy_mcp_toolkit.cli.main.AppFlowyClient",
+            return_value=mock_client,
+        ),
+    ):
+        rc = main(["doctor", "--network"])
+
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["network_check"] == health_result
+    mock_client.health_check.assert_called_once()
+
+
+def test_doctor_network_without_token_returns_error(monkeypatch, capsys):
+    """doctor --network without a token must report an error, not crash."""
+    from unittest.mock import patch as _patch
+
+    monkeypatch.delenv("APPFLOWY_ACCESS_TOKEN", raising=False)
+
+    with (
+        _patch(
+            "appflowy_mcp_toolkit.collab.collab_delete.check_collab_helper_setup",
+            return_value={"ok": False, "checks": {}},
+        ),
+        _patch(
+            "appflowy_mcp_toolkit.cli.main.AppFlowyClient",
+            side_effect=AssertionError("must not create client when token absent"),
+        ),
+    ):
+        rc = main(["doctor", "--network"])
+
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["network_check"]["ok"] is False
+    assert "APPFLOWY_ACCESS_TOKEN" in out["network_check"]["error"]
+
+
+def test_doctor_next_steps_present(monkeypatch, capsys):
+    """next_steps list must always be present and non-empty."""
+    from unittest.mock import patch as _patch
+
+    monkeypatch.delenv("APPFLOWY_ACCESS_TOKEN", raising=False)
+    monkeypatch.delenv("APPFLOWY_BASE_URL", raising=False)
+
+    with _patch(
+        "appflowy_mcp_toolkit.collab.collab_delete.check_collab_helper_setup",
+        return_value={"ok": False, "checks": {}},
+    ):
+        main(["doctor"])
+
+    out = json.loads(capsys.readouterr().out)
+    assert isinstance(out["next_steps"], list)
+    assert len(out["next_steps"]) > 0
+
+
+# ---------------------------------------------------------------------------
+# setup-check tests (unchanged behaviour)
+# ---------------------------------------------------------------------------
+
 
 def _patch_client(monkeypatch, handler):
     """Patch httpx.Client in the client module to use a mock transport."""
+    import httpx as _httpx
     from appflowy_mcp_toolkit import client as client_module
 
-    original = client_module.httpx.Client
+    _real_client = _httpx.Client  # always the real class, regardless of prior patches
 
     def fake_client(*_args, **_kwargs):
-        return original(transport=httpx.MockTransport(handler))
+        return _real_client(transport=_httpx.MockTransport(handler))
 
     monkeypatch.setenv("APPFLOWY_BASE_URL", "https://example.test")
     monkeypatch.setenv("APPFLOWY_ACCESS_TOKEN", "test-token")
