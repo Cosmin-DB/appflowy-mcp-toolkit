@@ -73,6 +73,16 @@ ordered by practical risk and protocol maturity.
   flags (`debug`, `advanced`, `include_raw`) so agents do not call broad or raw
   diagnostics by accident.
 
+## Adoption / Client Guides
+
+- [P1] Add dedicated installation/configuration guides for common AI clients:
+  Codex, Claude Code, Claude Desktop, Cursor, Windsurf/Cline, and generic MCP
+  stdio clients. Each guide should show the recommended install path
+  (`pipx`, `uv tool`, or `uvx`), the exact MCP command/config shape, required
+  environment variables, write-gate flags, and a quick verification command.
+  Keep secrets out of examples and call out client-specific caveats where we
+  can test them.
+
 ## View Organization
 
 - Keep view-configs read-only as the default diagnostic tool.
