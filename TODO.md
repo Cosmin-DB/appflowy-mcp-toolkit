@@ -50,8 +50,28 @@ ordered by practical risk and protocol maturity.
   All annotations now use ToolAnnotations objects (no more dict type-ignore casts).
 - [DONE] Add protocol-level tool error tests. Verified that FastMCP wraps AppFlowyError
   as ToolError (not a protocol crash). Tests in test_mcp_annotations_errors.py.
-- [P3] Consider structured MCP responses for high-value tools while preserving
-  text/JSON compatibility for clients that expect the current shape.
+- [P0] Make the MCP server rate limiter shared per server process, not per
+  short-lived `AppFlowyClient`, so limits apply across tool calls in the same
+  MCP process. Keep client-level limits as a fallback, but enforce shared server
+  buckets for real protocol usage.
+- [P0] Add structured MCP responses (`structuredContent`) for high-value tools
+  while preserving text/JSON compatibility for clients that expect the current
+  shape. Start with: `list_tasks`, `get_database_rows`,
+  `verify_database_row`, `create_task`, `publish_page`, `list_templates`, and
+  `get_database_view_configs`.
+- [P0] Add MCP error-handling tests for `AppFlowyError`, auth failures,
+  rate-limit failures, write-gate failures, and local-file-read-gate failures.
+  The server should return clean tool errors, not crash or leak traceback-shaped
+  protocol responses.
+- [P1] Strengthen public input validation: UUID-like ids where appropriate,
+  max lengths for names/descriptions/publish slugs, enum validation for layouts,
+  collab types, field/status operations, and pagination parameters.
+- [P1] Improve pagination and explicit limits for large-output tools: rows,
+  search, folder tree, templates, and collab diagnostics. Do not rely only on
+  final-output truncation.
+- [P1] Consolidate advanced/diagnostic tools behind clearer naming or explicit
+  flags (`debug`, `advanced`, `include_raw`) so agents do not call broad or raw
+  diagnostics by accident.
 
 ## View Organization
 
@@ -67,18 +87,19 @@ These are useful for people who use AppFlowy as a document workspace, but they
 are not required for the current task-board use case. Do not market the current
 raw block route as polished page/Markdown editing support.
 
-- Current status: page/view organization exists, but document-body workflows are
-  backlog. The existing raw append-block route is a low-level primitive, not a
-  complete document editor.
-- Add optional AI-friendly wrappers over the existing raw append-block route:
+- Current status: page/view organization exists and `append_page_markdown` is
+  supported, but full document-body workflows remain backlog. The existing raw
+  append-block route is a low-level primitive, not a complete document editor.
+- [P1] Add page read helpers that summarize a page into plain text or
+  markdown-like structure for an AI agent:
+  - fetch_page_markdown
+- [P1] Add replace-page Markdown workflow only after safe round-trip tests:
+  - replace_page_markdown
+- [P2] Add optional AI-friendly wrappers over the existing raw append-block route:
   append paragraph, heading, bullet list, numbered list, checklist, quote, and
   divider.
-- Add page read helpers that summarize a page into plain text or markdown-like
-  structure for an AI agent:
-  - fetch_page_markdown
-  - append_page_markdown
-  - replace_page_markdown
-- Defer deep document editing: update block, delete block, move block, convert
+- [P2] Defer deep document editing until there are fixtures and browser proof:
+  update block, delete block, insert block, move block, convert
   block type, and arbitrary Yjs document transactions. These need separate
   collab research, unit fixtures over Yjs documents, self-hosted proof, and
   browser proof.
@@ -87,7 +108,7 @@ raw block route as polished page/Markdown editing support.
 
 Do not implement these casually:
 
-- publishing and public sharing
+- broad publishing and public sharing beyond the currently gated publish/unpublish
 - member, invite, access request, and admin workflows
 - import/export workflows with external side effects
 - AppFlowy AI/chat automation
@@ -95,6 +116,19 @@ Do not implement these casually:
 
 These areas either affect other people, make data public, depend on product/AI
 services, or require policy decisions beyond a normal task-board MCP.
+
+- [P1] Add a separate external-content gate, for example
+  `APPFLOWY_ALLOW_EXTERNAL_CONTENT_IMPORTS=true`, before duplicating/importing
+  content from outside the user's own trusted workspace. Apply it to
+  `duplicate_published_page` / `instantiate_template` if the source provenance
+  is not clearly local/trusted.
+- [P1] Complete Quick Notes investigation. Current AppFlowy Cloud smoke showed
+  create/update/delete return success, but `quick-notes` list remains empty.
+  Do not call Quick Notes end-user-ready until the product/list behavior is
+  understood and tested.
+- [P2] Add targeted self-hosted/cloud smoke tests for publishing, templates,
+  append Markdown, and Quick Notes where the deployment supports them. Keep
+  data-plane assertions separate from browser/UI assertions.
 
 ## Design Rule
 
