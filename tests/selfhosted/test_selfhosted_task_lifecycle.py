@@ -731,7 +731,13 @@ def test_selfhosted_status_option_add_rename_hide_show_collab(
 
         def assert_hidden() -> None:
             visible_values = _group_visibility(
-                client.get_collab_json(workspace_id, database_id, collab_type="Database"),
+                client.get_collab_json(
+                    workspace_id,
+                    database_id,
+                    collab_type="Database",
+                    summary_only=False,
+                    include_raw=True,
+                ),
                 option_id,
             )
             assert visible_values
@@ -750,7 +756,13 @@ def test_selfhosted_status_option_add_rename_hide_show_collab(
 
         def assert_shown() -> None:
             visible_values = _group_visibility(
-                client.get_collab_json(workspace_id, database_id, collab_type="Database"),
+                client.get_collab_json(
+                    workspace_id,
+                    database_id,
+                    collab_type="Database",
+                    summary_only=False,
+                    include_raw=True,
+                ),
                 option_id,
             )
             assert visible_values
@@ -827,11 +839,13 @@ def test_selfhosted_typed_scalar_field_lifecycle() -> None:
             _delete_created(client, workspace_id, database_id, created_row_ids)
 
 
-def test_selfhosted_media_upload_lifecycle(tmp_path: Path) -> None:
+def test_selfhosted_media_upload_lifecycle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     workspace_id, database_id = _selfhosted_ids()
     suffix = time.time_ns()
     source = tmp_path / "mcp-media.txt"
     source.write_text(f"media payload {suffix}", encoding="utf-8")
+    monkeypatch.setenv("APPFLOWY_ALLOW_LOCAL_FILE_READS", "true")
+    monkeypatch.setenv("APPFLOWY_ALLOWED_FILE_ROOTS", str(tmp_path))
     created_row_ids: list[str] = []
     uploaded_file_id: str | None = None
 

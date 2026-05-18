@@ -2919,6 +2919,14 @@ class AppFlowyClient:
             refresh_token=response.get("refresh_token") or self.config.refresh_token,
             timeout_seconds=self.config.timeout_seconds,
             allow_writes=self.config.allow_writes,
+            allow_publish_writes=self.config.allow_publish_writes,
+            allow_local_file_reads=self.config.allow_local_file_reads,
+            allowed_file_roots=self.config.allowed_file_roots,
+            rate_limit_enabled=self.config.rate_limit_enabled,
+            rate_limit_calls_per_minute=self.config.rate_limit_calls_per_minute,
+            rate_limit_writes_per_minute=self.config.rate_limit_writes_per_minute,
+            rate_limit_blob_collab_per_minute=self.config.rate_limit_blob_collab_per_minute,
+            rate_limit_max_concurrent=self.config.rate_limit_max_concurrent,
         )
 
     def _url(self, path: str) -> str:
