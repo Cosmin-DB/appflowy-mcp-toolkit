@@ -12,7 +12,8 @@ The matrix is intentionally split into three states:
 ## Current Summary
 
 The toolkit is strong for database-backed task boards, page/view organization, and local
-self-hosted AppFlowy smoke testing. It is not a full AppFlowy administration MCP.
+self-hosted AppFlowy smoke testing. It is not a full AppFlowy administration MCP, and it
+does not yet offer polished document/page Markdown editing.
 
 Approximate coverage by object family:
 
@@ -21,6 +22,7 @@ Approximate coverage by object family:
 | Server/user read | basic read | high |
 | Workspaces read/basic create | medium-high | high for read/create, low for admin |
 | Folder/view/page read | high | high for tree/page read, medium for mutations |
+| Document/page Markdown editing | backlog | current raw append-block primitive is not a user-facing document workflow |
 | Database schema/rows/tasks | high | high for task lifecycle data plane |
 | Database fields | medium | read/create done, field-type payloads are caller supplied |
 | Database typed fields | high | most task-card/scalar fields and Media uploads covered; relation/translate deferred |
@@ -40,7 +42,7 @@ Approximate coverage by object family:
 | Workspace | list/settings/members/usage implemented | create implemented, dry-run default | patch/open routes exist | delete/leave/member removal routes exist | partial | Keep destructive admin gated or deferred |
 | Space | folder tree shows spaces | create space implemented dry-run default | update space implemented dry-run default | via page/view trash/delete semantics | implemented except dedicated delete | Add self-hosted org-structure smoke next |
 | Folder/view/page tree | get folder/page-view implemented | folder-view/page-view create, duplicate, database-view implemented dry-run default | update/rename/favorite/reorder/move implemented dry-run default | trash/restore/delete-trashed and bulk trash ops implemented dry-run default | broad page/view surface implemented and self-hosted page lifecycle smoke added | Full browser UI automation remains separate |
-| Document/page body | row document text supported on row create/detail | append-block implemented dry-run default | collab/document updates are deeper | trash via page-view routes | partial | Defer full block editor |
+| Document/page body | row document text supported on row create/detail | raw append-block implemented dry-run default | collab/document updates are deeper | trash via page-view routes | backlog/primitive | Do not present as Markdown/page editing yet; defer friendly helpers and full block editor |
 | Database list | list databases implemented | database-view route exists | view/layout routes likely collab-backed | page-view trash/delete | partial | Add database-view creation only after page/view work |
 | Database fields | list fields implemented | create field implemented dry-run default | no safe update/delete route confirmed from matrix yet | no safe delete route confirmed | partial | Add friendly field-type builders later; raw payload route exists now |
 | Database rows | list ids/details implemented | create/upsert implemented | upsert/update, status move, and row-id collab update implemented | no REST delete; Yjs row-order delete implemented | high | Broaden field type tests and keep collab mutations narrowly scoped |
@@ -83,6 +85,9 @@ Approximate coverage by object family:
    - Read/update page name/icon/extra. **Done, dry-run default for writes.**
    - Move page. **Done, dry-run default, self-hosted smoke covered.**
    - Move to trash / restore from trash / delete from trash with gates. **Single-page and bulk routes done, dry-run default; single-page path covered by self-hosted smoke.**
+   - Keep document-body/Markdown editing separate from page organization. Friendly
+     page Markdown tools are backlog until they have Yjs fixtures, self-hosted
+     proof, and browser proof.
 
 4. **Database/field expansion**
    - Database view creation if payload is stable.

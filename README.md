@@ -12,9 +12,10 @@ folder/page/database structure, create and move task cards, write typed database
 upload media, and verify changes against a disposable self-hosted AppFlowy stack before
 touching real data.
 
-Status: pre-1.0 release candidate. Core task, page/view, metadata, file-storage,
-diagnostic, and guarded write paths are implemented with offline, self-hosted Docker,
-and browser smoke coverage.
+Status: pre-1.0 release candidate. Core task, page/view organization, metadata,
+file-storage, diagnostic, and guarded write paths are implemented with offline,
+self-hosted Docker, and browser smoke coverage. Polished document/page Markdown
+editing is not supported yet; it is tracked as backlog.
 
 ## Why This Exists
 
@@ -53,6 +54,8 @@ Intentionally deferred:
 - No Notion migration.
 - No broad delete/admin/invite tools.
 - No publishing/sharing/member-management mutations in the first public slice.
+- No polished document/page Markdown editing yet. Page/view organization exists;
+  document body editing is limited to low-level primitives and backlog notes.
 - No AI/chat workflow automation yet.
 - No personal workflow assumptions.
 - No secrets, workspace IDs, emails, or private fixtures committed.

@@ -31,16 +31,24 @@ ambiguous choices behind heuristics.
 ## Page / Document Workflows
 
 These are useful for people who use AppFlowy as a document workspace, but they
-are not required for the current task-board use case.
+are not required for the current task-board use case. Do not market the current
+raw block route as polished page/Markdown editing support.
 
+- Current status: page/view organization exists, but document-body workflows are
+  backlog. The existing raw append-block route is a low-level primitive, not a
+  complete document editor.
 - Add optional AI-friendly wrappers over the existing raw append-block route:
   append paragraph, heading, bullet list, numbered list, checklist, quote, and
   divider.
 - Add page read helpers that summarize a page into plain text or markdown-like
-  structure for an AI agent.
+  structure for an AI agent:
+  - fetch_page_markdown
+  - append_page_markdown
+  - replace_page_markdown
 - Defer deep document editing: update block, delete block, move block, convert
   block type, and arbitrary Yjs document transactions. These need separate
-  collab research and browser proof.
+  collab research, unit fixtures over Yjs documents, self-hosted proof, and
+  browser proof.
 
 ## Deferred Product Areas
 
@@ -71,4 +79,3 @@ Avoid:
 - clean this board however you think
 - silently choosing among duplicates
 - broad mutation endpoints that accept internal AppFlowy JSON without guardrails
-
