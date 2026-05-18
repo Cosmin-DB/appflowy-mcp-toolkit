@@ -32,10 +32,9 @@ ordered by practical risk and protocol maturity.
   as APPFLOWY_ALLOWED_FILE_ROOTS, reject paths outside those roots, handle
   traversal/symlink cases, and make dry-run use metadata (stat) instead of
   read_bytes().
-- [P1] Stop returning invalid truncated JSON. compact() should never cut JSON
-  into a string that looks parseable but is not. Return a structured wrapper
-  with truncated: true, the limit used, and guidance to narrow/paginate the
-  request.
+- [DONE] Stop returning invalid truncated JSON. compact() returns a valid JSON
+  wrapper with truncated: true, the limit, original_chars, a preview string, and
+  guidance when output exceeds max_chars.
 - [P1] Make raw collab diagnostics explicit and safer. Keep the diagnostic
   capability, but expose safe defaults such as summary_only=true and
   include_raw=false; require an explicit raw flag for large internal collab

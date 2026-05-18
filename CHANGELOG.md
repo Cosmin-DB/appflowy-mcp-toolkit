@@ -24,6 +24,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Both gates apply equally to `upload_file_as_media` via delegation.
   - 17 new unit tests in `tests/unit/test_local_upload_hardening.py`.
 
+- **compact() truncation fix**: when output exceeds `max_chars`, `compact()`
+  now returns a valid JSON object with `truncated: true`, `max_chars`,
+  `original_chars`, a `preview` string, and `guidance` — never a raw
+  cut JSON substring. Existing callers and MCP tools are unaffected for
+  payloads within the limit.
+
 ### Added
 
 - **`duplicate_published_page` / `instantiate_template`** …(previous entry)…
