@@ -105,3 +105,46 @@ Validated 2026-05-16 against the local Docker stack: login + To-dos Grid renderi
 passes. The row-rendering test first proves the MCP-created row at the data plane,
 then checks AppFlowy Web Grid. Missing Grid rendering fails the test instead of being
 hidden behind a data-plane-only pass.
+
+## Board Acceptance Coverage (added 2026-05-18)
+
+`tests/browser/test_appflowy_web_board_acceptance.py` adds three opt-in tests:
+
+| Test | Assertion |
+|---|---|
+| `test_board_shows_created_task_after_grid_warmup` | Row description visible in Board body text after Grid warm-up |
+| `test_board_reflects_status_move_after_grid_warmup` | Row + new status column both visible on Board after collab move |
+| `test_board_row_reorder_data_plane_and_grid_presence` | Data-plane row order confirmed; both rows present in Grid |
+
+### Board tab label
+
+The Board tab label is resolved at runtime via `list_databases` (e.g. `"To-dos"`
+in the self-hosted fixture, not a literal `"Board"` string).  Tests are therefore
+independent of the human-readable view name.
+
+### Board warm-up pattern
+
+AppFlowy Web Board renders stale/empty state on direct navigation for freshly
+created rows.  The established pattern — navigate → click Grid tab → click Board
+tab — is required before Board card assertions are reliable.
+
+### Gap: Board visual row ordering
+
+Row reorder (`reorder_database_row_collab`) is confirmed at the data-plane via
+`get_database_row_orders`.  The test does **not** assert the visual card order in
+Board, and does not assert description text positions in Grid body text.
+
+Reason: `page.locator("body").inner_text()` serialises the Grid table as a flat
+string where column-header rows appear before data rows.  When two descriptions
+share a common prefix (e.g. `"Reorder-A …"` / `"Reorder-B …"`), the header
+cell order dominates the string index, making position-based assertions
+unreliable without a stable row-scoped DOM selector.
+
+A reliable browser reorder assertion would require:
+- Querying each row's bounding box (`locator('[data-row-id=…]').bounding_box()`),
+  or
+- Using the AppFlowy Web DOM structure to scope description text to individual
+  row elements.
+
+This is deferred until the self-hosted AppFlowy Web DOM exposes a stable
+`data-row-id` or equivalent attribute that Playwright can target.
