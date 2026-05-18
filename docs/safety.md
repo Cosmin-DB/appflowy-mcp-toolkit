@@ -1,6 +1,6 @@
 # Safety
 
-This project is read-first, with opt-in write tools that are strictly guarded.
+This project is read-first, with write tools that require explicit opt-in.
 
 ## Secrets
 
