@@ -57,8 +57,15 @@ def _app_url() -> str:
 
 def _login(page: Any, email: str, password: str) -> None:
     page.goto(_app_url(), wait_until="networkidle", timeout=30_000)
-    if "/login" not in page.url:
-        return
+    page.wait_for_timeout(1_000)
+    if page.get_by_placeholder("Please enter your email address").count() == 0:
+        body_text = page.locator("body").inner_text(timeout=10_000)
+        if "/login" not in page.url and "Welcome to AppFlowy" not in body_text:
+            return
+        page.goto(
+            f"{_app_url().rsplit('/app', 1)[0]}/login", wait_until="networkidle", timeout=30_000
+        )
+        page.wait_for_timeout(1_000)
     page.get_by_placeholder("Please enter your email address").fill(email)
     page.get_by_role("button", name="Continue with password").click()
     page.get_by_placeholder("Enter password").fill(password)
@@ -68,14 +75,32 @@ def _login(page: Any, email: str, password: str) -> None:
 
 def _open_todos(page: Any, workspace_id: str, database_id: str) -> None:
     view_id = _database_view_id(workspace_id, database_id)
-    page.goto(f"{_app_url()}/{workspace_id}/{view_id}", wait_until="networkidle", timeout=30_000)
-    page.wait_for_timeout(3_000)
+    target_url = f"{_app_url()}/{workspace_id}/{view_id}"
+    last_text = ""
+    for _attempt in range(3):
+        page.goto(target_url, wait_until="networkidle", timeout=30_000)
+        page.wait_for_timeout(3_000)
+        last_text = page.locator("body").inner_text(timeout=10_000)
+        if "404 Not Found" not in last_text and "Page not found" not in last_text:
+            return
+        page.wait_for_timeout(1_000)
+    raise AssertionError(f"Could not open To-dos view {view_id}: {last_text[:200]}")
 
 
 def _open_grid(page: Any) -> str:
-    _click_visible_text(page, "Grid")
+    if _visible_text_count(page, "Grid") > 0:
+        _click_visible_text(page, "Grid")
     page.wait_for_timeout(3_000)
     return page.locator("body").inner_text(timeout=10_000)
+
+
+def _visible_text_count(page: Any, text: str) -> int:
+    locator = page.get_by_text(text, exact=True)
+    count = 0
+    for index in range(locator.count()):
+        if locator.nth(index).bounding_box(timeout=1_000) is not None:
+            count += 1
+    return count
 
 
 def _click_visible_text(page: Any, text: str) -> None:
@@ -96,6 +121,14 @@ def _database_view_id(workspace_id: str, database_id: str) -> str:
             views = database.get("views")
             if not isinstance(views, list) or not views:
                 break
+            for view in views:
+                if (
+                    isinstance(view, dict)
+                    and view.get("layout") == 0
+                    and not view.get("is_inline")
+                    and isinstance(view.get("view_id"), str)
+                ):
+                    return view["view_id"]
             first_view = views[0]
             if isinstance(first_view, dict) and isinstance(first_view.get("view_id"), str):
                 return first_view["view_id"]

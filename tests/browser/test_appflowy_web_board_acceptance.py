@@ -481,6 +481,36 @@ def test_board_column_reorder_data_plane_and_browser_presence(
             if not isinstance(anchor_name, str):
                 pytest.skip("Could not resolve anchor Status group name for browser assertion")
 
+            client.reorder_database_column_collab(
+                workspace_id,
+                database_id,
+                board_view_id,
+                field_id,
+                option_id,
+                before_group_id=None,
+                dry_run=False,
+            )
+            order_before = _board_group_order(
+                client,
+                workspace_id,
+                database_id,
+                view_id=board_view_id,
+                field_id=field_id,
+            )
+            anchor_id = next(
+                (
+                    group_id
+                    for group_id in order_before
+                    if group_id != option_id and group_id in options_by_id
+                ),
+                None,
+            )
+            if anchor_id is None:
+                pytest.skip("Need at least one existing Status option group for column reorder")
+            anchor_name = options_by_id.get(anchor_id)
+            if not isinstance(anchor_name, str):
+                pytest.skip("Could not resolve anchor Status group name for browser assertion")
+
             moved = client.reorder_database_column_collab(
                 workspace_id,
                 database_id,
