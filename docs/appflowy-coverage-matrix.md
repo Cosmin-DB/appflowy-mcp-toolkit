@@ -124,7 +124,7 @@ Evidence vocabulary:
 | Collab diagnostics | `get_collab_json` summary-only by default; raw requires explicit flag |
 | Rate limiting | MCP server process-wide sliding-window buckets plus per-client fallback for CLI/direct use; default-on; controlled by `APPFLOWY_RATE_LIMIT_*` |
 | MCP tool annotations | All tools use `ToolAnnotations` with `destructiveHint`, `openWorldHint`, `idempotentHint` |
-| Protocol error wrapping | FastMCP wraps `AppFlowyError` → `ToolError` at tool boundary (confirmed by tests) |
+| Protocol error wrapping | FastMCP wraps `AppFlowyError`, auth, rate-limit, write-gate, and local-file gate failures as clean `ToolError`s at the tool boundary |
 
 ## Safety Rules For Broad Coverage
 

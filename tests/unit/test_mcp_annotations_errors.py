@@ -19,7 +19,7 @@ from unittest.mock import patch
 
 import pytest
 
-from appflowy_mcp_toolkit.errors import AppFlowyAuthError, AppFlowyError
+from appflowy_mcp_toolkit.errors import AppFlowyAuthError, AppFlowyError, AppFlowyRateLimitError
 from appflowy_mcp_toolkit.mcp.server import mcp
 
 try:
@@ -173,6 +173,18 @@ def test_read_tool_auth_error_becomes_tool_error():
     assert "invalid token" in str(exc_info.value)
 
 
+def test_read_tool_rate_limit_error_becomes_tool_error():
+    """Rate-limit failures must be clean tool errors, not server crashes."""
+    with patch("appflowy_mcp_toolkit.mcp.server.AppFlowyClient") as cls:
+        cls.return_value.__enter__.return_value.list_workspaces.side_effect = (
+            AppFlowyRateLimitError("Rate limit exceeded: overall calls per minute")
+        )
+        with pytest.raises(ToolError) as exc_info:
+            asyncio.run(mcp.call_tool("appflowy_list_workspaces", {}))
+
+    assert "Rate limit exceeded" in str(exc_info.value)
+
+
 def test_write_tool_appflowy_error_becomes_tool_error():
     """A dry-run write tool that raises AppFlowyError must surface as ToolError."""
     with patch("appflowy_mcp_toolkit.mcp.server.AppFlowyClient") as cls:
@@ -193,6 +205,56 @@ def test_write_tool_appflowy_error_becomes_tool_error():
             )
 
     assert "workspace not found" in str(exc_info.value)
+
+
+def test_live_write_gate_error_becomes_tool_error(monkeypatch: pytest.MonkeyPatch):
+    """Closed write gates should surface as tool errors with actionable text."""
+    monkeypatch.setenv("APPFLOWY_BASE_URL", "https://example.test")
+    monkeypatch.setenv("APPFLOWY_ACCESS_TOKEN", "tok")
+    monkeypatch.delenv("APPFLOWY_ALLOW_WRITES", raising=False)
+    monkeypatch.delenv("APPFLOWY_ALLOW_PUBLISH_WRITES", raising=False)
+    monkeypatch.setenv("APPFLOWY_RATE_LIMIT_ENABLED", "false")
+
+    with pytest.raises(ToolError) as exc_info:
+        asyncio.run(
+            mcp.call_tool(
+                "appflowy_publish_page",
+                {"workspace_id": "ws-1", "view_id": "view-1", "dry_run": False},
+            )
+        )
+
+    message = str(exc_info.value)
+    assert "APPFLOWY_ALLOW_WRITES" in message
+    assert "Traceback" not in message
+
+
+def test_local_file_read_gate_error_becomes_tool_error(monkeypatch: pytest.MonkeyPatch, tmp_path):
+    """Closed local-file gate should surface as a clean MCP tool error."""
+    test_file = tmp_path / "upload.txt"
+    test_file.write_text("hello", encoding="utf-8")
+    monkeypatch.setenv("APPFLOWY_BASE_URL", "https://example.test")
+    monkeypatch.setenv("APPFLOWY_ACCESS_TOKEN", "tok")
+    monkeypatch.setenv("APPFLOWY_ALLOW_WRITES", "true")
+    monkeypatch.delenv("APPFLOWY_ALLOW_LOCAL_FILE_READS", raising=False)
+    monkeypatch.delenv("APPFLOWY_ALLOWED_FILE_ROOTS", raising=False)
+    monkeypatch.setenv("APPFLOWY_RATE_LIMIT_ENABLED", "false")
+
+    with pytest.raises(ToolError) as exc_info:
+        asyncio.run(
+            mcp.call_tool(
+                "appflowy_upload_file_as_media",
+                {
+                    "workspace_id": "ws-1",
+                    "database_id": "db-1",
+                    "file_path": str(test_file),
+                    "dry_run": True,
+                },
+            )
+        )
+
+    message = str(exc_info.value)
+    assert "APPFLOWY_ALLOW_LOCAL_FILE_READS" in message
+    assert "Traceback" not in message
 
 
 def test_destructive_tool_error_becomes_tool_error():

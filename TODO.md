@@ -59,10 +59,10 @@ ordered by practical risk and protocol maturity.
   `verify_database_row`, `create_task`, `publish_page`, `list_templates`, and
   `get_database_view_configs`; list-like payloads are exposed as
   `{"result": [...]}` because MCP structured content must be a JSON object.
-- [P0] Add MCP error-handling tests for `AppFlowyError`, auth failures,
+- [DONE] Add MCP error-handling tests for `AppFlowyError`, auth failures,
   rate-limit failures, write-gate failures, and local-file-read-gate failures.
-  The server should return clean tool errors, not crash or leak traceback-shaped
-  protocol responses.
+  The server returns clean FastMCP tool errors, not raw exceptions or
+  traceback-shaped protocol responses.
 - [P1] Strengthen public input validation: UUID-like ids where appropriate,
   max lengths for names/descriptions/publish slugs, enum validation for layouts,
   collab types, field/status operations, and pagination parameters.
