@@ -578,6 +578,32 @@ def appflowy_append_blocks_to_page(
         )
 
 
+@mcp.tool(name="appflowy_append_markdown_to_page", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_append_markdown_to_page(
+    workspace_id: str,
+    view_id: str,
+    markdown: str,
+    dry_run: bool = True,
+) -> str:
+    """Convert Markdown to AppFlowy blocks and append to a page.
+
+    Supports: paragraphs, # through ###### headings, - / * / + unordered
+    lists, N. ordered lists, > blockquotes.  Inline rich formatting is
+    kept as plain text; full inline conversion is backlog.
+    Dry-run by default.  Live execution requires APPFLOWY_ALLOW_WRITES=true.
+    Does NOT fetch, replace, or edit existing page content.
+    """
+    with _client() as client:
+        return compact(
+            client.append_markdown_to_page(
+                workspace_id,
+                view_id,
+                markdown=markdown,
+                dry_run=dry_run,
+            )
+        )
+
+
 @mcp.tool(name="appflowy_move_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
 def appflowy_move_page_view(
     workspace_id: str,

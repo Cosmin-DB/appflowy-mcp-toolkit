@@ -113,6 +113,7 @@ EXPECTED_WRITE_TOOLS = {
     "appflowy_unpublish_page",
     "appflowy_duplicate_published_page",
     "appflowy_instantiate_template",
+    "appflowy_append_markdown_to_page",
 }
 
 EXPECTED_ALL_TOOLS = EXPECTED_READ_TOOLS | EXPECTED_WRITE_TOOLS

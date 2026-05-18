@@ -768,6 +768,34 @@ class AppFlowyClient:
         self._require_writes_enabled()
         return self.request("POST", path, json=payload)
 
+    def append_markdown_to_page(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        markdown: str,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Convert Markdown to AppFlowy SerdeBlocks and append to a page.
+
+        Uses the same POST /api/workspace/{workspace_id}/page-view/{view_id}/append-block
+        route as append_blocks_to_page.  Converts a safe subset of Markdown
+        (paragraphs, headings, bulleted/numbered lists, blockquotes) to blocks
+        using the internal markdown_to_blocks converter.
+
+        Supported Markdown: paragraphs, # through ###### headings,
+        - / * / + unordered lists, N. ordered lists, > blockquotes.
+        Inline rich formatting (bold, italic, code spans, links) is kept as
+        plain text; full inline conversion is backlog.
+
+        Raises ValueError / AppFlowySchemaError for empty input.
+        Requires APPFLOWY_ALLOW_WRITES=true for live execution.
+        """
+        from .markdown import markdown_to_blocks
+
+        blocks = markdown_to_blocks(markdown)
+        return self.append_blocks_to_page(workspace_id, view_id, blocks=blocks, dry_run=dry_run)
+
     def move_page_view(
         self,
         workspace_id: str,

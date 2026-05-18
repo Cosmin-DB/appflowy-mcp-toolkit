@@ -13,7 +13,7 @@ The matrix is intentionally split into three states:
 
 The toolkit is strong for database-backed task boards, page/view organization, and local
 self-hosted AppFlowy smoke testing. It is not a full AppFlowy administration MCP, and it
-does not yet offer polished document/page Markdown editing.
+does not yet offer full fetch/replace/block-level document editing.
 
 Approximate coverage by object family:
 
@@ -22,7 +22,7 @@ Approximate coverage by object family:
 | Server/user read | basic read | high | unit-tested; CI |
 | Workspaces read/basic create | medium-high | high for read/create, low for admin | unit-tested; write paths dry-run by default |
 | Folder/view/page read | high | high for tree/page read, medium for mutations | unit-tested; self-hosted page lifecycle smoke |
-| Document/page Markdown editing | backlog | current raw append-block primitive is not a user-facing document workflow | not applicable; raw append-block has route/unit coverage only |
+| Document/page Markdown editing | append Markdown supported (paragraphs, headings, lists, blockquotes); fetch/replace/block-level editing is backlog | route/unit coverage; no browser/human validation yet |
 | Database schema/rows/tasks | high | high for task lifecycle data plane | unit-tested; self-hosted; browser-tested Grid/Board lifecycle; human-verified visible task card on 2026-05-18 |
 | Database fields | medium | read/create done, field-type payloads are caller supplied | unit-tested; field creation write path is dry-run by default |
 | Database typed fields | high | most task-card/scalar fields and Media uploads covered; relation/translate deferred | unit-tested; browser-tested typed fields; Docker/self-hosted Media upload flow |
@@ -50,7 +50,7 @@ Evidence vocabulary:
 | Workspace | list/settings/members/usage implemented | create implemented, dry-run default | patch/open routes exist | delete/leave/member removal routes exist | partial | unit-tested; destructive/admin writes not live-validated | Keep destructive admin gated or deferred |
 | Space | folder tree shows spaces | create space implemented dry-run default | update space implemented dry-run default | via page/view trash/delete semantics | implemented except dedicated delete | unit-tested; page lifecycle self-hosted smoke covers adjacent routes | Add self-hosted org-structure smoke next |
 | Folder/view/page tree | get folder/page-view implemented | folder-view/page-view create, duplicate, database-view implemented dry-run default | update/rename/favorite/reorder/move implemented dry-run default | trash/restore/delete-trashed and bulk trash ops implemented dry-run default | broad page/view surface implemented and self-hosted page lifecycle smoke added | unit-tested; self-hosted lifecycle smoke; browser validation limited | Full browser UI automation remains separate |
-| Document/page body | row document text supported on row create/detail | raw append-block implemented dry-run default | collab/document updates are deeper | trash via page-view routes | backlog/primitive | route/unit coverage only; no polished document UI validation | Do not present as Markdown/page editing yet; defer friendly helpers and full block editor |
+| Document/page body | row document text supported on row create/detail | raw append-block + append-page-markdown implemented dry-run default | collab/document updates are deeper | trash via page-view routes | append Markdown supported; fetch/replace/block-level editing is backlog | route/unit coverage only; no polished document UI validation | Full block editor / fetch/replace remains deferred |
 | Database list | list databases implemented | database-view route exists | view/layout routes likely collab-backed | page-view trash/delete | partial | unit-tested reads; creation remains dry-run/gated | Add database-view creation only after page/view work |
 | Database fields | list fields implemented | create field implemented dry-run default | no safe update/delete route confirmed from matrix yet | no safe delete route confirmed | partial | unit-tested; no broad browser/human validation yet | Add friendly field-type builders later; raw payload route exists now |
 | Database rows | list ids/details implemented | create/upsert implemented | upsert/update, status move, and row-id collab update implemented | no REST delete; Yjs row-order delete implemented | high | unit-tested; self-hosted; browser-tested task lifecycle; human-verified visible task card on 2026-05-18 | Broaden field type tests and keep collab mutations narrowly scoped |

@@ -414,6 +414,24 @@ def build_parser() -> argparse.ArgumentParser:
     append_page_blocks.add_argument("--blocks-json", required=True)
     append_page_blocks.add_argument("--execute", action="store_true")
 
+    append_page_md = sub.add_parser(
+        "append-page-markdown",
+        description=(
+            "Convert Markdown to AppFlowy blocks and append to a page. "
+            "Supports paragraphs, headings, unordered/ordered lists, blockquotes. "
+            "Requires APPFLOWY_ALLOW_WRITES=true when --execute is passed."
+        ),
+    )
+    append_page_md.add_argument("--workspace-id", required=True)
+    append_page_md.add_argument("--view-id", required=True)
+    _md_group = append_page_md.add_mutually_exclusive_group(required=True)
+    _md_group.add_argument("--markdown", help="Markdown text to append.")
+    _md_group.add_argument(
+        "--markdown-file",
+        help="Path to a Markdown file whose content will be appended.",
+    )
+    append_page_md.add_argument("--execute", action="store_true")
+
     move_page = sub.add_parser("move-page")
     move_page.add_argument("--workspace-id", required=True)
     move_page.add_argument("--view-id", required=True)
@@ -1102,6 +1120,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.workspace_id,
                 args.view_id,
                 blocks=json.loads(args.blocks_json),
+                dry_run=not args.execute,
+            )
+        elif args.command == "append-page-markdown":
+            if args.markdown_file:
+                md_text = Path(args.markdown_file).read_text(encoding="utf-8")
+            else:
+                md_text = args.markdown
+            result = client.append_markdown_to_page(
+                args.workspace_id,
+                args.view_id,
+                markdown=md_text,
                 dry_run=not args.execute,
             )
         elif args.command == "move-page":

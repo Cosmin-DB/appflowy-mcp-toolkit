@@ -7,8 +7,8 @@ task cards, write typed database fields, upload media, and verify changes before
 touching real data. Writes are disabled by default.
 
 > **0.1.0 - first public release.** Core task-board, typed-field, media, page/view
-> organization, and diagnostic paths are tested. Polished document/page Markdown
-> editing is tracked as backlog and is not yet supported.
+> organization, and diagnostic paths are tested. Append Markdown to pages is supported.
+> Full fetch/replace/block-level document editing is backlog.
 
 ---
 
@@ -124,9 +124,10 @@ is explicitly tested and documented.
 | Row/card reorder (Yjs collab, requires collab writes gate) | supported with explicit opt-in | unit/offline Yjs tests; data-plane + browser presence coverage; exact visual order remains a documented gap |
 | Board column reorder (Yjs collab) | supported with explicit opt-in | unit/offline Yjs tests; Docker/browser proof pending |
 | Row delete (Yjs collab, no REST endpoint in AppFlowy) | supported with explicit opt-in | unit/offline Yjs tests; browser lifecycle delete coverage |
-| Raw append blocks to a page | low-level primitive, not a polished document editor | route/unit coverage only; no polished document UI validation |
-| Polished document/page Markdown editing | not supported yet; backlog | not applicable |
-| Block-level document editing: update/delete/move/insert blocks | not supported yet; backlog | not applicable |
+| Raw append blocks to a page | supported; low-level, use append-page-markdown for Markdown input | route/unit coverage only; no polished document UI validation |
+| Append Markdown to a page | supported; paragraphs, headings, lists, blockquotes converted to blocks | unit-tested; no browser/human validation; full inline formatting is backlog |
+| Polished document/page Markdown editing (fetch/replace/block edit) | not supported; backlog | not applicable |
+| Block-level document editing: update/delete/move/insert blocks | not supported; backlog | not applicable |
 | Publishing / public sharing | read metadata + publish/unpublish writes supported (gated) | unit-tested; no browser/human validation yet |
 | Member / invite / access/admin mutations | not supported yet; safety-sensitive deferred work | not applicable |
 | Templates | read-only category/creator/template discovery supported; published template instantiation supported (gated); arbitrary unpublished template instantiation not supported | unit-tested against pinned AppFlowy template-center and published-duplicate routes |

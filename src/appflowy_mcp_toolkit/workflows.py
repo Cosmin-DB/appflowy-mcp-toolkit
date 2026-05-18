@@ -63,17 +63,24 @@ def safe_workflows() -> dict[str, Any]:
             "page_view_organization": (
                 "create/rename/move/trash page-view tools are available with normal write gates."
             ),
-            "document_markdown": "Polished page/document Markdown editing is not supported yet.",
+            "document_markdown": (
+                "append-page-markdown converts Markdown (paragraphs, headings, "
+                "bulleted/numbered lists, blockquotes) to AppFlowy blocks and appends "
+                "to an existing page. Full inline formatting is plain text only (backlog). "
+                "Fetch/replace/block-level editing is not supported."
+            ),
             "raw_append_blocks": (
-                "append-page-blocks is a low-level primitive, not a full document editor."
+                "append-page-blocks is a low-level primitive; prefer append-page-markdown "
+                "for human-readable Markdown input."
             ),
             "templates": (
                 "template-center category/template/creator discovery is read-only; "
-                "template instantiation is not supported by exposed AppFlowy routes."
+                "instantiate-template duplicates a published template/page into a workspace view."
             ),
             "publishing": (
                 "publish namespace/default/list/info metadata reads are available; "
-                "publish/unpublish writes are deferred as safety-sensitive."
+                "publish/unpublish writes are supported with APPFLOWY_ALLOW_WRITES "
+                "and APPFLOWY_ALLOW_PUBLISH_WRITES gates."
             ),
         },
         "unsupported": [
