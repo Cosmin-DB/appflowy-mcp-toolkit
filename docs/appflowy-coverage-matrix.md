@@ -31,6 +31,7 @@ Approximate coverage by object family:
 | Trash/favorites/recent | read implemented | high | unit-tested; selected page lifecycle smoke for trash/restore/delete |
 | Sharing/publishing | none | candidate but safety-sensitive | not applicable; deferred |
 | Search | read implemented | medium; depends on search service | unit-tested |
+| Templates | read-only discovery implemented | medium; depends on template-center data in deployment | unit-tested against pinned AppFlowy template-center routes |
 | Quick notes | CRUD implemented, dry-run writes | medium until self-hosted smoke expands | unit-tested; no browser/human validation yet |
 | Chat/AI | none | deferred | not applicable |
 | Members/invites/admin | very low | safety-sensitive/deferred by default | read-only coverage only; mutations deferred |
@@ -64,6 +65,7 @@ Evidence vocabulary:
 | Sharing/guests | list shared views exists | share view route exists | revoke/access detail routes exist | revoke route exists | missing | route discovery only; mutations deferred | Safety-sensitive; require explicit gates |
 | Publishing | many publish-info/publish routes exist | publish routes exist | patch/unpublish/default namespace routes exist | delete published collabs route exists | missing | route discovery only; no implementation/browser/human validation | Safety-sensitive; document first, implement later |
 | Search | search implemented | n/a | n/a | n/a | read implemented | unit-tested; service-dependent | AI summary endpoint deferred |
+| Templates | category/creator/template/homepage routes implemented | n/a | n/a | n/a | read-only discovery implemented; instantiation absent upstream | unit-tested against AppFlowy template-center routes | Add self-hosted smoke if local stack has seeded template-center data |
 | Quick notes | list implemented | create implemented dry-run default | update implemented dry-run default | delete implemented dry-run default | CRUD implemented | unit-tested; no browser/human validation yet | Add self-hosted smoke if quick notes are enabled in local stack |
 | Chat/AI | many chat/AI routes exist | create chat/question/answer/context | settings/question update | delete chat | missing | route discovery only; deferred | Defer: product-specific, may depend on AI services |
 | Import | create/import/detail routes exist | import route exists | n/a | n/a | missing | route discovery only; deferred | Defer until release; external side effects |
@@ -83,6 +85,7 @@ Evidence vocabulary:
    - Workspace settings/members/usage read. **Done.**
    - Recent/favorite/trash list. **Done.**
    - Search. **Done, AI summary deferred.**
+   - Template-center read-only discovery. **Done; instantiation absent upstream.**
    - Database view configuration diagnostics. **Done, read-only.**
 
 3. **Page/view management**

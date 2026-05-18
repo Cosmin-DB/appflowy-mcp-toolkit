@@ -67,11 +67,15 @@ def safe_workflows() -> dict[str, Any]:
             "raw_append_blocks": (
                 "append-page-blocks is a low-level primitive, not a full document editor."
             ),
+            "templates": (
+                "template-center category/template/creator discovery is read-only; "
+                "template instantiation is not supported by exposed AppFlowy routes."
+            ),
         },
         "unsupported": [
             "publishing/public sharing",
             "member, invite, access, and admin mutations",
-            "templates as an end-to-end workflow",
+            "template instantiation as an end-to-end workflow",
             "import/export and migrations",
             "comments, reminders, live cursors, and presence",
             "AppFlowy AI/chat automation",

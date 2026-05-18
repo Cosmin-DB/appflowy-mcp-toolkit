@@ -40,6 +40,8 @@ First public PyPI release.
 - **Validation evidence docs**: README and coverage matrix now distinguish
   unit-tested, self-hosted/Docker-tested, browser-tested, and human-verified
   support claims.
+- **Template discovery**: read-only template-center tools for categories,
+  creators, template listings, single template details, and template homepage groups.
 
 ### Known limitations / backlog
 
@@ -53,3 +55,5 @@ First public PyPI release.
   in AppFlowy). These paths are tested but require explicit
   `APPFLOWY_ALLOW_COLLAB_WRITES=true` and a local Node.js runtime.
 - Member/invite/admin mutations, AI/chat routes, and Notion migration are deferred.
+- Template instantiation is not supported; AppFlowy's template-center routes are
+  read-only for this release.

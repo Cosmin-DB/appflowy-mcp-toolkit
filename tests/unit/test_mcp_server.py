@@ -21,6 +21,13 @@ EXPECTED_READ_TOOLS = {
     "appflowy_get_workspace_settings",
     "appflowy_list_workspace_members",
     "appflowy_get_workspace_usage",
+    "appflowy_list_template_categories",
+    "appflowy_get_template_category",
+    "appflowy_list_template_creators",
+    "appflowy_get_template_creator",
+    "appflowy_list_templates",
+    "appflowy_get_template",
+    "appflowy_get_template_homepage",
     "appflowy_get_file_storage_usage",
     "appflowy_list_file_storage_blobs",
     "appflowy_get_file_metadata",
@@ -358,6 +365,67 @@ def test_workspace_readonly_tools_delegate_to_client() -> None:
     assert json.loads(settings_raw[0][0].text) == {"workspace_id": "ws", "name": "Demo"}
     assert json.loads(members_raw[0][0].text) == [{"email": "demo@example.test"}]
     assert json.loads(usage_raw[0][0].text) == {"storage_bytes": 2048}
+
+
+def test_template_readonly_tools_delegate_to_client() -> None:
+    with patch("appflowy_mcp_toolkit.mcp.server.AppFlowyClient") as client_cls:
+        instance = client_cls.return_value.__enter__.return_value
+        instance.list_template_categories.return_value = [{"id": "cat1", "name": "Use cases"}]
+        instance.get_template_category.return_value = {"id": "cat1", "name": "Use cases"}
+        instance.list_template_creators.return_value = [{"id": "cr1", "name": "AppFlowy"}]
+        instance.get_template_creator.return_value = {"id": "cr1", "name": "AppFlowy"}
+        instance.list_templates.return_value = [{"view_id": "tpl1", "name": "Brief"}]
+        instance.get_template.return_value = {"view_id": "tpl1", "name": "Brief"}
+        instance.get_template_homepage.return_value = {"featured_templates": []}
+
+        cats_raw: Any = asyncio.run(
+            mcp.call_tool(
+                "appflowy_list_template_categories",
+                {"name_contains": "use", "category_type": 0},
+            )
+        )
+        category_raw: Any = asyncio.run(
+            mcp.call_tool("appflowy_get_template_category", {"category_id": "cat1"})
+        )
+        creators_raw: Any = asyncio.run(
+            mcp.call_tool("appflowy_list_template_creators", {"name_contains": "app"})
+        )
+        creator_raw: Any = asyncio.run(
+            mcp.call_tool("appflowy_get_template_creator", {"creator_id": "cr1"})
+        )
+        templates_raw: Any = asyncio.run(
+            mcp.call_tool(
+                "appflowy_list_templates",
+                {"category_id": "cat1", "is_featured": True, "name_contains": "brief"},
+            )
+        )
+        template_raw: Any = asyncio.run(mcp.call_tool("appflowy_get_template", {"view_id": "tpl1"}))
+        homepage_raw: Any = asyncio.run(
+            mcp.call_tool("appflowy_get_template_homepage", {"per_count": 3})
+        )
+
+    instance.list_template_categories.assert_called_once_with(
+        name_contains="use",
+        category_type=0,
+    )
+    instance.get_template_category.assert_called_once_with("cat1")
+    instance.list_template_creators.assert_called_once_with(name_contains="app")
+    instance.get_template_creator.assert_called_once_with("cr1")
+    instance.list_templates.assert_called_once_with(
+        category_id="cat1",
+        is_featured=True,
+        is_new_template=None,
+        name_contains="brief",
+    )
+    instance.get_template.assert_called_once_with("tpl1")
+    instance.get_template_homepage.assert_called_once_with(per_count=3)
+    assert json.loads(cats_raw[0][0].text) == [{"id": "cat1", "name": "Use cases"}]
+    assert json.loads(category_raw[0][0].text) == {"id": "cat1", "name": "Use cases"}
+    assert json.loads(creators_raw[0][0].text) == [{"id": "cr1", "name": "AppFlowy"}]
+    assert json.loads(creator_raw[0][0].text) == {"id": "cr1", "name": "AppFlowy"}
+    assert json.loads(templates_raw[0][0].text) == [{"view_id": "tpl1", "name": "Brief"}]
+    assert json.loads(template_raw[0][0].text) == {"view_id": "tpl1", "name": "Brief"}
+    assert json.loads(homepage_raw[0][0].text) == {"featured_templates": []}
 
 
 def test_file_storage_readonly_tools_delegate_to_client() -> None:

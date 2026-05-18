@@ -129,7 +129,7 @@ is explicitly tested and documented.
 | Block-level document editing: update/delete/move/insert blocks | not supported yet; backlog | not applicable |
 | Publishing / public sharing | not supported yet; safety-sensitive deferred work | not applicable |
 | Member / invite / access/admin mutations | not supported yet; safety-sensitive deferred work | not applicable |
-| Templates | not supported yet; read-only discovery is a candidate | not applicable |
+| Templates | read-only category/creator/template discovery supported; instantiation not supported | unit-tested against pinned AppFlowy template-center routes |
 | Import/export and migrations | not supported yet | not applicable |
 | Comments, reminders, live cursors, presence | not supported yet | not applicable |
 | AppFlowy AI / chat routes | not supported yet | not applicable |
@@ -159,6 +159,10 @@ appflowy-toolkit health
 appflowy-toolkit workspaces
 appflowy-toolkit user-profile
 appflowy-toolkit server-info
+appflowy-toolkit template-categories
+appflowy-toolkit templates --is-featured
+appflowy-toolkit template --view-id <id>
+appflowy-toolkit template-homepage --per-count 3
 appflowy-toolkit folder --workspace-id <id> --depth 2
 appflowy-toolkit databases --workspace-id <id>
 appflowy-toolkit fields  --workspace-id <id> --database-id <id>
@@ -190,7 +194,10 @@ Read-only tools (safe with no write gates):
 `appflowy_get_workspace_settings`, `appflowy_list_workspace_members`,
 `appflowy_get_workspace_usage`, `appflowy_get_file_storage_usage`,
 `appflowy_list_file_storage_blobs`, `appflowy_get_file_metadata`,
-`appflowy_get_file_metadata_v1`
+`appflowy_get_file_metadata_v1`, `appflowy_list_template_categories`,
+`appflowy_get_template_category`, `appflowy_list_template_creators`,
+`appflowy_get_template_creator`, `appflowy_list_templates`,
+`appflowy_get_template`, `appflowy_get_template_homepage`
 
 Write tools (dry-run by default; set `APPFLOWY_ALLOW_WRITES=true` to execute):
 

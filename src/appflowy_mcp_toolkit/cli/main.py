@@ -139,6 +139,52 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     sub.add_parser("health")
+
+    template_categories = sub.add_parser(
+        "template-categories",
+        description="List AppFlowy template categories (read-only, no credentials required).",
+    )
+    template_categories.add_argument("--name-contains")
+    template_categories.add_argument("--category-type", type=int)
+
+    template_category = sub.add_parser(
+        "template-category",
+        description="Get a single AppFlowy template category by id.",
+    )
+    template_category.add_argument("--category-id", required=True)
+
+    template_creators = sub.add_parser(
+        "template-creators",
+        description="List AppFlowy template creators (read-only, no credentials required).",
+    )
+    template_creators.add_argument("--name-contains")
+
+    template_creator = sub.add_parser(
+        "template-creator",
+        description="Get a single AppFlowy template creator by id.",
+    )
+    template_creator.add_argument("--creator-id", required=True)
+
+    templates = sub.add_parser(
+        "templates",
+        description="List AppFlowy templates (read-only, no credentials required).",
+    )
+    templates.add_argument("--category-id")
+    templates.add_argument("--is-featured", action=argparse.BooleanOptionalAction, default=None)
+    templates.add_argument("--is-new-template", action=argparse.BooleanOptionalAction, default=None)
+    templates.add_argument("--name-contains")
+
+    template = sub.add_parser(
+        "template",
+        description="Get a single AppFlowy template by view_id.",
+    )
+    template.add_argument("--view-id", required=True)
+
+    template_homepage = sub.add_parser(
+        "template-homepage",
+        description="Get the AppFlowy template home page (featured/new templates and categories).",
+    )
+    template_homepage.add_argument("--per-count", type=int)
     sub.add_parser(
         "workflows",
         description=(
@@ -764,6 +810,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(to_json(check_collab_helper_setup()))
         return 0
 
+    # Template-center commands: read-only; handled in the shared client block below.
+
     with AppFlowyClient() as client:
         if args.command == "health":
             result: Any = client.health_check()
@@ -781,6 +829,28 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = client.list_workspace_members(args.workspace_id)
         elif args.command == "workspace-usage":
             result = client.get_workspace_usage(args.workspace_id)
+        elif args.command == "template-categories":
+            result = client.list_template_categories(
+                name_contains=args.name_contains,
+                category_type=args.category_type,
+            )
+        elif args.command == "template-category":
+            result = client.get_template_category(args.category_id)
+        elif args.command == "template-creators":
+            result = client.list_template_creators(name_contains=args.name_contains)
+        elif args.command == "template-creator":
+            result = client.get_template_creator(args.creator_id)
+        elif args.command == "templates":
+            result = client.list_templates(
+                category_id=args.category_id,
+                is_featured=args.is_featured,
+                is_new_template=args.is_new_template,
+                name_contains=args.name_contains,
+            )
+        elif args.command == "template":
+            result = client.get_template(args.view_id)
+        elif args.command == "template-homepage":
+            result = client.get_template_homepage(per_count=args.per_count)
         elif args.command == "create-space":
             result = client.create_space(
                 args.workspace_id,
