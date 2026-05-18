@@ -7,16 +7,18 @@ ambiguous choices behind heuristics.
 
 ## Near-Term Task Workflows
 
-- Add browser acceptance for board column operations against local Docker:
-  create, rename, hide, show, refresh, switch Grid/Board, and assert no web
-  console/runtime error.
+- [DONE] Add browser acceptance for board column operations against local Docker:
+  create/ensure, rename, hide, show, refresh, and switch Grid/Board now have
+  focused browser coverage in `tests/browser/test_appflowy_web_board_acceptance.py`.
 - Implement safe Status option deletion only after Docker proves the policy for
   rows that still reference the deleted option. Likely choices: reject when used,
   or require an explicit replacement Status.
 - [DONE] Add row/card reordering inside a board column, with a narrow Yjs mutation.
   Docker/browser proof still pending; unit tests and offline Yjs helper integration tests cover the mutation behavior.
 - [DONE] Add board column reordering via Yjs childGroups mutation.
-  Docker/browser proof still pending; unit tests and offline Yjs helper integration tests cover the mutation behavior.
+  Docker/browser proof now covers data-plane order plus Board presence; exact
+  visual column order remains intentionally unasserted until AppFlowy Web exposes
+  stable column positions.
 - Keep task operations explicit. Search may return exact/contains matches, but
   the calling AI must choose among candidates unless exactly one match exists.
 

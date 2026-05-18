@@ -72,9 +72,11 @@ APPFLOWY_BROWSER_TESTS=true uv run --extra browser pytest tests/browser -q -s
 ```
 
 Current expected browser result: Grid/login smoke, task lifecycle, typed field
-rendering, and Board visibility after Grid warm-up all pass. Board screenshots
-remain diagnostic evidence for stale Board rendering. Row/card reorder
-data-plane is unit-tested; Board visual ordering is pending browser proof.
+rendering, Board visibility after Grid warm-up, board column lifecycle visibility,
+board column reorder data-plane + Board presence, append-Markdown page visibility,
+published public-page visibility, and published-page instantiation visibility all
+pass. Board screenshots remain diagnostic evidence for stale Board rendering.
+Exact visual order assertions for rows/cards/columns remain pending browser proof.
 
 ## Safety Review
 
@@ -137,6 +139,6 @@ Publish flow:
 
 1. Confirm all release gates pass.
 2. Confirm the PyPI Trusted Publisher above is configured.
-3. Create and push a version tag, for example `v0.1.0`.
+3. Create and push a version tag, for example `v0.2.0`.
 4. Create a GitHub Release from that tag.
 5. The `release.yml` workflow builds the wheel/sdist and publishes to PyPI.

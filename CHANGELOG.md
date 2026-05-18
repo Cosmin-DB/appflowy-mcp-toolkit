@@ -8,26 +8,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-Release-candidate hardening and feature additions queued for the next PyPI publish.
+No unreleased changes yet.
+
+## [0.2.0] - 2026-05-18
+
+Validated AppFlowy Cloud release with page publishing, template duplication, Markdown
+append, browser acceptance coverage, and safety hardening.
 
 ### Added
 
 - **`publish_page` / `unpublish_page`**: gated publish/unpublish writes for page
   views. Routes confirmed in AppFlowy-Cloud `src/api/workspace.rs`. Require
   `APPFLOWY_ALLOW_WRITES=true` **and** `APPFLOWY_ALLOW_PUBLISH_WRITES=true` for
-  live execution. Dry-run by default. Unit-tested; no browser/human validation yet.
+  live execution. Dry-run by default. Unit-tested; public URL visibility is
+  browser-tested against the local self-hosted stack.
 - **`duplicate_published_page` / `instantiate_template`**: duplicates a published
   page or template into a workspace destination view. Route confirmed:
   `POST /api/workspace/{workspace_id}/published-duplicate`. Requires
-  `APPFLOWY_ALLOW_WRITES=true` only. Unit-tested; no browser/human validation yet.
-  Arbitrary unpublished template instantiation is not supported via this route.
+  `APPFLOWY_ALLOW_WRITES=true` only. Unit-tested; published-page instantiation is
+  browser-tested against the local self-hosted stack. Arbitrary unpublished template
+  instantiation is not supported via this route.
 - **`append_markdown_to_page`** client method, `append-page-markdown` CLI command,
   and `appflowy_append_markdown_to_page` MCP tool. Converts a safe Markdown subset
   (paragraphs, headings 1–6, bulleted/numbered lists, blockquotes) to AppFlowy
   SerdeBlocks and appends to an existing page. Block types confirmed from upstream
   workspace-template fixture files. Inline rich formatting is kept as plain text
   (backlog). Does NOT fetch, replace, or perform block-level editing. Unit-tested;
-  no browser/human validation yet.
+  visible appended content is browser-tested against the local self-hosted stack.
 - **Template-center read-only discovery**: `list_template_categories`,
   `get_template_category`, `list_template_creators`, `get_template_creator`,
   `list_templates`, `get_template`, `get_template_homepage` — routes confirmed in
@@ -108,5 +115,5 @@ First public PyPI release.
   `APPFLOWY_ALLOW_COLLAB_WRITES=true` and a local Node.js runtime.
 - Publish/unpublish writes, member/invite/admin mutations, AI/chat routes, and
   Notion migration are deferred.
-- Template instantiation is not supported; AppFlowy's template-center routes are
-  read-only for this release.
+- Arbitrary unpublished template instantiation is not supported; published page/template
+  duplication is supported through AppFlowy's published-duplicate route.

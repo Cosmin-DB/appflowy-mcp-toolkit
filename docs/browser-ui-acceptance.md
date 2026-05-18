@@ -46,17 +46,66 @@ data plane; they do not prove that AppFlowy Web reconstructs and renders the cha
 | Update `Description` | Grid shows the new text and no longer shows the stale text for that row | required before claiming UI-safe update coverage |
 | Move/update `Status` | Grid shows the new status; Board places the card in the expected column after Grid warm-up | required before claiming UI-safe move coverage |
 | Delete task/card | Row disappears from Grid and Board, not only from REST row list or row_orders | required before claiming UI-safe delete coverage |
-| Create/rename/hide/show board columns | Board shows the new/renamed/hidden/visible column state after refresh | required for board-column release safety |
+| Create/rename/hide/show board columns | Board shows the new/renamed/hidden/visible column state after refresh | implemented in `tests/browser/test_appflowy_web_board_acceptance.py` |
 | Reorder rows/cards | Board or Grid visual order matches row_orders for the tested view/column | required for ordering release safety |
-| Reorder board columns | Board visual column order matches Database collab group order | required for column-order release safety |
+| Reorder board columns | Database collab group order changes; Board shows the involved columns after warm-up. Exact visual position remains a gap. | data-plane order + browser presence implemented in `tests/browser/test_appflowy_web_board_acceptance.py` |
 | Typed row cells | Important field types render in Grid with expected human-readable values: select, multiselect, checkbox, date/time, checklist, media/link | required before broad typed-field UI claims |
 | Page/view creation or movement | Sidebar/navigation shows the page/view in the expected place and opens without blank/error UI | required for page/view release safety |
+| Append Markdown to page | AppFlowy Web page body shows the appended heading, paragraph, list item, and quote text | implemented in `tests/browser/test_appflowy_web_page_features.py` |
+| Publish page | Public published URL shows the expected page title/content after publish | implemented in `tests/browser/test_appflowy_web_page_features.py` |
+| Instantiate published page/template | Duplicated page opens in AppFlowy Web and shows expected source content | implemented in `tests/browser/test_appflowy_web_page_features.py` |
 | Filters, sorts, layout, field settings | The view opens, applies the expected state, and survives refresh | required before enabling write tools for these view settings |
 | Negative/path-regression case | A known unsafe or advanced path, such as fresh `pre_hash` upsert, fails the browser test if it does not render in Grid | required as a regression guard |
 
 The default rule is conservative: if a human will judge the operation in AppFlowy Web,
 the test must open AppFlowy Web and assert visible text/state. `curl` and REST checks
 remain necessary, but they are not sufficient for user-visible workflows.
+
+## 2026-05-18 AppFlowy Cloud Human Check
+
+Cosmin and the OpenClaw browser both confirmed the following against AppFlowy Cloud:
+
+- `create-task` produced a visible card in the real `To-dos` Board under `To Do`:
+  `MCP human test 20260518T174900Z - tarea visible creada por Ela`.
+- `create-page` plus `append-page-markdown` produced a visible page under `General`:
+  `MCP human test page 20260518T174900Z`, with heading, paragraph, bullet items,
+  accented text, number text, and quote block visible in the web page body.
+
+This is human acceptance evidence for those two cloud workflows. It does not validate
+publish/unpublish on AppFlowy Cloud, destructive cleanup, exact row/card ordering, or
+all page/view movement paths.
+
+Follow-up in the same human session also validated:
+
+- task update/move: the test task title changed and moved from `To Do` to `Doing`;
+- publish page: the published URL opened in an incognito/public browser and showed the
+  expected page content;
+- duplicate/instantiate published page: the published page was duplicated back into the
+  workspace and opened with the expected copied content;
+- unpublish page: the same public URL changed to AppFlowy's no-access/unpublished page;
+- cleanup: the test task search returned no matches, and both test pages opened as
+  `Page Deleted` after being sent to trash.
+
+Remaining gaps after this cloud human pass: exact visual row/card/column ordering,
+Quick Notes UI behavior, admin/member/invite flows, import/export, AI/chat routes, and
+full block-level document editing.
+
+## 2026-05-18 AppFlowy Cloud MCP-Only Smoke
+
+After the human pass, a small MCP-only cloud smoke checked non-visual behavior:
+
+- write gate: a live write without `APPFLOWY_ALLOW_WRITES=true` failed before network
+  with the expected `Writes are disabled` error;
+- local file upload gate: upload without `APPFLOWY_ALLOW_LOCAL_FILE_READS=true` failed
+  before reading file contents;
+- file v1 flow: uploaded `.env.example` under the To-dos database parent dir, read
+  metadata, downloaded it byte-for-byte, then deleted it; post-delete metadata returned
+  AppFlowy's expected not-found response;
+- test pages: restore/trash/delete-trash routes returned success for both disposable
+  pages used in the human acceptance pass;
+- Quick Notes: create/update/delete returned success for a disposable note id, but
+  `quick-notes` list remained empty before/after, so Quick Notes should not be called
+  end-user-ready until its product/list behavior is understood.
 
 ## 2026-05-16 Local Browser Smoke
 
@@ -100,6 +149,8 @@ Current expectations:
 - AppFlowy Web must render an MCP-created row in Grid. Board may still be stale
   after direct load, so Board screenshots remain diagnostic evidence, but missing
   Grid text is a failing browser/UI regression.
+- Page feature tests must show appended Markdown text, published public-page content,
+  and instantiated published-page content in the browser.
 
 Validated 2026-05-16 against the local Docker stack: login + To-dos Grid rendering
 passes. The row-rendering test first proves the MCP-created row at the data plane,
@@ -115,6 +166,8 @@ hidden behind a data-plane-only pass.
 | `test_board_shows_created_task_after_grid_warmup` | Row description visible in Board body text after Grid warm-up |
 | `test_board_reflects_status_move_after_grid_warmup` | Row + new status column both visible on Board after collab move |
 | `test_board_row_reorder_data_plane_and_grid_presence` | Data-plane row order confirmed; both rows present in Grid |
+| `test_board_status_option_lifecycle_visible_in_browser` | Stable MCP-owned Status option is visible after create/ensure, renamed visibly, hidden from Board, then shown again |
+| `test_board_column_reorder_data_plane_and_browser_presence` | Board column order is confirmed through Database collab groups; involved columns are visible on Board |
 
 ### Board tab label
 
