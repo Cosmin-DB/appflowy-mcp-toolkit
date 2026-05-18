@@ -20,6 +20,39 @@ ambiguous choices behind heuristics.
 - Keep task operations explicit. Search may return exact/contains matches, but
   the calling AI must choose among candidates unless exactly one match exists.
 
+## MCP Hardening Before Next Release
+
+These items came from an external MCP review and local code inspection. Treat
+the first item as release-blocking for a calm public release; the rest are
+ordered by practical risk and protocol maturity.
+
+- [P0] Harden local file uploads. The MCP upload path must not become a general
+  local filesystem reader. Add an explicit local-read gate such as
+  APPFLOWY_ALLOW_LOCAL_FILE_READS=true, require configured allowed roots such
+  as APPFLOWY_ALLOWED_FILE_ROOTS, reject paths outside those roots, handle
+  traversal/symlink cases, and make dry-run use metadata (stat) instead of
+  read_bytes().
+- [P1] Stop returning invalid truncated JSON. compact() should never cut JSON
+  into a string that looks parseable but is not. Return a structured wrapper
+  with truncated: true, the limit used, and guidance to narrow/paginate the
+  request.
+- [P1] Make raw collab diagnostics explicit and safer. Keep the diagnostic
+  capability, but expose safe defaults such as summary_only=true and
+  include_raw=false; require an explicit raw flag for large internal collab
+  JSON and document the exfiltration risk.
+- [P1] Sweep docs for support-status drift before release. README,
+  coverage matrix, release checklist, changelog, and tool docs must agree about
+  templates, publishing, Markdown append support, and deferred page editing.
+- [P2] Add simple MCP/server-side rate limits: calls per minute, writes per
+  minute, concurrent calls, and stricter limits for blob/collab operations.
+- [P2] Add richer MCP annotations where FastMCP preserves them:
+  destructiveHint, openWorldHint, and idempotentHint for delete, publish,
+  upload, instantiate/duplicate, trash, and collab write tools.
+- [P2] Add protocol-level tool error tests. Verify AppFlowy auth/schema/rate
+  errors surface as tool execution errors rather than protocol crashes.
+- [P3] Consider structured MCP responses for high-value tools while preserving
+  text/JSON compatibility for clients that expect the current shape.
+
 ## View Organization
 
 - Keep view-configs read-only as the default diagnostic tool.
