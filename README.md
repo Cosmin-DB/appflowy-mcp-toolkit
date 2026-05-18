@@ -65,8 +65,8 @@ export APPFLOWY_ALLOW_COLLAB_WRITES=true   # required for Yjs-based updates/dele
 appflowy-mcp-server
 ```
 
-The server is a standard MCP stdio server. Add it to your MCP client config, for
-example in Claude Desktop (`claude_desktop_config.json`):
+The server is a standard MCP stdio server. Add it to any MCP client config using
+the command and environment variables below:
 
 ```json
 {
@@ -82,7 +82,7 @@ example in Claude Desktop (`claude_desktop_config.json`):
 }
 ```
 
-Or with `uvx` without a local install:
+Or use `uvx` without a local install:
 
 ```json
 {
@@ -99,8 +99,9 @@ Or with `uvx` without a local install:
 }
 ```
 
-For Cursor, Windsurf, or other MCP clients, use the same `command`/`env` pattern
-in their respective config files.
+Client-specific config file locations and schemas differ. The project only
+promises the standard stdio command interface shown above unless a client recipe
+is explicitly tested and documented.
 
 ---
 
