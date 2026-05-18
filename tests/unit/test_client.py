@@ -1298,11 +1298,15 @@ def test_upsert_managed_task_verified_executes_then_verifies():
     assert result["verification"]["verified"] is True
 
 
-def test_task_facing_methods_delegate_to_verified_managed_operations(monkeypatch):
+def test_task_facing_methods_delegate_to_visible_create_and_managed_updates(monkeypatch):
     from appflowy_mcp_toolkit.client import AppFlowyClient
 
     client = AppFlowyClient(AppFlowyConfig(base_url="https://example.test", access_token="t"))
     calls: list[tuple[str, dict[str, object]]] = []
+
+    def fake_create(*_args: object, **kwargs: object) -> dict[str, object]:
+        calls.append(("create", dict(kwargs)))
+        return {"verification": {"row_id": "row-created"}}
 
     def fake_upsert(*_args: object, **kwargs: object) -> dict[str, object]:
         calls.append(("upsert", dict(kwargs)))
@@ -1316,21 +1320,23 @@ def test_task_facing_methods_delegate_to_verified_managed_operations(monkeypatch
         calls.append(("delete", dict(kwargs)))
         return {"ok": True}
 
+    monkeypatch.setattr(client, "create_database_row_verified", fake_create)
     monkeypatch.setattr(client, "upsert_managed_task_verified", fake_upsert)
     monkeypatch.setattr(client, "move_managed_task_status", fake_move)
     monkeypatch.setattr(client, "delete_database_row_collab", fake_delete)
 
-    assert client.create_task("ws", "db", task_key="k", description="D") == {"ok": True}
+    assert client.create_task("ws", "db", task_key="k", description="D") == {
+        "task_key": "k",
+        "verification": {"row_id": "row-created"},
+    }
     assert client.update_task("ws", "db", task_key="k", status="Doing") == {"ok": True}
     assert client.move_task("ws", "db", task_key="k", status="Done") == {"ok": True}
     assert client.delete_task("ws", "db", "row-1") == {"ok": True}
 
     assert calls[0] == (
-        "upsert",
+        "create",
         {
-            "task_key": "k",
-            "description": "D",
-            "status": "To Do",
+            "cells": {"Description": "D", "Status": "To Do"},
             "document": None,
             "dry_run": True,
             "include_blob_diff": True,

@@ -9,10 +9,10 @@ route.
 
 ## The Short Rule
 
-- Use **REST** for reads, normal row creation, typed row creation, file storage,
-  page/view routes, quick notes, and MCP-managed task upserts.
+- Use **REST POST row creation** for user-visible task creation, typed row creation,
+  file storage, page/view routes, quick notes, and reads.
 - Use **task_key / pre_hash** when the agent owns the logical task and wants
-  stable create-or-update behavior.
+  stable create-or-update behavior and can tolerate the browser/UI caveat below.
 - Use **row_id + collab** when the row already exists in AppFlowy and the user or
   browser created it manually.
 - Use **collab delete** when removing a row from database views; there is no
@@ -68,7 +68,8 @@ collab row updates.
 | Situation | Use | Reason |
 |---|---|---|
 | Read workspaces, folders, databases, rows, fields, tasks | REST tools | Stable, simple, low risk |
-| Create a new task owned by the agent | `create_task` / `appflowy_create_task` | Uses `task_key` and verifies the data plane |
+| Create a user-visible task | `create_task` / `appflowy_create_task` | Uses normal REST POST row creation; browser Grid rendering is release-gated |
+| Create/update an idempotent agent-owned task | `upsert_managed_task` / `appflowy_upsert_verified_managed_task` | Uses `task_key` / `pre_hash`; verifies the data plane but may not immediately render in Grid |
 | Update or move a task previously created with `task_key` | `update_task` / `move_task` | REST `pre_hash` path is deterministic and idempotent |
 | Update a row created manually in AppFlowy Web | `update-row-by-id` / `appflowy_update_database_row_by_id` | REST cannot target arbitrary existing row ids |
 | Move a manually-created task/card by row id | `move-task-by-id` / `appflowy_move_task_by_id` | Thin wrapper over collab row update for Status |
@@ -144,11 +145,13 @@ cloud proof before being offered as live writes.
 
 If you are an agent, do not guess.
 
-1. If the user gives you a `task_key` or you created the task, use the managed
-   task tools.
-2. If the user points at an existing UI-created card, first list/search rows and
+1. If the user wants a visible card/task, use `create_task` or typed row POST creation.
+2. If the user gives you a `task_key` and idempotency matters more than immediate
+   browser rendering, use the managed `pre_hash` tools.
+3. If the user points at an existing UI-created card, first list/search rows and
    obtain the `row_id`.
-3. Then use `move-task-by-id` or `update-row-by-id`.
-4. Verify with `verify-row`.
-5. Treat AppFlowy Web Board rendering as secondary; it can lag until Grid/refresh
-   warms the page.
+4. Then use `move-task-by-id` or `update-row-by-id`.
+5. Verify with `verify-row`.
+6. Treat AppFlowy Web Board rendering as secondary; it can lag until Grid/refresh
+   warms the page. Missing Grid rendering is a browser/UI regression for visible
+   create flows.

@@ -157,7 +157,7 @@ def test_browser_mcp_created_task_rendering_observation() -> None:
                 page = browser.new_page(viewport={"width": 1365, "height": 768})
                 _login(page, email, password)
                 _open_todos(page, workspace_id, database_id)
-                board_text = page.locator("body").inner_text(timeout=10_000)
+                page.locator("body").inner_text(timeout=10_000)
                 page.screenshot(path=ARTIFACT_DIR / "todos-board-after-mcp-create.png")
                 grid_text = _open_grid(page)
                 page.screenshot(path=ARTIFACT_DIR / "todos-grid-after-mcp-create.png")
@@ -167,9 +167,4 @@ def test_browser_mcp_created_task_rendering_observation() -> None:
                 with suppress(AppFlowyError):
                     client.delete_task(workspace_id, database_id, row_id, dry_run=False)
 
-    if description not in board_text and description not in grid_text:
-        pytest.xfail(
-            "AppFlowy Web did not render the MCP-created row although REST/collab/blob "
-            "verification passed; keep this as browser-rendering evidence, not a "
-            "data-plane failure."
-        )
+    assert description in grid_text

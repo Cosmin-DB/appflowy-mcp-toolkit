@@ -59,8 +59,8 @@ APPFLOWY_BROWSER_TESTS=true uv run --extra browser pytest tests/browser -q -s
 ```
 
 Current expected browser result: one Grid/login smoke passes and one MCP-created-row
-rendering observation is `xfail` if AppFlowy Web does not render the row despite
-REST/collab/blob-diff verification passing.
+test verifies REST/collab/blob-diff first, then requires the row text to render in
+Grid. Board screenshots remain diagnostic evidence for stale Board rendering.
 
 Ordering tools have unit and offline Yjs helper integration coverage. Before a
 public release, run the browser checklist for row/card order and board/status

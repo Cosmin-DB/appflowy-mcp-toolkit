@@ -213,7 +213,7 @@ Current implementation:
 - `tests/browser/test_appflowy_web_smoke.py` logs into the local AppFlowy Web stack.
 - One test proves To-dos/Grid rendering.
 - One test creates a row through the MCP/client, verifies REST/collab/blob-diff first,
-  then records an `xfail` if AppFlowy Web does not render the verified row.
+  then requires AppFlowy Web Grid to render the verified row text.
 
 Remaining browser-quality work:
 
@@ -257,9 +257,9 @@ Deliverables:
 - The self-hosted stack exposes the AppFlowy API/collab surfaces needed by the current
   task lifecycle test; exact parity with AppFlowy official cloud is not exhaustively
   proven.
-- The browser smoke confirms a related local rendering limitation: MCP-created rows can
-  verify through REST/collab/blob-diff while AppFlowy Web still does not render them in
-  the browser pass. The test records this as `xfail` rather than as a false MCP failure.
+- The browser smoke now treats missing Grid rendering as a UI regression. Board rendering
+  can still be stale after direct load, so Board screenshots remain diagnostic evidence
+  rather than a release gate.
 
 ## Current Implementation Status
 
@@ -270,8 +270,8 @@ The repo contains a validated self-hosted test workflow. Latest verified battery
 - AppFlowy Web redirects to `/app`.
 - Seed reuse OK after the local one-seat license behavior was fixed.
 - Self-hosted integration tests: 9 passed.
-- Browser smoke: login/Grid passes; the MCP-created row rendering test may pass or record
-  an expected xfail depending on AppFlowy Web cache/rendering state.
+- Browser smoke: login/Grid passes; the MCP-created row rendering test must render in
+  Grid. Board may still be stale depending on AppFlowy Web cache/rendering state.
 - Offline unit pytest: 122 passed.
 - Ruff format/check, mypy, build, and diff check passed.
 

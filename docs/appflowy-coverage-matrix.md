@@ -63,7 +63,10 @@ Approximate coverage by object family:
 ## Implementation Order
 
 1. **Close task-board confidence**
-   - Browser/UI acceptance against local AppFlowy Web.
+   - Browser/UI acceptance against local AppFlowy Web. The required operation
+     matrix lives in `docs/browser-ui-acceptance.md`; user-visible create/update/
+     move/delete/reorder/view commands need Grid/Board assertions, not only API
+     verification.
    - Keep Board/Grid refresh bug documented separately from data-plane truth.
 
 2. **Broaden low-risk read coverage**

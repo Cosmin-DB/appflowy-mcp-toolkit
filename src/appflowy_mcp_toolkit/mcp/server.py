@@ -934,7 +934,7 @@ def appflowy_create_task(
     dry_run: bool = True,
     include_blob_diff: bool = True,
 ) -> str:
-    """Create a managed task with a stable task_key and post-write verification."""
+    """Create a browser-visible task row with post-write verification."""
     with _client() as client:
         return compact(
             client.create_task(
@@ -1274,7 +1274,12 @@ def appflowy_upsert_managed_task(
     document: str | None = None,
     dry_run: bool = True,
 ) -> str:
-    """Create/update an MCP-managed task using a stable task_key/pre_hash."""
+    """Advanced idempotent task_key/pre_hash upsert.
+
+    For user-visible task/card creation, prefer appflowy_create_task; fresh
+    pre_hash upserts may verify through the data plane before AppFlowy Web Grid
+    renders them.
+    """
     with _client() as client:
         return compact(
             client.upsert_managed_task(
@@ -1300,7 +1305,11 @@ def appflowy_upsert_verified_managed_task(
     dry_run: bool = True,
     include_blob_diff: bool = True,
 ) -> str:
-    """Create/update an MCP-managed task and verify API/collab visibility."""
+    """Advanced idempotent task_key/pre_hash upsert with data-plane verification.
+
+    For user-visible task/card creation, prefer appflowy_create_task; data-plane
+    verification does not by itself prove AppFlowy Web Grid rendering.
+    """
     with _client() as client:
         return compact(
             client.upsert_managed_task_verified(

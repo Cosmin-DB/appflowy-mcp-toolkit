@@ -323,7 +323,7 @@ def test_selfhosted_task_lifecycle_data_plane() -> None:
     description = f"Self-hosted smoke {task_key}"
 
     with AppFlowyClient() as client:
-        created = client.create_task(
+        created = client.upsert_managed_task_verified(
             workspace_id,
             database_id,
             task_key=task_key,
@@ -911,7 +911,7 @@ def test_selfhosted_multi_task_lifecycle_with_updates_and_cleanup() -> None:
         try:
             key_to_row: dict[str, str] = {}
             for task_key, description, status in specs:
-                result = client.create_task(
+                result = client.upsert_managed_task_verified(
                     workspace_id,
                     database_id,
                     task_key=task_key,
@@ -1004,7 +1004,7 @@ def test_selfhosted_task_name_resolution_guards_ambiguous_writes() -> None:
                 (_task_key("selfhosted-name-dupe-a"), duplicate_description),
                 (_task_key("selfhosted-name-dupe-b"), duplicate_description),
             ]:
-                created = client.create_task(
+                created = client.upsert_managed_task_verified(
                     workspace_id,
                     database_id,
                     task_key=task_key,
@@ -1078,7 +1078,7 @@ def test_selfhosted_invalid_status_is_rejected_without_mutation() -> None:
         impossible_status = f"Not A Real Status {time.time_ns()}"
 
         try:
-            created = client.create_task(
+            created = client.upsert_managed_task_verified(
                 workspace_id,
                 database_id,
                 task_key=task_key,
@@ -1123,7 +1123,7 @@ def test_selfhosted_task_persists_across_appflowy_service_restart() -> None:
         edited_description = f"Restart persistence edited {task_key}"
 
         try:
-            created = client.create_task(
+            created = client.upsert_managed_task_verified(
                 workspace_id,
                 database_id,
                 task_key=task_key,

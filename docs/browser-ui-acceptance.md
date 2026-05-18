@@ -33,6 +33,31 @@ Expected current behavior:
 Future automation can wrap this checklist with Playwright/OpenClaw browser control, but it
 should keep two result channels: `data_plane` and `browser_rendering`.
 
+## Browser-Gated Operation Matrix
+
+Any command that promises a user-visible AppFlowy change must have browser acceptance
+coverage before it is treated as release-safe. REST/collab/blob-diff checks prove the
+data plane; they do not prove that AppFlowy Web reconstructs and renders the change.
+
+| Operation family | Required browser assertion | Current gate |
+|---|---|---|
+| Create task/card through `create-task` / `appflowy_create_task` | New `Description` and `Status` are visible in Grid after creation; Board is recorded separately | implemented in `tests/browser/test_appflowy_web_smoke.py` |
+| Refresh after create/edit | After page reload, the created/edited row still appears in Grid | required for future expansion |
+| Update `Description` | Grid shows the new text and no longer shows the stale text for that row | required before claiming UI-safe update coverage |
+| Move/update `Status` | Grid shows the new status; Board places the card in the expected column after Grid warm-up | required before claiming UI-safe move coverage |
+| Delete task/card | Row disappears from Grid and Board, not only from REST row list or row_orders | required before claiming UI-safe delete coverage |
+| Create/rename/hide/show board columns | Board shows the new/renamed/hidden/visible column state after refresh | required for board-column release safety |
+| Reorder rows/cards | Board or Grid visual order matches row_orders for the tested view/column | required for ordering release safety |
+| Reorder board columns | Board visual column order matches Database collab group order | required for column-order release safety |
+| Typed row cells | Important field types render in Grid with expected human-readable values: select, multiselect, checkbox, date/time, checklist, media/link | required before broad typed-field UI claims |
+| Page/view creation or movement | Sidebar/navigation shows the page/view in the expected place and opens without blank/error UI | required for page/view release safety |
+| Filters, sorts, layout, field settings | The view opens, applies the expected state, and survives refresh | required before enabling write tools for these view settings |
+| Negative/path-regression case | A known unsafe or advanced path, such as fresh `pre_hash` upsert, fails the browser test if it does not render in Grid | required as a regression guard |
+
+The default rule is conservative: if a human will judge the operation in AppFlowy Web,
+the test must open AppFlowy Web and assert visible text/state. `curl` and REST checks
+remain necessary, but they are not sufficient for user-visible workflows.
+
 ## 2026-05-16 Local Browser Smoke
 
 Current local evidence:
@@ -72,12 +97,11 @@ Current expectations:
 
 - Login and Grid rendering against the local Docker stack should pass.
 - MCP-created rows are verified through REST/collab/blob-diff before the browser check.
-- If AppFlowy Web does not render that verified row, the browser test records an
-  `xfail` instead of pretending the UI layer passed. That preserves the important
-  split: MCP data-plane correctness can be true while AppFlowy Web rendering remains
-  stale or incomplete.
+- AppFlowy Web must render an MCP-created row in Grid. Board may still be stale
+  after direct load, so Board screenshots remain diagnostic evidence, but missing
+  Grid text is a failing browser/UI regression.
 
 Validated 2026-05-16 against the local Docker stack: login + To-dos Grid rendering
 passes. The row-rendering test first proves the MCP-created row at the data plane,
-then checks AppFlowy Web. Depending on cache/rendering state it may pass or record an
-expected `xfail`; either result is reported rather than hidden.
+then checks AppFlowy Web Grid. Missing Grid rendering fails the test instead of being
+hidden behind a data-plane-only pass.

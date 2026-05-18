@@ -468,7 +468,10 @@ def build_parser() -> argparse.ArgumentParser:
     search_tasks.add_argument("--case-sensitive", action="store_true")
     search_tasks.add_argument("--with-doc", action="store_true")
 
-    create_task = sub.add_parser("create-task")
+    create_task = sub.add_parser(
+        "create-task",
+        description="Create a browser-visible task row through the normal POST row route.",
+    )
     create_task.add_argument("--workspace-id", required=True)
     create_task.add_argument("--database-id", required=True)
     create_task.add_argument("--task-key", required=True)
@@ -546,7 +549,13 @@ def build_parser() -> argparse.ArgumentParser:
     delete_task_by_name.add_argument("--case-sensitive", action="store_true")
     delete_task_by_name.add_argument("--execute", action="store_true")
 
-    managed = sub.add_parser("managed-task")
+    managed = sub.add_parser(
+        "managed-task",
+        description=(
+            "Advanced/idempotent task_key upsert through pre_hash. "
+            "Do not use for user-visible task creation; use create-task instead."
+        ),
+    )
     managed.add_argument("--workspace-id", required=True)
     managed.add_argument("--database-id", required=True)
     managed.add_argument("--task-key", required=True)
@@ -557,7 +566,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--execute", action="store_true", help="Actually upsert it; default is dry-run"
     )
 
-    managed_verified = sub.add_parser("managed-task-verified")
+    managed_verified = sub.add_parser(
+        "managed-task-verified",
+        description=(
+            "Advanced/idempotent task_key upsert with data-plane verification. "
+            "May verify while AppFlowy Web Grid does not render fresh rows; "
+            "use create-task for visible card creation."
+        ),
+    )
     managed_verified.add_argument("--workspace-id", required=True)
     managed_verified.add_argument("--database-id", required=True)
     managed_verified.add_argument("--task-key", required=True)

@@ -1603,17 +1603,23 @@ class AppFlowyClient:
         dry_run: bool = True,
         include_blob_diff: bool = True,
     ) -> dict[str, Any]:
-        """Create an MCP-managed task using the public task-facing API."""
-        return self.upsert_managed_task_verified(
+        """Create a user-visible task row using AppFlowy's normal row-create route.
+
+        The deterministic ``pre_hash`` upsert route is still available through
+        ``upsert_managed_task_verified`` for idempotent agent-owned tasks, but
+        browser testing showed that freshly upserted rows can verify through the
+        data plane while AppFlowy Web Grid does not render them. The public
+        create helper therefore favors the browser-visible POST row path.
+        """
+        created = self.create_database_row_verified(
             workspace_id,
             database_id,
-            task_key=task_key,
-            description=description,
-            status=status,
+            cells={"Description": description, "Status": status},
             document=document,
             dry_run=dry_run,
             include_blob_diff=include_blob_diff,
         )
+        return {"task_key": task_key, **created}
 
     def update_task(
         self,

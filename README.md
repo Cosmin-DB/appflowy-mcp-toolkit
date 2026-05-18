@@ -274,9 +274,11 @@ Write tools exist for controlled testing, but dry-run by default and require
 - `appflowy_move_managed_task_status`
 
 Task-facing tools are the preferred public workflow for board-like task databases.
-`create_task`, `update_task`, and `move_task` use a caller-supplied stable
-`task_key`, mapped to AppFlowy's `pre_hash`, and verify the resulting data-plane
-state. For rows created manually in AppFlowy Web, use `move-task-by-id` /
+`create_task` uses AppFlowy's normal row-create route because browser tests showed
+that fresh `pre_hash` upserts can verify through REST/collab/blob-diff while failing
+to appear in Grid. Use `upsert-managed-task`, `update_task`, or `move_task` only
+when you specifically need caller-owned `task_key` / `pre_hash` idempotency. For rows
+created manually in AppFlowy Web, use `move-task-by-id` /
 `appflowy_move_task_by_id` or `update-row-by-id` /
 `appflowy_update_database_row_by_id`; REST `pre_hash` upsert cannot target an
 arbitrary existing `row_id`.
@@ -342,8 +344,9 @@ dry-run/gated by default. For database Media fields, the proven convention is
 typed row values with `upload_type = Cloud`.
 
 Known AppFlowy Web limitation: Board rendering can be stale even when a row is already
-present in REST and collab state. In local browser testing, verified rows can still
-fail to render in AppFlowy Web during the browser pass.
+present in REST and collab state. In local browser testing, verified rows must render
+in Grid; Board rendering remains a separate diagnostic observation because it can stay
+stale after direct load.
 Use `verify-row` / `appflowy_verify_database_row` for data-plane verification; use
 browser tests separately for UI rendering.
 
@@ -379,9 +382,9 @@ APPFLOWY_BROWSER_TESTS=true uv run --extra browser pytest tests/browser -q -s
 ```
 
 Current browser expectation is: login/Grid rendering should pass; MCP-created rows
-are verified through REST/collab/blob-diff before the UI assertion. Depending on
-AppFlowy Web rendering state, the row-rendering test may pass or record an expected
-`xfail`. That is recorded as browser-rendering evidence, not hidden.
+are verified through REST/collab/blob-diff before the UI assertion, and the created
+row must appear in Grid. Board screenshots are still diagnostic evidence for the known
+stale-board behavior.
 
 ## Development
 
