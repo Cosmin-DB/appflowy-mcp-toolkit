@@ -261,7 +261,7 @@ def test_board_row_reorder_data_plane_and_grid_presence() -> None:
         try:
             # Confirm initial data-plane positions
             row_orders_before = client.get_database_row_orders(workspace_id, database_id)
-            view_order_before = next(
+            view_order_before: list[str] = next(
                 (e["row_orders"] for e in row_orders_before if e["view_id"] == view_id),
                 [],
             )
@@ -284,7 +284,7 @@ def test_board_row_reorder_data_plane_and_grid_presence() -> None:
 
             # Data-plane: B must now precede A
             row_orders_after = client.get_database_row_orders(workspace_id, database_id)
-            view_order_after = next(
+            view_order_after: list[str] = next(
                 (e["row_orders"] for e in row_orders_after if e["view_id"] == view_id),
                 [],
             )

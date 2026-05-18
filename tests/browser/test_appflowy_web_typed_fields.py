@@ -67,7 +67,7 @@ _EXPECTED_GRID_TEXT: dict[str, str] = {
 
 def _field_names(client: AppFlowyClient, workspace_id: str, database_id: str) -> set[str]:
     fields = client.list_database_fields(workspace_id, database_id)
-    return {f.get("name") for f in fields if isinstance(f.get("name"), str)}
+    return {name for f in fields if isinstance((name := f.get("name")), str)}
 
 
 def _multiselect_options(
