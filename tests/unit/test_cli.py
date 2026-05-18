@@ -610,6 +610,8 @@ def test_cli_workspace_readonly_commands(monkeypatch, capsys):
 
 def test_cli_file_storage_write_commands(monkeypatch, capsys, tmp_path):
     monkeypatch.setenv("APPFLOWY_ALLOW_WRITES", "true")
+    monkeypatch.setenv("APPFLOWY_ALLOW_LOCAL_FILE_READS", "true")
+    monkeypatch.setenv("APPFLOWY_ALLOWED_FILE_ROOTS", str(tmp_path))
     source = tmp_path / "spec.txt"
     source.write_text("hello media", encoding="utf-8")
     output = tmp_path / "downloaded.txt"
@@ -689,6 +691,8 @@ def test_cli_file_storage_write_commands(monkeypatch, capsys, tmp_path):
 
 def test_cli_upload_media_file_returns_media_object(monkeypatch, capsys, tmp_path):
     monkeypatch.setenv("APPFLOWY_ALLOW_WRITES", "true")
+    monkeypatch.setenv("APPFLOWY_ALLOW_LOCAL_FILE_READS", "true")
+    monkeypatch.setenv("APPFLOWY_ALLOWED_FILE_ROOTS", str(tmp_path))
     source = tmp_path / "spec.txt"
     source.write_text("hello media", encoding="utf-8")
 

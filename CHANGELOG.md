@@ -8,6 +8,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added / Changed
+
+- **Local file upload hardening** (`upload_local_file_blob_v1`, `upload_file_as_media`):
+  - New `AppFlowyConfig` fields: `allow_local_file_reads` (from
+    `APPFLOWY_ALLOW_LOCAL_FILE_READS`) and `allowed_file_roots` (from
+    `APPFLOWY_ALLOWED_FILE_ROOTS`, `os.pathsep`-separated).
+  - New `AppFlowyClient._require_local_file_read_allowed(path)` helper enforces:
+    1. `APPFLOWY_ALLOW_LOCAL_FILE_READS=true` required.
+    2. `APPFLOWY_ALLOWED_FILE_ROOTS` must be set and non-empty.
+    3. `realpath(path)` must be inside one of the allowed roots (prevents
+       path traversal and symlink escape).
+  - `upload_local_file_blob_v1` dry-run now uses `stat()` only — no
+    `read_bytes()` call, no network call.
+  - Both gates apply equally to `upload_file_as_media` via delegation.
+  - 17 new unit tests in `tests/unit/test_local_upload_hardening.py`.
+
 ### Added
 
 - **`duplicate_published_page` / `instantiate_template`** …(previous entry)…

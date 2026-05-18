@@ -21,6 +21,8 @@ def make_client(
     def factory(
         handler: Callable[[httpx.Request], httpx.Response],
         allow_writes: bool = False,
+        allow_local_file_reads: bool = False,
+        allowed_file_roots: tuple[str, ...] = (),
     ) -> AppFlowyClient:
         test_config = AppFlowyConfig(
             base_url=config.base_url,
@@ -28,6 +30,8 @@ def make_client(
             refresh_token=config.refresh_token,
             timeout_seconds=config.timeout_seconds,
             allow_writes=allow_writes,
+            allow_local_file_reads=allow_local_file_reads,
+            allowed_file_roots=allowed_file_roots,
         )
         return AppFlowyClient(
             test_config, http_client=httpx.Client(transport=httpx.MockTransport(handler))

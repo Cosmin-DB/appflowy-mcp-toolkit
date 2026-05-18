@@ -208,7 +208,12 @@ def test_file_storage_v1_upload_download_delete(make_client, tmp_path):
             return json_response({"data": {}})
         raise AssertionError(request)
 
-    client = make_client(handler, allow_writes=True)
+    client = make_client(
+        handler,
+        allow_writes=True,
+        allow_local_file_reads=True,
+        allowed_file_roots=(str(tmp_path),),
+    )
 
     uploaded = client.upload_local_file_blob_v1(
         "ws_demo_001",
@@ -242,7 +247,12 @@ def test_upload_file_as_media_returns_cloud_media_object(make_client, tmp_path):
     def handler(_request: httpx.Request) -> httpx.Response:
         return json_response({"data": {"file_id": "file_demo_001"}})
 
-    client = make_client(handler, allow_writes=True)
+    client = make_client(
+        handler,
+        allow_writes=True,
+        allow_local_file_reads=True,
+        allowed_file_roots=(str(tmp_path),),
+    )
 
     result = client.upload_file_as_media(
         "ws_demo_001",

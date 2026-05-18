@@ -57,6 +57,18 @@ export APPFLOWY_ALLOW_WRITES=true
 export APPFLOWY_ALLOW_COLLAB_WRITES=true   # required for Yjs-based updates/deletes
 ```
 
+For local file uploads (`upload-file-v1`, `upload-media-file`), two additional
+gates are required:
+
+```bash
+export APPFLOWY_ALLOW_LOCAL_FILE_READS=true
+export APPFLOWY_ALLOWED_FILE_ROOTS=/path/to/safe/dir:/another/dir  # colon-sep on Linux/macOS
+```
+
+Files outside `APPFLOWY_ALLOWED_FILE_ROOTS` are rejected even when
+`APPFLOWY_ALLOW_LOCAL_FILE_READS=true`.  Dry-run uses only `stat()` (no file
+content is read) and still validates the path is inside allowed roots.
+
 ---
 
 ## MCP server

@@ -476,17 +476,52 @@ class AppFlowyClient:
         content_type: str | None = None,
         dry_run: bool = True,
     ) -> dict[str, Any]:
-        path = Path(file_path)
+        """Validate and upload a local file to AppFlowy v1 blob storage.
+
+        Security gates (all must pass for live execution):
+          - APPFLOWY_ALLOW_WRITES=true
+          - APPFLOWY_ALLOW_LOCAL_FILE_READS=true
+          - file_path must resolve inside APPFLOWY_ALLOWED_FILE_ROOTS
+            (prevents path traversal and symlink escape)
+
+        Dry-run is safe: uses only stat() for file size, does NOT read
+        file bytes and makes no network calls.
+        """
+        input_path = Path(file_path)
         guessed_type = (
-            content_type or mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+            content_type or mimetypes.guess_type(input_path.name)[0] or "application/octet-stream"
         )
-        content = path.read_bytes()
+        encoded_parent_dir = quote(parent_dir, safe="")
+        api_path = f"/api/file_storage/{workspace_id}/v1/blob/{encoded_parent_dir}"
+
+        if dry_run:
+            # Stat only — no file content read, no network call.
+            # Still validate that the path passes the allowed-roots policy so
+            # a dry-run surfaces safety errors early.
+            resolved = self._require_local_file_read_allowed(input_path)
+            try:
+                file_size = resolved.stat().st_size
+            except OSError:
+                file_size = None
+            return {
+                "dry_run": True,
+                "method": "PUT",
+                "path": api_path,
+                "file_path": str(resolved),
+                "filename": resolved.name,
+                "content_type": guessed_type,
+                "content_length": file_size,
+            }
+
+        # Live path: full gate check then read and upload.
+        resolved = self._require_local_file_read_allowed(input_path)
+        content = resolved.read_bytes()
         return self.upload_file_blob_v1(
             workspace_id,
             parent_dir,
             content=content,
             content_type=guessed_type,
-            dry_run=dry_run,
+            dry_run=False,
         )
 
     def get_file_blob_v1(
@@ -2851,6 +2886,47 @@ class AppFlowyClient:
                 "Set APPFLOWY_ALLOW_PUBLISH_WRITES=true "
                 "(also requires APPFLOWY_ALLOW_WRITES=true) to enable page publish/unpublish."
             )
+
+    def _require_local_file_read_allowed(self, file_path: Path) -> Path:
+        """Validate that file_path is safe to read for upload.
+
+        Checks (in order):
+        1. APPFLOWY_ALLOW_LOCAL_FILE_READS must be true.
+        2. APPFLOWY_ALLOWED_FILE_ROOTS must be set and non-empty.
+        3. The realpath of file_path must be inside one of the allowed roots
+           (prevents traversal and symlink escape).
+
+        Returns the resolved Path on success.  Raises AppFlowyError on any
+        failure.
+        """
+        if not self.config.allow_local_file_reads:
+            raise AppFlowyError(
+                "Local file reads are disabled. "
+                "Set APPFLOWY_ALLOW_LOCAL_FILE_READS=true to enable local file uploads."
+            )
+        if not self.config.allowed_file_roots:
+            raise AppFlowyError(
+                "No allowed file roots configured. "
+                "Set APPFLOWY_ALLOWED_FILE_ROOTS to a colon-separated (Linux/macOS) or "
+                "semicolon-separated (Windows) list of allowed directories "
+                "before reading local files for upload."
+            )
+        try:
+            resolved = file_path.resolve(strict=True)
+        except (OSError, ValueError) as exc:
+            raise AppFlowyError(f"Cannot resolve file path {str(file_path)!r}: {exc}") from exc
+        allowed = [Path(r).resolve() for r in self.config.allowed_file_roots]
+        for root in allowed:
+            try:
+                resolved.relative_to(root)
+                return resolved
+            except ValueError:
+                continue
+        raise AppFlowyError(
+            f"File path {str(resolved)!r} is not inside any allowed root. "
+            f"Allowed roots: {[str(r) for r in allowed]!r}. "
+            "Update APPFLOWY_ALLOWED_FILE_ROOTS to include the required directory."
+        )
 
     @staticmethod
     def _infer_media_file_type(path: Path) -> str:
