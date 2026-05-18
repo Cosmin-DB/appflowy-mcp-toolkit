@@ -6,9 +6,10 @@ Covers the practical agent workflows: inspect workspaces and folders, create and
 task cards, write typed database fields, upload media, and verify changes before
 touching real data. Writes are disabled by default.
 
-> **0.1.0 - first public release.** Core task-board, typed-field, media, page/view
-> organization, and diagnostic paths are tested. Append Markdown to pages is supported.
-> Full fetch/replace/block-level document editing is backlog.
+> **0.1.0 - first public release.** Core task-board, typed-field, media,
+> page/view organization, publishing, and template discovery paths are tested.
+> Append Markdown to pages is supported. Full fetch/replace/block-level document
+> editing is backlog.
 
 ---
 

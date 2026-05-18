@@ -11,17 +11,29 @@ Included:
 - Read coverage for server/user/workspace/folder/page/database/row/search/file metadata.
 - Explicit opt-in writes for task rows, page/view organization, fields, quick notes,
   and trash flows.
+- Gated publish/unpublish page writes (`APPFLOWY_ALLOW_WRITES` + `APPFLOWY_ALLOW_PUBLISH_WRITES`).
+- Published template/page duplication into workspace (`duplicate-published-page`,
+  `instantiate-template`); arbitrary unpublished template instantiation not supported.
+- Template-center discovery reads (categories, creators, templates, homepage).
+- Append Markdown to page (paragraphs, headings, lists, blockquotes). Full
+  fetch/replace/block-level document editing remains backlog.
 - Experimental Yjs row delete and ordering behind explicit write + collab write gates.
+- Local file upload safety gates: `APPFLOWY_ALLOW_LOCAL_FILE_READS`,
+  `APPFLOWY_ALLOWED_FILE_ROOTS`, path-traversal and symlink rejection.
+- In-process rate limiting (`APPFLOWY_RATE_LIMIT_*`; default-on, conservative limits).
+- Safe collab diagnostics: `get_collab_json` defaults to summary; raw requires
+  `include_raw=True` / CLI `--include-raw` / `--full`.
+- Valid JSON for truncated MCP outputs (no more cut JSON strings).
+- Rich MCP annotations (`destructiveHint`, `openWorldHint`, `idempotentHint`).
 - Optional self-hosted Docker and browser smoke tests.
 
 Deferred:
 
-- Publishing/sharing/invites/member/admin mutations.
-- Imports and AI/chat routes.
-- Multipart/broad large-file upload. Network URL Media cells and v1 single-file
-  AppFlowy uploads are covered against Docker.
-- Account/workspace destructive administration.
+- Member/invite/access/admin mutations.
+- Imports, AI/chat, and broad administrative routes.
 - Full AppFlowy Web visual parity for MCP-created rows.
+- Full document fetch/replace/block-level editing.
+- Self-hosted smoke tests for template-center (requires seeded data).
 
 ## Required Gates
 
@@ -59,13 +71,10 @@ APPFLOWY_SELFHOSTED_TESTS=true uv run pytest tests/selfhosted -q -s
 APPFLOWY_BROWSER_TESTS=true uv run --extra browser pytest tests/browser -q -s
 ```
 
-Current expected browser result: one Grid/login smoke passes and one MCP-created-row
-test verifies REST/collab/blob-diff first, then requires the row text to render in
-Grid. Board screenshots remain diagnostic evidence for stale Board rendering.
-
-Ordering tools have unit and offline Yjs helper integration coverage. Before a
-public release, run the browser checklist for row/card order and board/status
-column order against the disposable Docker stack.
+Current expected browser result: Grid/login smoke, task lifecycle, typed field
+rendering, and Board visibility after Grid warm-up all pass. Board screenshots
+remain diagnostic evidence for stale Board rendering. Row/card reorder
+data-plane is unit-tested; Board visual ordering is pending browser proof.
 
 ## Safety Review
 

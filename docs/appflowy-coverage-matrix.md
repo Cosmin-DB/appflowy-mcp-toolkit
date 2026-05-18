@@ -115,6 +115,17 @@ Evidence vocabulary:
    - Document and test carefully.
    - Mutations require explicit opt-in gates and likely separate release phase.
 
+## Safety and Hardening Status (post-0.1.0)
+
+| Area | Status |
+|---|---|
+| Local file upload safety | `APPFLOWY_ALLOW_LOCAL_FILE_READS` + `APPFLOWY_ALLOWED_FILE_ROOTS` gates; path traversal/symlink rejection; dry-run stat-only |
+| Truncated MCP output | `compact()` returns valid JSON wrapper when over limit — no more cut JSON substrings |
+| Collab diagnostics | `get_collab_json` summary-only by default; raw requires explicit flag |
+| Rate limiting | Per-client sliding-window buckets; default-on; controlled by `APPFLOWY_RATE_LIMIT_*` |
+| MCP tool annotations | All tools use `ToolAnnotations` with `destructiveHint`, `openWorldHint`, `idempotentHint` |
+| Protocol error wrapping | FastMCP wraps `AppFlowyError` → `ToolError` at tool boundary (confirmed by tests) |
+
 ## Safety Rules For Broad Coverage
 
 - Read-only operations can be added freely when routes are stable.

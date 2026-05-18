@@ -8,71 +8,53 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-### Added / Changed
-
-- **Local file upload hardening** (`upload_local_file_blob_v1`, `upload_file_as_media`):
-  - New `AppFlowyConfig` fields: `allow_local_file_reads` (from
-    `APPFLOWY_ALLOW_LOCAL_FILE_READS`) and `allowed_file_roots` (from
-    `APPFLOWY_ALLOWED_FILE_ROOTS`, `os.pathsep`-separated).
-  - New `AppFlowyClient._require_local_file_read_allowed(path)` helper enforces:
-    1. `APPFLOWY_ALLOW_LOCAL_FILE_READS=true` required.
-    2. `APPFLOWY_ALLOWED_FILE_ROOTS` must be set and non-empty.
-    3. `realpath(path)` must be inside one of the allowed roots (prevents
-       path traversal and symlink escape).
-  - `upload_local_file_blob_v1` dry-run now uses `stat()` only — no
-    `read_bytes()` call, no network call.
-  - Both gates apply equally to `upload_file_as_media` via delegation.
-  - 17 new unit tests in `tests/unit/test_local_upload_hardening.py`.
-
-- **In-process rate limiting**: `AppFlowyClient` now enforces sliding-window
-  buckets at the network layer (all four request methods).  Defaults:
-  120 calls/min overall, 30 writes/min, 20 blob\/collab/min, 8 concurrent.
-  Controlled by `APPFLOWY_RATE_LIMIT_*` env vars; set
-  `APPFLOWY_RATE_LIMIT_ENABLED=false` to disable.  Dry-run operations that
-  make no network call do not consume rate budget.  Raises `AppFlowyError`
-  when a bucket is exhausted (no silent retry/sleep).
-
-- **MCP tool annotations hardened**: all 74 tool decorators now use explicit
-  `ToolAnnotations` objects (no more dict type-ignore casts). Added
-  `destructiveHint=True` for delete/trash/unpublish/delete-blob tools,
-  `openWorldHint=True` for publish/upload/create/instantiate tools, and
-  `idempotentHint=True` for read tools. Protocol-level error tests confirm
-  FastMCP wraps `AppFlowyError` as `ToolError` at the tool boundary.
-
-- **compact() truncation fix**: when output exceeds `max_chars`, `compact()`
-  now returns a valid JSON object with `truncated: true`, `max_chars`,
-  `original_chars`, a `preview` string, and `guidance` — never a raw
-  cut JSON substring. Existing callers and MCP tools are unaffected for
-  payloads within the limit.
+Release-candidate hardening and feature additions queued for the next PyPI publish.
 
 ### Added
 
-- **`duplicate_published_page` / `instantiate_template`** …(previous entry)…
-
+- **`publish_page` / `unpublish_page`**: gated publish/unpublish writes for page
+  views. Routes confirmed in AppFlowy-Cloud `src/api/workspace.rs`. Require
+  `APPFLOWY_ALLOW_WRITES=true` **and** `APPFLOWY_ALLOW_PUBLISH_WRITES=true` for
+  live execution. Dry-run by default. Unit-tested; no browser/human validation yet.
+- **`duplicate_published_page` / `instantiate_template`**: duplicates a published
+  page or template into a workspace destination view. Route confirmed:
+  `POST /api/workspace/{workspace_id}/published-duplicate`. Requires
+  `APPFLOWY_ALLOW_WRITES=true` only. Unit-tested; no browser/human validation yet.
+  Arbitrary unpublished template instantiation is not supported via this route.
 - **`append_markdown_to_page`** client method, `append-page-markdown` CLI command,
-  and `appflowy_append_markdown_to_page` MCP tool.
-  Converts a safe Markdown subset to AppFlowy SerdeBlocks (paragraphs, headings
-  level 1–6, bulleted lists, numbered lists, blockquotes) and appends them to
-  an existing page via `POST /api/workspace/{workspace_id}/page-view/{view_id}/append-block`.
-  Block types confirmed from AppFlowy-Cloud upstream workspace-template fixture files.
-  Dry-run by default; live execution requires `APPFLOWY_ALLOW_WRITES=true`.
-  Does NOT fetch, replace, or perform block-level editing (fetch/replace/block edit
-  remains backlog).  Unit-tested; no browser/human validation yet.
-  Inline rich formatting (bold, italic, code span, links) is kept as plain text;
-  full inline conversion is backlog.
+  and `appflowy_append_markdown_to_page` MCP tool. Converts a safe Markdown subset
+  (paragraphs, headings 1–6, bulleted/numbered lists, blockquotes) to AppFlowy
+  SerdeBlocks and appends to an existing page. Block types confirmed from upstream
+  workspace-template fixture files. Inline rich formatting is kept as plain text
+  (backlog). Does NOT fetch, replace, or perform block-level editing. Unit-tested;
+  no browser/human validation yet.
+- **Template-center read-only discovery**: `list_template_categories`,
+  `get_template_category`, `list_template_creators`, `get_template_creator`,
+  `list_templates`, `get_template`, `get_template_homepage` — routes confirmed in
+  AppFlowy-Cloud `src/api/template.rs`. Unit-tested.
 
-- `src/appflowy_mcp_toolkit/markdown.py` — new internal `markdown_to_blocks` converter.
-- `AppFlowyConfig.allow_publish_writes` and `_require_publish_writes_enabled` (from
-  previous slice).
-  Routes confirmed in AppFlowy-Cloud `src/api/workspace.rs`:
-  `POST /api/workspace/{workspace_id}/page-view/{view_id}/publish` and `/unpublish`.
-  Both operations are dry-run by default and require two explicit env gates for live
-  execution: `APPFLOWY_ALLOW_WRITES=true` **and** `APPFLOWY_ALLOW_PUBLISH_WRITES=true`.
-  Unit-tested; no browser/human validation yet.
-- `AppFlowyConfig.allow_publish_writes` field (read from `APPFLOWY_ALLOW_PUBLISH_WRITES`).
-- `AppFlowyClient._require_publish_writes_enabled()` helper that enforces both gates.
+### Changed / Hardened
 
----
+- **Local file upload hardening**: `upload_local_file_blob_v1` and
+  `upload_file_as_media` now require `APPFLOWY_ALLOW_LOCAL_FILE_READS=true` and a
+  non-empty `APPFLOWY_ALLOWED_FILE_ROOTS` for both dry-run (stat only) and live
+  execution. Path traversal and symlink escape are rejected via `resolve(strict=True)`.
+- **Valid truncated JSON**: `compact()` now returns a valid JSON wrapper object when
+  output exceeds `max_chars` (`truncated`, `max_chars`, `original_chars`, `preview`,
+  `guidance`). No more raw cut JSON substrings.
+- **Safer collab diagnostics**: `get_collab_json` defaults to `summary_only=True,
+  include_raw=False` for CLI and MCP callers. Full raw output requires `--include-raw`
+  / `--full` (CLI) or `include_raw=True, summary_only=False` (client/MCP). Internal
+  callers (`get_database_row_orders` etc.) are unaffected.
+- **In-process rate limiting**: `AppFlowyClient` enforces sliding-window buckets at
+  the network layer. Defaults: 120 calls/min, 30 writes/min, 20 blob/collab/min,
+  8 concurrent. Controlled by `APPFLOWY_RATE_LIMIT_*` env vars;
+  `APPFLOWY_RATE_LIMIT_ENABLED=false` disables. Dry-run operations do not consume
+  network rate budget. Raises `AppFlowyError` on excess (no silent retry).
+- **Rich MCP annotations**: all tool decorators use `ToolAnnotations` objects with
+  `destructiveHint` (delete/trash/unpublish tools), `openWorldHint`
+  (publish/upload/create/instantiate), and `idempotentHint` (read tools). FastMCP
+  wraps `AppFlowyError` as `ToolError` at the tool boundary (confirmed by tests).
 
 ## [0.1.0] - 2026-05-18
 

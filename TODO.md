@@ -26,21 +26,19 @@ These items came from an external MCP review and local code inspection. Treat
 the first item as release-blocking for a calm public release; the rest are
 ordered by practical risk and protocol maturity.
 
-- [P0] Harden local file uploads. The MCP upload path must not become a general
-  local filesystem reader. Add an explicit local-read gate such as
-  APPFLOWY_ALLOW_LOCAL_FILE_READS=true, require configured allowed roots such
-  as APPFLOWY_ALLOWED_FILE_ROOTS, reject paths outside those roots, handle
-  traversal/symlink cases, and make dry-run use metadata (stat) instead of
-  read_bytes().
+- [DONE] Harden local file uploads. APPFLOWY_ALLOW_LOCAL_FILE_READS and
+  APPFLOWY_ALLOWED_FILE_ROOTS gates added; dry-run uses stat() only; path
+  traversal and symlink escape rejected; upload_file_as_media also covered.
 - [DONE] Stop returning invalid truncated JSON. compact() returns a valid JSON
   wrapper with truncated: true, the limit, original_chars, a preview string, and
   guidance when output exceeds max_chars.
 - [DONE] Make raw collab diagnostics explicit and safer. get_collab_json now
   defaults to summary_only=True, include_raw=False for public CLI/MCP callers.
   Full raw output requires include_raw=True. Internal callers unchanged.
-- [P1] Sweep docs for support-status drift before release. README,
-  coverage matrix, release checklist, changelog, and tool docs must agree about
-  templates, publishing, Markdown append support, and deferred page editing.
+- [DONE] Sweep docs for support-status drift before release. README,
+  coverage matrix, release checklist, changelog, and tool docs aligned
+  for 0.1.0: templates, publishing, Markdown append, collab diagnostics,
+  local upload hardening, and rate limiting all documented consistently.
 - [DONE] Add simple MCP/server-side rate limits: per-client sliding-window buckets
   for calls per minute, writes per minute, blob/collab per minute, and max
   concurrent calls. Controlled via APPFLOWY_RATE_LIMIT_* env vars;
