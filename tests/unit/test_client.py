@@ -1607,7 +1607,13 @@ def test_get_collab_json_calls_correct_path(make_client):
         return json_response({"data": _COLLAB_VIEWS_FLAT})
 
     client = make_client(handler)
-    result = client.get_collab_json("ws_001", "db_001", collab_type="Database")
+    result = client.get_collab_json(
+        "ws_001",
+        "db_001",
+        collab_type="Database",
+        summary_only=False,
+        include_raw=True,
+    )
 
     assert seen[0].url.path == "/api/workspace/v1/ws_001/collab/db_001/json"
     assert seen[0].url.params["collab_type"] == "1"  # integer sent, not string

@@ -693,10 +693,29 @@ def build_parser() -> argparse.ArgumentParser:
     options.add_argument("--database-id", required=True)
     options.add_argument("--field-name", default="Status")
 
-    collab = sub.add_parser("collab-json")
+    collab = sub.add_parser(
+        "collab-json",
+        description=(
+            "Fetch a collab document for diagnostics. "
+            "Defaults to a safe summary (top-level keys, counts). "
+            "Use --include-raw to get the full raw collab body."
+        ),
+    )
     collab.add_argument("--workspace-id", required=True)
     collab.add_argument("--object-id", required=True)
     collab.add_argument("--collab-type", default="Database")
+    collab.add_argument(
+        "--include-raw",
+        action="store_true",
+        default=False,
+        help="Include the full raw collab body (may be large; diagnostic only).",
+    )
+    collab.add_argument(
+        "--full",
+        action="store_true",
+        default=False,
+        help="Return the complete raw collab JSON without summarization (implies --include-raw).",
+    )
 
     row_orders = sub.add_parser("row-orders")
     row_orders.add_argument("--workspace-id", required=True)
@@ -1370,6 +1389,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.workspace_id,
                 args.object_id,
                 collab_type=args.collab_type,
+                summary_only=not args.full,
+                include_raw=args.include_raw or args.full,
             )
         elif args.command == "row-orders":
             result = client.get_database_row_orders(args.workspace_id, args.database_id)

@@ -1042,15 +1042,32 @@ def appflowy_get_collab_json(
     workspace_id: str,
     object_id: str,
     collab_type: str = "Database",
+    summary_only: bool = True,
+    include_raw: bool = False,
 ) -> str:
-    """Fetch a collab document as raw JSON for diagnostics.
+    """Fetch a collab document for diagnostics.
 
-    ``collab_type`` is the string name or integer value of the collab type.
-    Known names: ``Database`` (1), ``Document`` (0), ``Folder`` (3),
-    ``DatabaseRow`` (4), ``WorkspaceDatabase`` (2).
+    **Safe defaults**: returns a compact summary (top-level keys, counts,
+    metadata) without the raw collab body.  Full raw output requires
+    ``include_raw=True`` and ``summary_only=False``.
+
+    Raw collab JSON may contain large internal Yjs state and should be
+    treated as diagnostic-only data.  Do not parse it as user-facing
+    application data.
+
+    ``collab_type`` string names: ``Database`` (1), ``Document`` (0),
+    ``Folder`` (3), ``DatabaseRow`` (4), ``WorkspaceDatabase`` (2).
     """
     with _client() as client:
-        return compact(client.get_collab_json(workspace_id, object_id, collab_type=collab_type))
+        return compact(
+            client.get_collab_json(
+                workspace_id,
+                object_id,
+                collab_type=collab_type,
+                summary_only=summary_only,
+                include_raw=include_raw,
+            )
+        )
 
 
 @mcp.tool(name="appflowy_get_database_row_orders", annotations={"readOnlyHint": True})  # type: ignore[arg-type]

@@ -35,10 +35,9 @@ ordered by practical risk and protocol maturity.
 - [DONE] Stop returning invalid truncated JSON. compact() returns a valid JSON
   wrapper with truncated: true, the limit, original_chars, a preview string, and
   guidance when output exceeds max_chars.
-- [P1] Make raw collab diagnostics explicit and safer. Keep the diagnostic
-  capability, but expose safe defaults such as summary_only=true and
-  include_raw=false; require an explicit raw flag for large internal collab
-  JSON and document the exfiltration risk.
+- [DONE] Make raw collab diagnostics explicit and safer. get_collab_json now
+  defaults to summary_only=True, include_raw=False for public CLI/MCP callers.
+  Full raw output requires include_raw=True. Internal callers unchanged.
 - [P1] Sweep docs for support-status drift before release. README,
   coverage matrix, release checklist, changelog, and tool docs must agree about
   templates, publishing, Markdown append support, and deferred page editing.

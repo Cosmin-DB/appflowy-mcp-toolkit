@@ -241,10 +241,18 @@ def test_cli_collab_json(monkeypatch, capsys):
 
     _patch_client(monkeypatch, handler)
 
+    # Default: summary mode
     assert main(["collab-json", "--workspace-id", "ws_001", "--object-id", "db_001"]) == 0
     out = capsys.readouterr().out
     parsed = json.loads(out)
-    assert parsed == fake_collab
+    assert parsed["diagnostic"] is True
+    assert "top_level_keys" in parsed
+    assert "views" in parsed["top_level_keys"]
+
+    # --full flag: returns raw collab without summary wrapper
+    assert main(["collab-json", "--workspace-id", "ws_001", "--object-id", "db_001", "--full"]) == 0
+    parsed_full = json.loads(capsys.readouterr().out)
+    assert parsed_full == fake_collab
 
 
 def test_cli_row_orders(monkeypatch, capsys):

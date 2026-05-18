@@ -2243,6 +2243,8 @@ class AppFlowyClient:
         object_id: str,
         *,
         collab_type: str | int = "Database",
+        summary_only: bool = True,
+        include_raw: bool = False,
     ) -> dict[str, Any]:
         """Fetch a collab document as JSON.
 
@@ -2255,13 +2257,38 @@ class AppFlowyClient:
 
         The server requires the integer form; string names are resolved
         automatically.
+
+        Safety parameters
+        -----------------
+        summary_only : bool
+            When ``True``, return only a high-level summary of the collab
+            document (top-level keys, type, counts) without the raw body.
+            Defaults to ``True`` so public callers do not receive the full raw
+            collab body unless explicitly requested.
+        include_raw : bool
+            When ``False`` and ``summary_only=True``, the raw collab body is
+            omitted.  Ignored when ``summary_only=False``.
+            Defaults to ``False`` so public callers do not receive the full raw
+            collab body unless explicitly requested.
+
+        Internal helpers that need the complete document pass
+        ``summary_only=False, include_raw=True`` explicitly.
         """
         data = self.request(
             "GET",
             f"/api/workspace/v1/{workspace_id}/collab/{object_id}/json",
             params={"collab_type": _collab_type_int(collab_type)},
         )
-        return self._extract_data(data)
+        raw = self._extract_data(data)
+        if not summary_only:
+            return raw
+        return _summarize_collab(
+            raw,
+            workspace_id=workspace_id,
+            object_id=object_id,
+            collab_type=str(collab_type),
+            include_raw=include_raw,
+        )
 
     def get_database_row_orders(
         self,
@@ -2273,7 +2300,13 @@ class AppFlowyClient:
         Each entry has ``view_id`` and ``row_orders`` (list of row-id strings).
         Returns an empty list if the collab document has no recognisable views.
         """
-        collab = self.get_collab_json(workspace_id, database_id, collab_type="Database")
+        collab = self.get_collab_json(
+            workspace_id,
+            database_id,
+            collab_type="Database",
+            summary_only=False,
+            include_raw=True,
+        )
         return _extract_row_orders(collab)
 
     def get_database_view_configs(
@@ -2289,7 +2322,13 @@ class AppFlowyClient:
         layout, layout settings, filters, sorts, board/group settings and
         field visibility/width settings.
         """
-        collab = self.get_collab_json(workspace_id, database_id, collab_type="Database")
+        collab = self.get_collab_json(
+            workspace_id,
+            database_id,
+            collab_type="Database",
+            summary_only=False,
+            include_raw=True,
+        )
         return _extract_view_configs(collab)
 
     def get_database_blob_diff_summary(
@@ -2985,6 +3024,50 @@ class AppFlowyClient:
         except ValueError:
             pass
         return f"AppFlowy API error {response.status_code}"
+
+
+def _summarize_collab(
+    raw: Any,
+    *,
+    workspace_id: str,
+    object_id: str,
+    collab_type: str,
+    include_raw: bool = False,
+) -> dict[str, Any]:
+    """Return a safe high-level summary of a raw collab JSON document.
+
+    Emits shape/key counts and metadata without the raw body unless
+    ``include_raw=True`` is explicitly requested.
+    """
+    summary: dict[str, Any] = {
+        "diagnostic": True,
+        "workspace_id": workspace_id,
+        "object_id": object_id,
+        "collab_type": collab_type,
+        "raw_risk_note": (
+            "Full raw collab JSON may contain large internal Yjs state. "
+            "Pass include_raw=True only when you need the complete document body."
+        ),
+    }
+    if isinstance(raw, dict):
+        summary["top_level_keys"] = list(raw.keys())
+        summary["top_level_key_count"] = len(raw)
+        # Shallow size hints for common well-known sub-keys
+        for key in ("views", "rows", "fields", "cells", "blocks", "children"):
+            if key in raw:
+                val = raw[key]
+                if isinstance(val, (dict, list)):
+                    summary[f"{key}_count"] = len(val)
+    elif isinstance(raw, list):
+        summary["top_level_type"] = "list"
+        summary["item_count"] = len(raw)
+    else:
+        summary["top_level_type"] = type(raw).__name__
+
+    if include_raw:
+        summary["raw"] = raw
+
+    return summary
 
 
 def _collab_type_int(collab_type: str | int) -> int:
