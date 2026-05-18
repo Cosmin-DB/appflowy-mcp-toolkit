@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
+
+from mcp.types import CallToolResult, TextContent
 
 from appflowy_mcp_toolkit.mcp.server import mcp
 
@@ -117,6 +119,21 @@ EXPECTED_WRITE_TOOLS = {
 }
 
 EXPECTED_ALL_TOOLS = EXPECTED_READ_TOOLS | EXPECTED_WRITE_TOOLS
+
+
+def _assert_tool_payload(raw: Any, expected_text_payload: Any) -> None:
+    if isinstance(raw, CallToolResult):
+        text_content = cast(TextContent, raw.content[0])
+        assert json.loads(text_content.text) == expected_text_payload
+        expected_structured = (
+            expected_text_payload
+            if isinstance(expected_text_payload, dict)
+            else {"result": expected_text_payload}
+        )
+        assert raw.structuredContent == expected_structured
+        return
+
+    assert json.loads(raw[0][0].text) == expected_text_payload
 
 
 def _get_tools() -> list[Any]:
@@ -233,7 +250,66 @@ def test_view_config_tool_delegates_to_client() -> None:
         )
 
     instance.get_database_view_configs.assert_called_once_with("ws", "db")
-    assert json.loads(raw[0][0].text) == fake_result
+    _assert_tool_payload(raw, fake_result)
+
+
+def test_main_mcp_tools_return_structured_content() -> None:
+    with patch(
+        "appflowy_mcp_toolkit.mcp.server.AppFlowyClient",
+        autospec=True,
+    ) as MockClient:
+        instance = MockClient.return_value.__enter__.return_value
+        instance.list_tasks.return_value = [{"id": "task-1"}]
+        instance.get_database_rows.return_value = [{"id": "row-1"}]
+        instance.verify_database_row.return_value = {"row_id": "row-1", "verified": True}
+        instance.create_task.return_value = {"row_id": "row-2", "dry_run": True}
+        instance.publish_page.return_value = {"view_id": "view-1", "dry_run": True}
+        instance.list_templates.return_value = [{"view_id": "tpl-1"}]
+        instance.get_database_view_configs.return_value = [{"view_id": "board-1"}]
+
+        calls: list[tuple[str, dict[str, Any], Any]] = [
+            (
+                "appflowy_list_tasks",
+                {"workspace_id": "ws", "database_id": "db"},
+                [{"id": "task-1"}],
+            ),
+            (
+                "appflowy_get_database_rows",
+                {"workspace_id": "ws", "database_id": "db", "ids": ["row-1"]},
+                [{"id": "row-1"}],
+            ),
+            (
+                "appflowy_verify_database_row",
+                {"workspace_id": "ws", "database_id": "db", "row_id": "row-1"},
+                {"row_id": "row-1", "verified": True},
+            ),
+            (
+                "appflowy_create_task",
+                {
+                    "workspace_id": "ws",
+                    "database_id": "db",
+                    "task_key": "structured",
+                    "description": "Structured output",
+                },
+                {"row_id": "row-2", "dry_run": True},
+            ),
+            (
+                "appflowy_publish_page",
+                {"workspace_id": "ws", "view_id": "view-1"},
+                {"view_id": "view-1", "dry_run": True},
+            ),
+            ("appflowy_list_templates", {}, [{"view_id": "tpl-1"}]),
+            (
+                "appflowy_get_database_view_configs",
+                {"workspace_id": "ws", "database_id": "db"},
+                [{"view_id": "board-1"}],
+            ),
+        ]
+
+        for tool_name, args, expected in calls:
+            raw: Any = asyncio.run(mcp.call_tool(tool_name, args))
+            assert isinstance(raw, CallToolResult)
+            _assert_tool_payload(raw, expected)
 
 
 def test_quick_note_tools_delegate_to_client() -> None:
@@ -432,7 +508,7 @@ def test_template_readonly_tools_delegate_to_client() -> None:
     assert json.loads(category_raw[0][0].text) == {"id": "cat1", "name": "Use cases"}
     assert json.loads(creators_raw[0][0].text) == [{"id": "cr1", "name": "AppFlowy"}]
     assert json.loads(creator_raw[0][0].text) == {"id": "cr1", "name": "AppFlowy"}
-    assert json.loads(templates_raw[0][0].text) == [{"view_id": "tpl1", "name": "Brief"}]
+    _assert_tool_payload(templates_raw, [{"view_id": "tpl1", "name": "Brief"}])
     assert json.loads(template_raw[0][0].text) == {"view_id": "tpl1", "name": "Brief"}
     assert json.loads(homepage_raw[0][0].text) == {"featured_templates": []}
 

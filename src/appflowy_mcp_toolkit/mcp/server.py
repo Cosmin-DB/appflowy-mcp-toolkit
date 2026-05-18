@@ -1,20 +1,32 @@
 from __future__ import annotations
 
+from typing import Annotated, Any
+
 from appflowy_mcp_toolkit.client import AppFlowyClient
 from appflowy_mcp_toolkit.formatting import compact
 from appflowy_mcp_toolkit.workflows import safe_workflows
 
 try:
     from mcp.server.fastmcp import FastMCP
-    from mcp.types import ToolAnnotations
+    from mcp.types import CallToolResult, TextContent, ToolAnnotations
 except ImportError as exc:  # pragma: no cover
     raise SystemExit("Install MCP extras with: python -m pip install -e '.[mcp]'") from exc
 
 mcp = FastMCP("appflowy-mcp-toolkit")
+StructuredToolResult = Annotated[CallToolResult, dict[str, Any]]
 
 
 def _client() -> AppFlowyClient:
     return AppFlowyClient()
+
+
+def _structured(data: Any) -> StructuredToolResult:
+    """Return backwards-compatible text plus MCP structuredContent."""
+    structured_content = data if isinstance(data, dict) else {"result": data}
+    return CallToolResult(
+        content=[TextContent(type="text", text=compact(data))],
+        structuredContent=structured_content,
+    )
 
 
 @mcp.tool(name="appflowy_safe_workflows", annotations=ToolAnnotations(readOnlyHint=True))
@@ -146,14 +158,14 @@ def appflowy_publish_page(
     comments_enabled: bool | None = None,
     duplicate_enabled: bool | None = None,
     dry_run: bool = True,
-) -> str:
+) -> StructuredToolResult:
     """Publish an AppFlowy page view.
 
     Dry-run by default.  Live execution requires both
     APPFLOWY_ALLOW_WRITES=true and APPFLOWY_ALLOW_PUBLISH_WRITES=true.
     """
     with _client() as client:
-        return compact(
+        return _structured(
             client.publish_page(
                 workspace_id,
                 view_id,
@@ -282,10 +294,10 @@ def appflowy_list_templates(
     is_featured: bool | None = None,
     is_new_template: bool | None = None,
     name_contains: str | None = None,
-) -> str:
+) -> StructuredToolResult:
     """List AppFlowy templates with publish metadata when provided by AppFlowy."""
     with _client() as client:
-        return compact(
+        return _structured(
             client.list_templates(
                 category_id=category_id,
                 is_featured=is_featured,
@@ -1095,10 +1107,12 @@ def appflowy_get_database_rows(
     database_id: str,
     ids: list[str],
     with_doc: bool = False,
-) -> str:
+) -> StructuredToolResult:
     """Fetch database row details by explicit row IDs."""
     with _client() as client:
-        return compact(client.get_database_rows(workspace_id, database_id, ids, with_doc=with_doc))
+        return _structured(
+            client.get_database_rows(workspace_id, database_id, ids, with_doc=with_doc)
+        )
 
 
 @mcp.tool(name="appflowy_list_select_options", annotations=ToolAnnotations(readOnlyHint=True))
@@ -1157,7 +1171,7 @@ def appflowy_get_database_row_orders(workspace_id: str, database_id: str) -> str
 
 
 @mcp.tool(name="appflowy_get_database_view_configs", annotations=ToolAnnotations(readOnlyHint=True))
-def appflowy_get_database_view_configs(workspace_id: str, database_id: str) -> str:
+def appflowy_get_database_view_configs(workspace_id: str, database_id: str) -> StructuredToolResult:
     """Return database view configuration extracted from collab JSON.
 
     Each entry summarizes one AppFlowy database view: layout, layout settings,
@@ -1165,7 +1179,7 @@ def appflowy_get_database_view_configs(workspace_id: str, database_id: str) -> s
     count. This is read-only and does not mutate view configuration.
     """
     with _client() as client:
-        return compact(client.get_database_view_configs(workspace_id, database_id))
+        return _structured(client.get_database_view_configs(workspace_id, database_id))
 
 
 @mcp.tool(name="appflowy_get_database_blob_diff", annotations=ToolAnnotations(readOnlyHint=True))
@@ -1197,10 +1211,10 @@ def appflowy_list_tasks(
     workspace_id: str,
     database_id: str,
     with_doc: bool = False,
-) -> str:
+) -> StructuredToolResult:
     """List task rows from one AppFlowy database."""
     with _client() as client:
-        return compact(client.list_tasks(workspace_id, database_id, with_doc=with_doc))
+        return _structured(client.list_tasks(workspace_id, database_id, with_doc=with_doc))
 
 
 @mcp.tool(
@@ -1238,14 +1252,14 @@ def appflowy_verify_database_row(
     database_id: str,
     row_id: str,
     include_blob_diff: bool = True,
-) -> str:
+) -> StructuredToolResult:
     """Verify one row through REST, row_orders and row collab signals.
 
     This is a data-plane verification. AppFlowy Web Board may still need a
     Grid/refresh warm-up before it renders the card.
     """
     with _client() as client:
-        return compact(
+        return _structured(
             client.verify_database_row(
                 workspace_id,
                 database_id,
@@ -1267,10 +1281,10 @@ def appflowy_create_task(
     document: str | None = None,
     dry_run: bool = True,
     include_blob_diff: bool = True,
-) -> str:
+) -> StructuredToolResult:
     """Create a browser-visible task row with post-write verification."""
     with _client() as client:
-        return compact(
+        return _structured(
             client.create_task(
                 workspace_id,
                 database_id,

@@ -17,11 +17,12 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 
 import httpx
 import pytest
+from mcp.types import CallToolResult, TextContent
 
 from appflowy_mcp_toolkit.cli.main import main
 from appflowy_mcp_toolkit.errors import AppFlowyError
@@ -333,7 +334,15 @@ def test_mcp_publish_page_dry_run():
         duplicate_enabled=None,
         dry_run=True,
     )
-    result = json.loads(raw[0][0].text)
+    assert isinstance(raw, CallToolResult)
+    text_content = cast(TextContent, raw.content[0])
+    result = json.loads(text_content.text)
+    assert raw.structuredContent == {
+        "dry_run": True,
+        "method": "POST",
+        "path": "/api/workspace/ws-1/page-view/view-1/publish",
+        "json": {},
+    }
     assert result["dry_run"] is True
 
 

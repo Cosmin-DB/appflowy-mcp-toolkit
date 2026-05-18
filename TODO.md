@@ -54,11 +54,12 @@ ordered by practical risk and protocol maturity.
   short-lived `AppFlowyClient`, so limits apply across tool calls in the same
   MCP process. Keep client-level limits as a fallback, but enforce shared server
   buckets for real protocol usage.
-- [P0] Add structured MCP responses (`structuredContent`) for high-value tools
+- [DONE] Add structured MCP responses (`structuredContent`) for high-value tools
   while preserving text/JSON compatibility for clients that expect the current
-  shape. Start with: `list_tasks`, `get_database_rows`,
+  shape. Implemented for `list_tasks`, `get_database_rows`,
   `verify_database_row`, `create_task`, `publish_page`, `list_templates`, and
-  `get_database_view_configs`.
+  `get_database_view_configs`; list-like payloads are exposed as
+  `{"result": [...]}` because MCP structured content must be a JSON object.
 - [P0] Add MCP error-handling tests for `AppFlowyError`, auth failures,
   rate-limit failures, write-gate failures, and local-file-read-gate failures.
   The server should return clean tool errors, not crash or leak traceback-shaped

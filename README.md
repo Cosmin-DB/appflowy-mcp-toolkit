@@ -204,6 +204,15 @@ Full command list: `appflowy-toolkit --help`
 
 ## MCP tools - quick reference
 
+High-value MCP tools return both backwards-compatible text JSON and
+`structuredContent` for clients that can consume typed results:
+`appflowy_list_tasks`, `appflowy_get_database_rows`,
+`appflowy_verify_database_row`, `appflowy_create_task`,
+`appflowy_publish_page`, `appflowy_list_templates`, and
+`appflowy_get_database_view_configs`. List-like structured payloads are
+wrapped as `{"result": [...]}` because MCP structured content is a JSON
+object.
+
 Read-only tools (safe with no write gates):
 
 `appflowy_health_check`, `appflowy_get_server_info`, `appflowy_get_user_profile`,
