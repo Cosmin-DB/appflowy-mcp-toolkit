@@ -6,6 +6,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **`publish_page` / `unpublish_page`** client methods, `publish-page` / `unpublish-page`
+  CLI commands, and `appflowy_publish_page` / `appflowy_unpublish_page` MCP tools.
+  Routes confirmed in AppFlowy-Cloud `src/api/workspace.rs`:
+  `POST /api/workspace/{workspace_id}/page-view/{view_id}/publish` and `/unpublish`.
+  Both operations are dry-run by default and require two explicit env gates for live
+  execution: `APPFLOWY_ALLOW_WRITES=true` **and** `APPFLOWY_ALLOW_PUBLISH_WRITES=true`.
+  Unit-tested; no browser/human validation yet.
+- `AppFlowyConfig.allow_publish_writes` field (read from `APPFLOWY_ALLOW_PUBLISH_WRITES`).
+- `AppFlowyClient._require_publish_writes_enabled()` helper that enforces both gates.
+
+---
+
 ## [0.1.0] - 2026-05-18
 
 First public PyPI release.

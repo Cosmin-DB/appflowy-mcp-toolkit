@@ -280,6 +280,63 @@ class AppFlowyClient:
             )
         return publish_info
 
+    def publish_page(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        publish_name: str | None = None,
+        visible_database_view_ids: list[str] | None = None,
+        comments_enabled: bool | None = None,
+        duplicate_enabled: bool | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Publish an AppFlowy page view.
+
+        Route confirmed in AppFlowy-Cloud src/api/workspace.rs:
+          POST /api/workspace/{workspace_id}/page-view/{view_id}/publish
+
+        Requires APPFLOWY_ALLOW_WRITES=true AND APPFLOWY_ALLOW_PUBLISH_WRITES=true
+        for live execution.  Dry-run (default) returns method/path/payload only.
+        """
+        path = f"/api/workspace/{workspace_id}/page-view/{view_id}/publish"
+        payload: dict[str, Any] = {}
+        if publish_name is not None:
+            payload["publish_name"] = publish_name
+        if visible_database_view_ids is not None:
+            payload["visible_database_view_ids"] = visible_database_view_ids
+        if comments_enabled is not None:
+            payload["comments_enabled"] = comments_enabled
+        if duplicate_enabled is not None:
+            payload["duplicate_enabled"] = duplicate_enabled
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_publish_writes_enabled()
+        data = self.request("POST", path, json=payload)
+        return {"path": path, "response": data}
+
+    def unpublish_page(
+        self,
+        workspace_id: str,
+        view_id: str,
+        *,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Unpublish an AppFlowy page view.
+
+        Route confirmed in AppFlowy-Cloud src/api/workspace.rs:
+          POST /api/workspace/{workspace_id}/page-view/{view_id}/unpublish
+
+        Requires APPFLOWY_ALLOW_WRITES=true AND APPFLOWY_ALLOW_PUBLISH_WRITES=true
+        for live execution.  Dry-run (default) returns method/path summary.
+        """
+        path = f"/api/workspace/{workspace_id}/page-view/{view_id}/unpublish"
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path}
+        self._require_publish_writes_enabled()
+        data = self.request("POST", path)
+        return {"path": path, "response": data}
+
     def get_file_storage_usage(self, workspace_id: str) -> dict[str, Any]:
         data = self.request("GET", f"/api/file_storage/{workspace_id}/usage")
         usage = self._extract_data(data)
@@ -2692,6 +2749,20 @@ class AppFlowyClient:
         if not self.config.allow_writes:
             raise AppFlowyError(
                 "Writes are disabled. Set APPFLOWY_ALLOW_WRITES=true or use dry_run=True."
+            )
+
+    def _require_publish_writes_enabled(self) -> None:
+        """Require both APPFLOWY_ALLOW_WRITES and APPFLOWY_ALLOW_PUBLISH_WRITES.
+
+        Publishing is external-facing and irreversible in effect, so it needs
+        an explicit second gate beyond the ordinary write guard.
+        """
+        self._require_writes_enabled()
+        if not self.config.allow_publish_writes:
+            raise AppFlowyError(
+                "Publish writes are disabled. "
+                "Set APPFLOWY_ALLOW_PUBLISH_WRITES=true "
+                "(also requires APPFLOWY_ALLOW_WRITES=true) to enable page publish/unpublish."
             )
 
     @staticmethod

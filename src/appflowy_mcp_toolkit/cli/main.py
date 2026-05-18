@@ -227,6 +227,41 @@ def build_parser() -> argparse.ArgumentParser:
     published_page_info.add_argument("--view-id", required=True)
     published_page_info.add_argument("--include-unpublished", action="store_true", default=False)
 
+    publish_page = sub.add_parser(
+        "publish-page",
+        description=(
+            "Publish an AppFlowy page view. "
+            "Requires APPFLOWY_ALLOW_WRITES=true and APPFLOWY_ALLOW_PUBLISH_WRITES=true "
+            "when --execute is passed."
+        ),
+    )
+    publish_page.add_argument("--workspace-id", required=True)
+    publish_page.add_argument("--view-id", required=True)
+    publish_page.add_argument("--publish-name")
+    publish_page.add_argument(
+        "--visible-database-view-ids",
+        help="Comma-separated list of database view ids to make visible in the published page.",
+    )
+    publish_page.add_argument(
+        "--comments-enabled", action=argparse.BooleanOptionalAction, default=None
+    )
+    publish_page.add_argument(
+        "--duplicate-enabled", action=argparse.BooleanOptionalAction, default=None
+    )
+    publish_page.add_argument("--execute", action="store_true")
+
+    unpublish_page = sub.add_parser(
+        "unpublish-page",
+        description=(
+            "Unpublish an AppFlowy page view. "
+            "Requires APPFLOWY_ALLOW_WRITES=true and APPFLOWY_ALLOW_PUBLISH_WRITES=true "
+            "when --execute is passed."
+        ),
+    )
+    unpublish_page.add_argument("--workspace-id", required=True)
+    unpublish_page.add_argument("--view-id", required=True)
+    unpublish_page.add_argument("--execute", action="store_true")
+
     create_space = sub.add_parser("create-space")
     create_space.add_argument("--workspace-id", required=True)
     create_space.add_argument("--name", required=True)
@@ -852,6 +887,27 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = client.get_published_page_info(
                 args.view_id,
                 include_unpublished=args.include_unpublished,
+            )
+        elif args.command == "publish-page":
+            visible_ids = (
+                [v.strip() for v in args.visible_database_view_ids.split(",") if v.strip()]
+                if args.visible_database_view_ids
+                else None
+            )
+            result = client.publish_page(
+                args.workspace_id,
+                args.view_id,
+                publish_name=args.publish_name,
+                visible_database_view_ids=visible_ids,
+                comments_enabled=args.comments_enabled,
+                duplicate_enabled=args.duplicate_enabled,
+                dry_run=not args.execute,
+            )
+        elif args.command == "unpublish-page":
+            result = client.unpublish_page(
+                args.workspace_id,
+                args.view_id,
+                dry_run=not args.execute,
             )
         elif args.command == "template-categories":
             result = client.list_template_categories(

@@ -109,6 +109,8 @@ EXPECTED_WRITE_TOOLS = {
     "appflowy_delete_database_row",
     "appflowy_reorder_database_row",
     "appflowy_reorder_database_column",
+    "appflowy_publish_page",
+    "appflowy_unpublish_page",
 }
 
 EXPECTED_ALL_TOOLS = EXPECTED_READ_TOOLS | EXPECTED_WRITE_TOOLS

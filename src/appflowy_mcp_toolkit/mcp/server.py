@@ -118,6 +118,50 @@ def appflowy_get_published_page_info(
         )
 
 
+@mcp.tool(name="appflowy_publish_page", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_publish_page(
+    workspace_id: str,
+    view_id: str,
+    publish_name: str | None = None,
+    visible_database_view_ids: list[str] | None = None,
+    comments_enabled: bool | None = None,
+    duplicate_enabled: bool | None = None,
+    dry_run: bool = True,
+) -> str:
+    """Publish an AppFlowy page view.
+
+    Dry-run by default.  Live execution requires both
+    APPFLOWY_ALLOW_WRITES=true and APPFLOWY_ALLOW_PUBLISH_WRITES=true.
+    """
+    with _client() as client:
+        return compact(
+            client.publish_page(
+                workspace_id,
+                view_id,
+                publish_name=publish_name,
+                visible_database_view_ids=visible_database_view_ids,
+                comments_enabled=comments_enabled,
+                duplicate_enabled=duplicate_enabled,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_unpublish_page", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_unpublish_page(
+    workspace_id: str,
+    view_id: str,
+    dry_run: bool = True,
+) -> str:
+    """Unpublish an AppFlowy page view.
+
+    Dry-run by default.  Live execution requires both
+    APPFLOWY_ALLOW_WRITES=true and APPFLOWY_ALLOW_PUBLISH_WRITES=true.
+    """
+    with _client() as client:
+        return compact(client.unpublish_page(workspace_id, view_id, dry_run=dry_run))
+
+
 @mcp.tool(name="appflowy_list_template_categories", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
 def appflowy_list_template_categories(
     name_contains: str | None = None,

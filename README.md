@@ -127,7 +127,7 @@ is explicitly tested and documented.
 | Raw append blocks to a page | low-level primitive, not a polished document editor | route/unit coverage only; no polished document UI validation |
 | Polished document/page Markdown editing | not supported yet; backlog | not applicable |
 | Block-level document editing: update/delete/move/insert blocks | not supported yet; backlog | not applicable |
-| Publishing / public sharing | read-only metadata supported; publish/unpublish writes deferred | unit-tested against pinned AppFlowy publish metadata routes |
+| Publishing / public sharing | read metadata + publish/unpublish writes supported (gated) | unit-tested; no browser/human validation yet |
 | Member / invite / access/admin mutations | not supported yet; safety-sensitive deferred work | not applicable |
 | Templates | read-only category/creator/template discovery supported; instantiation not supported | unit-tested against pinned AppFlowy template-center routes |
 | Import/export and migrations | not supported yet | not applicable |
@@ -165,6 +165,8 @@ appflowy-toolkit template --view-id <id>
 appflowy-toolkit template-homepage --per-count 3
 appflowy-toolkit published-pages --workspace-id <id>
 appflowy-toolkit published-page-info --view-id <id>
+appflowy-toolkit publish-page --workspace-id <id> --view-id <id> [--publish-name slug] [--execute]
+appflowy-toolkit unpublish-page --workspace-id <id> --view-id <id> [--execute]
 appflowy-toolkit folder --workspace-id <id> --depth 2
 appflowy-toolkit databases --workspace-id <id>
 appflowy-toolkit fields  --workspace-id <id> --database-id <id>
@@ -227,6 +229,11 @@ Write tools (dry-run by default; set `APPFLOWY_ALLOW_WRITES=true` to execute):
 `appflowy_delete_quick_note`,
 `appflowy_upload_file_blob_v1`, `appflowy_delete_file_blob_v1`,
 `appflowy_upload_file_as_media`
+
+Publish write tools (also require `APPFLOWY_ALLOW_PUBLISH_WRITES=true`; dry-run by default;
+no browser/human validation yet, unit-tested only):
+
+`appflowy_publish_page`, `appflowy_unpublish_page`
 
 Experimental collab write tools (also require `APPFLOWY_ALLOW_COLLAB_WRITES=true`
 and Node.js 18+ with `npm install` run in `src/appflowy_mcp_toolkit/collab/`):
