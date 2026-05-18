@@ -14,7 +14,7 @@ class AppFlowyConfig:
     allow_publish_writes: bool = False
     allow_local_file_reads: bool = False
     allowed_file_roots: tuple[str, ...] = field(default_factory=tuple)
-    # Rate limiting (per-client, not global)
+    # Rate limiting (per-client for CLI/direct use; shared per MCP server process)
     rate_limit_enabled: bool = True
     rate_limit_calls_per_minute: int = 120
     rate_limit_writes_per_minute: int = 30

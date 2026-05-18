@@ -20,12 +20,16 @@ class AppFlowyClient:
     """Small REST client for AppFlowy Cloud/self-hosted API."""
 
     def __init__(
-        self, config: AppFlowyConfig | None = None, *, http_client: httpx.Client | None = None
+        self,
+        config: AppFlowyConfig | None = None,
+        *,
+        http_client: httpx.Client | None = None,
+        rate_limiter: RateLimiter | None = None,
     ):
         self.config = config or AppFlowyConfig.from_env()
         self._client = http_client or httpx.Client(timeout=self.config.timeout_seconds)
         self._owns_client = http_client is None
-        self._rate_limiter = RateLimiter.from_config(self.config)
+        self._rate_limiter = rate_limiter or RateLimiter.from_config(self.config)
 
     def close(self) -> None:
         if self._owns_client:

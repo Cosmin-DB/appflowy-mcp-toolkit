@@ -1,7 +1,8 @@
 """Simple token-bucket rate limiter for AppFlowy MCP in-process calls.
 
-Each :class:`RateLimiter` instance is independent — no global state.
-Callers attach a limiter to an :class:`AppFlowyClient` via its config.
+Each :class:`RateLimiter` instance is independent. CLI/direct clients create
+one from config; the MCP server keeps a shared process-wide instance so limits
+apply across tool calls.
 
 Thread safety: uses :mod:`threading.Lock` so concurrent threads within one
 process share the same bucket counts correctly.
@@ -89,7 +90,7 @@ class _ConcurrencySlot:
 
 
 class RateLimiter:
-    """Per-client rate limiter.
+    """In-process rate limiter.
 
     Buckets:
     - *calls*: overall network calls per minute

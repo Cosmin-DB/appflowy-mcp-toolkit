@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import threading
 from typing import Annotated, Any
 
 from appflowy_mcp_toolkit.client import AppFlowyClient
+from appflowy_mcp_toolkit.config import AppFlowyConfig
 from appflowy_mcp_toolkit.formatting import compact
+from appflowy_mcp_toolkit.rate_limit import RateLimiter
 from appflowy_mcp_toolkit.workflows import safe_workflows
 
 try:
@@ -14,10 +17,34 @@ except ImportError as exc:  # pragma: no cover
 
 mcp = FastMCP("appflowy-mcp-toolkit")
 StructuredToolResult = Annotated[CallToolResult, dict[str, Any]]
+_RateLimitKey = tuple[bool, int, int, int, int]
+_server_rate_limiter_lock = threading.Lock()
+_server_rate_limiters: dict[_RateLimitKey, RateLimiter] = {}
 
 
 def _client() -> AppFlowyClient:
-    return AppFlowyClient()
+    config = AppFlowyConfig.from_env()
+    return AppFlowyClient(config, rate_limiter=_server_rate_limiter(config))
+
+
+def _server_rate_limiter(config: AppFlowyConfig) -> RateLimiter:
+    """Return the MCP process-wide limiter for the active rate-limit config."""
+    if not config.rate_limit_enabled:
+        return RateLimiter.disabled()
+
+    key: _RateLimitKey = (
+        config.rate_limit_enabled,
+        config.rate_limit_calls_per_minute,
+        config.rate_limit_writes_per_minute,
+        config.rate_limit_blob_collab_per_minute,
+        config.rate_limit_max_concurrent,
+    )
+    with _server_rate_limiter_lock:
+        limiter = _server_rate_limiters.get(key)
+        if limiter is None:
+            limiter = RateLimiter.from_config(config)
+            _server_rate_limiters[key] = limiter
+        return limiter
 
 
 def _structured(data: Any) -> StructuredToolResult:

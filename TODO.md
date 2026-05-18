@@ -50,10 +50,9 @@ ordered by practical risk and protocol maturity.
   All annotations now use ToolAnnotations objects (no more dict type-ignore casts).
 - [DONE] Add protocol-level tool error tests. Verified that FastMCP wraps AppFlowyError
   as ToolError (not a protocol crash). Tests in test_mcp_annotations_errors.py.
-- [P0] Make the MCP server rate limiter shared per server process, not per
+- [DONE] Make the MCP server rate limiter shared per server process, not per
   short-lived `AppFlowyClient`, so limits apply across tool calls in the same
-  MCP process. Keep client-level limits as a fallback, but enforce shared server
-  buckets for real protocol usage.
+  MCP process. CLI/direct clients still use per-client limiters as a fallback.
 - [DONE] Add structured MCP responses (`structuredContent`) for high-value tools
   while preserving text/JSON compatibility for clients that expect the current
   shape. Implemented for `list_tasks`, `get_database_rows`,

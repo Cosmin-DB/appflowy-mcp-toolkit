@@ -7,6 +7,7 @@ import pytest
 
 from appflowy_mcp_toolkit.config import AppFlowyConfig
 from appflowy_mcp_toolkit.errors import AppFlowyError
+from appflowy_mcp_toolkit.mcp import server as mcp_server
 from appflowy_mcp_toolkit.rate_limit import RateLimiter, _is_blob_collab, _is_write
 
 # ---------------------------------------------------------------------------
@@ -113,6 +114,38 @@ def test_two_limiters_are_independent():
     # b is also exhausted now
     with pytest.raises(AppFlowyError):
         b.check("GET", "/api/workspace")
+
+
+def test_mcp_server_rate_limiter_is_shared_per_process():
+    cfg = AppFlowyConfig(
+        base_url="https://example.test",
+        access_token="tok",
+        rate_limit_enabled=True,
+        rate_limit_calls_per_minute=2,
+        rate_limit_writes_per_minute=0,
+        rate_limit_blob_collab_per_minute=0,
+        rate_limit_max_concurrent=0,
+    )
+    key = (
+        cfg.rate_limit_enabled,
+        cfg.rate_limit_calls_per_minute,
+        cfg.rate_limit_writes_per_minute,
+        cfg.rate_limit_blob_collab_per_minute,
+        cfg.rate_limit_max_concurrent,
+    )
+    mcp_server._server_rate_limiters.pop(key, None)
+
+    try:
+        first = mcp_server._server_rate_limiter(cfg)
+        second = mcp_server._server_rate_limiter(cfg)
+
+        assert first is second
+        first.check("GET", "/api/workspace")
+        second.check("GET", "/api/workspace")
+        with pytest.raises(AppFlowyError, match="overall calls per minute"):
+            second.check("GET", "/api/workspace")
+    finally:
+        mcp_server._server_rate_limiters.pop(key, None)
 
 
 # ---------------------------------------------------------------------------

@@ -70,7 +70,9 @@ Files outside `APPFLOWY_ALLOWED_FILE_ROOTS` are rejected even when
 `APPFLOWY_ALLOW_LOCAL_FILE_READS=true`.  Dry-run uses only `stat()` (no file
 content is read) and still validates the path is inside allowed roots.
 
-Rate limits are enabled by default (per-client, not global). Defaults:
+Rate limits are enabled by default. MCP server tool calls share one
+process-wide limiter; CLI/direct client usage keeps a per-client limiter.
+Defaults:
 120 calls/min overall, 30 writes/min, 20 blob/collab/min, 8 concurrent.
 Set `APPFLOWY_RATE_LIMIT_ENABLED=false` to disable, or tune individual
 buckets with `APPFLOWY_RATE_LIMIT_CALLS_PER_MINUTE`,
