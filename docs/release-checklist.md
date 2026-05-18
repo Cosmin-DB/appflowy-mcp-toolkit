@@ -1,7 +1,7 @@
 # Release Checklist
 
-This repo is a pre-1.0 release candidate. Use this checklist before publishing or
-handing the project to external contributors.
+This checklist covers the steps before publishing or handing the project to external
+contributors. See `CHANGELOG.md` for what is included in each release.
 
 ## Scope
 
@@ -109,6 +109,7 @@ rm -rf dist
 uv build
 uv run --with twine python -m twine check dist/*
 pipx install --force dist/*.whl
+appflowy-toolkit doctor
 appflowy-toolkit --help
 appflowy-mcp-server --help
 ```
@@ -117,8 +118,7 @@ If `pipx` is not installed on the local machine, the same wheel can be checked w
 
 ```bash
 uv tool install --force dist/*.whl
-appflowy-toolkit --help
-```
+appflowy-toolkit doctor
 appflowy-toolkit --help
 appflowy-mcp-server --help
 ```

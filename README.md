@@ -1,400 +1,286 @@
 # AppFlowy MCP Toolkit
 
-Built by **Ela**: an AI agent with a persistent working style, a small memory system,
-and human supervision from Cosmin. This project is not a wrapper generated from an API
-spec; it is the result of iterative research, live testing, multi-agent review, and a
-deliberate attempt to make AppFlowy automation safe enough for other agents to use.
+A safe MCP server, Python client, and CLI for controlling AppFlowy from AI agents.
 
-An MCP server, Python client, and CLI for controlling AppFlowy from AI agents.
+Covers the practical agent workflows: inspect workspaces and folders, create and move
+task cards, write typed database fields, upload media, and verify changes before
+touching real data. Writes are disabled by default.
 
-It is built for the practical workflows agents need most: inspect workspaces, read
-folder/page/database structure, create and move task cards, write typed database fields,
-upload media, and verify changes against a disposable self-hosted AppFlowy stack before
-touching real data.
+> **0.1.0 - first public release.** Core task-board, typed-field, media, page/view
+> organization, and diagnostic paths are tested. Polished document/page Markdown
+> editing is tracked as backlog and is not yet supported.
 
-Status: pre-1.0 release candidate. Core task, page/view organization, metadata,
-file-storage, diagnostic, and guarded write paths are implemented with offline,
-self-hosted Docker, and browser smoke coverage. Polished document/page Markdown
-editing is not supported yet; it is tracked as backlog.
+---
 
-## Why This Exists
-
-Most AppFlowy automation examples stop at a few REST calls. That is not enough for an
-agent that needs to safely operate a real task board. AppFlowy has REST routes, collab
-state, row ordering, typed database cells, file storage, and a web UI that can lag behind
-the data plane.
-
-This repo tries to make those edges explicit:
-
-- local-first testing with disposable AppFlowy Docker
-- writes disabled by default
-- task-card helpers for create/update/move/delete
-- typed database values for rich fields such as select, multi-select, checklist, time,
-  summary, URL, checkbox, number, datetime, and media
-- AppFlowy file upload/download/delete support for Media fields
-- verification tools that distinguish API/collab truth from browser rendering
-- a documented REST-vs-collab decision path for manual rows and agent-managed tasks
-- documentation for deferred areas instead of pretending everything is solved
-
-## Current Scope
-
-Implemented:
-
-- MCP server: `appflowy-mcp-server`
-- CLI: `appflowy-toolkit`
-- Python client: `appflowy_mcp_toolkit`
-- Workspaces, folder/page/view reads, database schema/rows, tasks, typed row writes,
-  quick notes, search, file-storage metadata, v1 file upload/download/delete, and
-  guarded page/view mutations.
-- Self-hosted Docker test workflow using official AppFlowy-Cloud compose sources.
-
-Intentionally deferred:
-
-- No required Docker runtime for normal users; self-hosted tests are optional.
-- No Notion migration.
-- No broad delete/admin/invite tools.
-- No publishing/sharing/member-management mutations in the first public slice.
-- No polished document/page Markdown editing yet. Page/view organization exists;
-  document body editing is limited to low-level primitives and backlog notes.
-- No AI/chat workflow automation yet.
-- No personal workflow assumptions.
-- No secrets, workspace IDs, emails, or private fixtures committed.
-
-## Quick Start
+## Install
 
 ```bash
-python -m pip install -e '.[mcp]'
+# pipx (recommended for CLI use)
+pipx install appflowy-mcp-toolkit
+
+# or uv
+uv tool install appflowy-mcp-toolkit
+```
+
+Verify the install:
+
+```bash
+appflowy-toolkit doctor
+```
+
+---
+
+## Quick setup
+
+Export credentials before running any command that talks to AppFlowy:
+
+```bash
+export APPFLOWY_BASE_URL=https://beta.appflowy.cloud   # or your self-hosted URL
+export APPFLOWY_ACCESS_TOKEN=<your-personal-token>
+```
+
+Get a personal token at **AppFlowy > Settings > Cloud Settings > Token**.
+
+Check the connection:
+
+```bash
+appflowy-toolkit doctor --check-appflowy
 appflowy-toolkit health
-appflowy-mcp-server
-```
-
-For development:
-
-```bash
-python -m pip install -e '.[dev,mcp,browser]'
-scripts/test_all_local.sh
-```
-
-## Environment
-
-Copy `.env.example` outside or to `.env` locally. Do not commit real secrets.
-
-```bash
-APPFLOWY_BASE_URL=http://localhost
-APPFLOWY_ACCESS_TOKEN=...
-APPFLOWY_REFRESH_TOKEN=...
-```
-
-## CLI
-
-```bash
-appflowy-toolkit health
-appflowy-toolkit setup-check  # local Node/npm/Yjs helper diagnostics
-appflowy-toolkit server-info
-appflowy-toolkit user-profile
-appflowy-toolkit user-workspace-info
 appflowy-toolkit workspaces
-appflowy-toolkit workspace-settings --workspace-id <workspace_id>
-appflowy-toolkit workspace-members --workspace-id <workspace_id>
-appflowy-toolkit workspace-usage --workspace-id <workspace_id>
-appflowy-toolkit create-space --workspace-id <workspace_id> --name "Engineering"
-appflowy-toolkit update-space --workspace-id <workspace_id> --view-id <space_view_id> --name "Engineering"
-appflowy-toolkit file-storage-usage --workspace-id <workspace_id>
-appflowy-toolkit file-storage-blobs --workspace-id <workspace_id>
-appflowy-toolkit file-metadata --workspace-id <workspace_id> --file-id <file_id>
-appflowy-toolkit file-metadata-v1 --workspace-id <workspace_id> --parent-dir <parent_dir> --file-id <file_id>
-appflowy-toolkit upload-file-v1 --workspace-id <workspace_id> --parent-dir <parent_dir> --file-path ./spec.txt --execute
-appflowy-toolkit download-file-v1 --workspace-id <workspace_id> --parent-dir <parent_dir> --file-id <file_id> --output ./spec.txt
-appflowy-toolkit delete-file-v1 --workspace-id <workspace_id> --parent-dir <parent_dir> --file-id <file_id> --execute
-appflowy-toolkit upload-media-file --workspace-id <workspace_id> --database-id <database_id> --file-path ./spec.txt --execute
-appflowy-toolkit folder --workspace-id <workspace_id> --depth 2
-appflowy-toolkit create-folder --workspace-id <workspace_id> --parent-view-id <parent_view_id> --name "Folder"
-appflowy-toolkit recent --workspace-id <workspace_id>
-appflowy-toolkit favorites --workspace-id <workspace_id>
-appflowy-toolkit trash --workspace-id <workspace_id>
-appflowy-toolkit page-view --workspace-id <workspace_id> --view-id <view_id>
-appflowy-toolkit create-page --workspace-id <workspace_id> --parent-view-id <parent_view_id> --name "New page"
-appflowy-toolkit rename-page --workspace-id <workspace_id> --view-id <view_id> --name "Renamed page"
-appflowy-toolkit favorite-page --workspace-id <workspace_id> --view-id <view_id>
-appflowy-toolkit remove-page-icon --workspace-id <workspace_id> --view-id <view_id>
-appflowy-toolkit append-page-blocks --workspace-id <workspace_id> --view-id <view_id> --blocks-json '[{}]'
-appflowy-toolkit move-page --workspace-id <workspace_id> --view-id <view_id> --new-parent-view-id <parent_view_id>
-appflowy-toolkit reorder-favorite-page --workspace-id <workspace_id> --view-id <view_id>
-appflowy-toolkit duplicate-page --workspace-id <workspace_id> --view-id <view_id>
-appflowy-toolkit create-page-database --workspace-id <workspace_id> --view-id <view_id> --layout 1
-appflowy-toolkit trash-page --workspace-id <workspace_id> --view-id <view_id>
-appflowy-toolkit restore-page --workspace-id <workspace_id> --view-id <view_id>
-appflowy-toolkit delete-trash-page --workspace-id <workspace_id> --view-id <view_id>
-appflowy-toolkit add-recent-pages --workspace-id <workspace_id> --view-ids <view_id>
-appflowy-toolkit restore-all-pages --workspace-id <workspace_id>
-appflowy-toolkit delete-all-trash-pages --workspace-id <workspace_id>
-appflowy-toolkit databases --workspace-id <workspace_id>
-appflowy-toolkit fields --workspace-id <workspace_id> --database-id <database_id>
-appflowy-toolkit create-field --workspace-id <workspace_id> --database-id <database_id> --name "Priority" --field-type 0
-appflowy-toolkit rows --workspace-id <workspace_id> --database-id <database_id>
-appflowy-toolkit updated-rows --workspace-id <workspace_id> --database-id <database_id> --after 2026-05-16T10:00:00Z
-appflowy-toolkit quick-notes --workspace-id <workspace_id> --search-term "apple" --limit 10
-appflowy-toolkit create-quick-note --workspace-id <workspace_id> --data-json '[{"type":"paragraph","delta":{"insert":"Note"}}]'
-appflowy-toolkit update-quick-note --workspace-id <workspace_id> --quick-note-id <quick_note_id> --data-json '[{"type":"paragraph","delta":{"insert":"Updated"}}]'
-appflowy-toolkit delete-quick-note --workspace-id <workspace_id> --quick-note-id <quick_note_id>
-appflowy-toolkit search --workspace-id <workspace_id> --query "project plan" --limit 5
-appflowy-toolkit row-details --workspace-id <workspace_id> --database-id <database_id> --ids <row_id>
-appflowy-toolkit collab-json --workspace-id <workspace_id> --object-id <database_id> --collab-type Database
-appflowy-toolkit row-orders --workspace-id <workspace_id> --database-id <database_id>
-appflowy-toolkit blob-diff --workspace-id <workspace_id> --database-id <database_id>
-appflowy-toolkit verify-row --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id>
-appflowy-toolkit create-verified-row --workspace-id <workspace_id> --database-id <database_id> --cells-json '{"Description":"Test"}'
-appflowy-toolkit create-typed-row --workspace-id <workspace_id> --database-id <database_id> --values-json '{"Description":"Test","Status":"Doing","Multiselect":["fast"]}'
-appflowy-toolkit upsert-typed-row --workspace-id <workspace_id> --database-id <database_id> --pre-hash <stable_key> --values-json '{"Description":"Updated","Status":"Done"}'
-appflowy-toolkit tasks --workspace-id <workspace_id> --database-id <database_id>
-appflowy-toolkit create-task --workspace-id <workspace_id> --database-id <database_id> --task-key <stable_key> --description "Test"
-appflowy-toolkit update-task --workspace-id <workspace_id> --database-id <database_id> --task-key <stable_key> --status "Doing"
-appflowy-toolkit move-task --workspace-id <workspace_id> --database-id <database_id> --task-key <stable_key> --status "Done"
-appflowy-toolkit move-task-by-id --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id> --status "Done"
-appflowy-toolkit update-row-by-id --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id> --values-json '{"Status":"Done"}'
-appflowy-toolkit delete-task --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id>
-appflowy-toolkit managed-task-verified --workspace-id <workspace_id> --database-id <database_id> --task-key <stable_key> --description "Test"
-
-# Experimental: Yjs-based row update/delete (requires Node.js 18+ and npm install in collab/)
-appflowy-toolkit delete-row --workspace-id <workspace_id> --database-id <database_id> --row-id <row_id>
-appflowy-toolkit delete-row ... --execute  # live write; also needs APPFLOWY_ALLOW_WRITES=true and APPFLOWY_ALLOW_COLLAB_WRITES=true
 ```
+
+For write operations, also set:
+
+```bash
+export APPFLOWY_ALLOW_WRITES=true
+export APPFLOWY_ALLOW_COLLAB_WRITES=true   # required for Yjs-based updates/deletes
+```
+
+---
 
 ## MCP server
 
 ```bash
+# start the server (stdio transport, for use with any MCP client)
 appflowy-mcp-server
 ```
 
-## For AI Agents
+The server is a standard MCP stdio server. Add it to your MCP client config, for
+example in Claude Desktop (`claude_desktop_config.json`):
 
-Start with these files:
-
-- `AGENTS.md` - working rules, safety boundaries, and test gates for agents.
-- `README.md` - user-facing install, CLI, MCP tools, and known limitations.
-- `docs/appflowy-coverage-matrix.md` - implemented, candidate, and deferred AppFlowy areas.
-- `docs/rest-vs-collab.md` - when to use REST, `task_key`/`pre_hash`, or collab-by-`row_id`.
-- `docs/browser-ui-acceptance.md` - why browser rendering is tested separately from API/collab truth.
-- `docs/typed-field-coverage.md` - typed field/cell coverage status for richer task cards.
-- `docs/self-hosted-test-plan.md` - how to run disposable local AppFlowy for destructive tests.
-- `docs/release-checklist.md` - final checks before publishing or external handoff.
-
-Do not use a real/private AppFlowy workspace for write tests. Use the self-hosted
-Docker stack for the normal contributor test workflow.
-
-For a full local release-style run, use:
-
-```bash
-scripts/test_all_local.sh
+```json
+{
+  "mcpServers": {
+    "appflowy": {
+      "command": "appflowy-mcp-server",
+      "env": {
+        "APPFLOWY_BASE_URL": "https://beta.appflowy.cloud",
+        "APPFLOWY_ACCESS_TOKEN": "<your-token>"
+      }
+    }
+  }
+}
 ```
 
-That command runs the offline unit suite, formatting/lint/type/build gates, starts the
-disposable self-hosted AppFlowy Docker stack, seeds test credentials, and runs the
-self-hosted and browser smoke tests. Plain `uv run pytest -q` intentionally skips
-Docker/browser tests so the default suite stays safe on machines without AppFlowy
-running. If Docker is installed but your user cannot access the daemon yet, run
-`sudo -v` first or add the user to the Docker group.
+Or with `uvx` without a local install:
 
-Read-only tools:
+```json
+{
+  "mcpServers": {
+    "appflowy": {
+      "command": "uvx",
+      "args": ["--from", "appflowy-mcp-toolkit", "appflowy-mcp-server"],
+      "env": {
+        "APPFLOWY_BASE_URL": "https://beta.appflowy.cloud",
+        "APPFLOWY_ACCESS_TOKEN": "<your-token>"
+      }
+    }
+  }
+}
+```
 
-- `appflowy_health_check`
-- `appflowy_get_server_info`
-- `appflowy_get_user_profile`
-- `appflowy_get_user_workspace_info`
-- `appflowy_list_workspaces`
-- `appflowy_get_workspace_settings`
-- `appflowy_list_workspace_members`
-- `appflowy_get_workspace_usage`
-- `appflowy_get_file_storage_usage`
-- `appflowy_list_file_storage_blobs`
-- `appflowy_get_file_metadata`
-- `appflowy_get_file_metadata_v1`
-- `appflowy_get_folder`
-- `appflowy_list_recent_views`
-- `appflowy_list_favorite_views`
-- `appflowy_list_trash_views`
-- `appflowy_get_page_view`
-- `appflowy_list_databases`
-- `appflowy_get_database_schema`
-- `appflowy_list_database_row_ids`
-- `appflowy_list_updated_database_rows`
-- `appflowy_list_quick_notes`
-- `appflowy_search_documents`
-- `appflowy_get_database_rows`
-- `appflowy_list_select_options`
-- `appflowy_get_collab_json`
-- `appflowy_get_database_row_orders`
-- `appflowy_get_database_blob_diff`
-- `appflowy_list_tasks`
-- `appflowy_search_tasks`
-- `appflowy_verify_database_row`
+For Cursor, Windsurf, or other MCP clients, use the same `command`/`env` pattern
+in their respective config files.
 
-Write tools exist for controlled testing, but dry-run by default and require
-`APPFLOWY_ALLOW_WRITES=true` for real mutations:
+---
 
-- `appflowy_create_database_row`
-- `appflowy_create_verified_database_row`
-- `appflowy_create_typed_database_row`
-- `appflowy_create_database_field`
-- `appflowy_create_space`
-- `appflowy_update_space`
-- `appflowy_create_folder_view`
-- `appflowy_create_page_view`
-- `appflowy_update_page_view`
-- `appflowy_rename_page_view`
-- `appflowy_favorite_page_view`
-- `appflowy_remove_page_icon`
-- `appflowy_append_blocks_to_page`
-- `appflowy_move_page_view`
-- `appflowy_reorder_favorite_page_view`
-- `appflowy_duplicate_page_view`
-- `appflowy_create_page_database_view`
-- `appflowy_trash_page_view`
-- `appflowy_restore_page_view`
-- `appflowy_delete_trashed_page_view`
-- `appflowy_add_recent_pages`
-- `appflowy_restore_all_pages_from_trash`
-- `appflowy_delete_all_pages_from_trash`
-- `appflowy_create_task`
-- `appflowy_update_task`
-- `appflowy_update_task_by_name`
-- `appflowy_move_task`
-- `appflowy_move_task_by_name`
-- `appflowy_update_database_row_by_id`
-- `appflowy_move_task_by_id`
-- `appflowy_delete_task`
-- `appflowy_delete_task_by_name`
-- `appflowy_create_quick_note`
-- `appflowy_update_quick_note`
-- `appflowy_delete_quick_note`
-- `appflowy_upload_file_blob_v1`
-- `appflowy_delete_file_blob_v1`
-- `appflowy_upload_file_as_media`
-- `appflowy_upsert_database_row`
-- `appflowy_upsert_typed_database_row`
-- `appflowy_upsert_managed_task`
-- `appflowy_upsert_verified_managed_task`
-- `appflowy_move_managed_task_status`
+## What is supported
 
-Task-facing tools are the preferred public workflow for board-like task databases.
-`create_task` uses AppFlowy's normal row-create route because browser tests showed
-that fresh `pre_hash` upserts can verify through REST/collab/blob-diff while failing
-to appear in Grid. Use `upsert-managed-task`, `update_task`, or `move_task` only
-when you specifically need caller-owned `task_key` / `pre_hash` idempotency. For rows
-created manually in AppFlowy Web, use `move-task-by-id` /
-`appflowy_move_task_by_id` or `update-row-by-id` /
+| Area | Status |
+|---|---|
+| Workspaces, user profile, server info | supported |
+| Folder / page / view reads | supported |
+| Database schema, rows, typed fields | supported |
+| Task create / update / move / delete | supported |
+| Select and multi-select field writes | supported |
+| Number, checkbox, URL, summary, time fields | supported |
+| File storage metadata + v1 upload/download/delete | supported |
+| Media field upload (returns typed cell object) | supported |
+| Quick notes read/write | supported |
+| Full-text search | supported |
+| Page/view organization (create, move, trash, restore) | supported |
+| Row/card reorder (Yjs collab, requires collab writes gate) | guarded |
+| Board column reorder (Yjs collab) | guarded |
+| Row delete (Yjs collab, no REST endpoint in AppFlowy) | guarded |
+| Polished document/page Markdown editing | backlog |
+| Member / invite / admin mutations | deferred |
+| AI / chat routes | deferred |
+
+**Guarded** means the feature works and is tested, but requires explicit opt-in
+environment flags (`APPFLOWY_ALLOW_WRITES`, `APPFLOWY_ALLOW_COLLAB_WRITES`) and a
+local Node.js runtime for Yjs helpers.
+
+---
+
+## CLI reference
+
+```bash
+appflowy-toolkit doctor              # offline install/env check
+appflowy-toolkit doctor --check-appflowy  # also call AppFlowy health endpoint
+appflowy-toolkit setup-check         # local Yjs/Node helper diagnostics
+appflowy-toolkit health
+appflowy-toolkit workspaces
+appflowy-toolkit user-profile
+appflowy-toolkit server-info
+appflowy-toolkit folder --workspace-id <id> --depth 2
+appflowy-toolkit databases --workspace-id <id>
+appflowy-toolkit fields  --workspace-id <id> --database-id <id>
+appflowy-toolkit search  --workspace-id <id> --query "..."
+```
+
+Most write commands accept `--execute` to leave dry-run mode. Without `--execute`
+the command prints what it *would* do.
+
+Full command list: `appflowy-toolkit --help`
+
+---
+
+## MCP tools - quick reference
+
+Read-only tools (safe with no write gates):
+
+`appflowy_health_check`, `appflowy_get_server_info`, `appflowy_get_user_profile`,
+`appflowy_list_workspaces`, `appflowy_get_folder`, `appflowy_list_databases`,
+`appflowy_get_database_schema`, `appflowy_get_database_rows`,
+`appflowy_list_database_row_ids`, `appflowy_list_updated_database_rows`,
+`appflowy_list_select_options`, `appflowy_list_tasks`, `appflowy_search_tasks`,
+`appflowy_search_documents`, `appflowy_list_quick_notes`,
+`appflowy_get_database_row_orders`, `appflowy_verify_database_row`,
+`appflowy_get_database_blob_diff`, `appflowy_get_collab_json`,
+`appflowy_list_recent_views`, `appflowy_list_favorite_views`,
+`appflowy_list_trash_views`, `appflowy_get_page_view`,
+`appflowy_get_workspace_settings`, `appflowy_list_workspace_members`,
+`appflowy_get_workspace_usage`, `appflowy_get_file_storage_usage`,
+`appflowy_list_file_storage_blobs`, `appflowy_get_file_metadata`,
+`appflowy_get_file_metadata_v1`
+
+Write tools (dry-run by default; set `APPFLOWY_ALLOW_WRITES=true` to execute):
+
+`appflowy_create_task`, `appflowy_update_task`, `appflowy_update_task_by_name`,
+`appflowy_move_task`, `appflowy_move_task_by_name`, `appflowy_move_task_by_id`,
+`appflowy_delete_task`, `appflowy_delete_task_by_name`,
+`appflowy_create_database_row`, `appflowy_create_verified_database_row`,
+`appflowy_create_typed_database_row`, `appflowy_upsert_database_row`,
+`appflowy_upsert_typed_database_row`, `appflowy_upsert_managed_task`,
+`appflowy_upsert_verified_managed_task`, `appflowy_move_managed_task_status`,
+`appflowy_update_database_row_by_id`, `appflowy_create_database_field`,
+`appflowy_create_space`, `appflowy_update_space`,
+`appflowy_create_folder_view`, `appflowy_create_page_view`,
+`appflowy_update_page_view`, `appflowy_rename_page_view`,
+`appflowy_move_page_view`, `appflowy_trash_page_view`,
+`appflowy_restore_page_view`, `appflowy_delete_trashed_page_view`,
+`appflowy_favorite_page_view`, `appflowy_remove_page_icon`,
+`appflowy_append_blocks_to_page`, `appflowy_reorder_favorite_page_view`,
+`appflowy_duplicate_page_view`, `appflowy_create_page_database_view`,
+`appflowy_add_recent_pages`, `appflowy_restore_all_pages_from_trash`,
+`appflowy_delete_all_pages_from_trash`,
+`appflowy_create_quick_note`, `appflowy_update_quick_note`,
+`appflowy_delete_quick_note`,
+`appflowy_upload_file_blob_v1`, `appflowy_delete_file_blob_v1`,
+`appflowy_upload_file_as_media`
+
+Experimental collab write tools (also require `APPFLOWY_ALLOW_COLLAB_WRITES=true`
+and Node.js 18+ with `npm install` run in `src/appflowy_mcp_toolkit/collab/`):
+
+`appflowy_delete_database_row`, `appflowy_reorder_database_row`,
+`appflowy_reorder_database_column`
+
+---
+
+## Task workflow notes
+
+`appflowy_create_task` uses AppFlowy's normal row-create route. Browser tests showed
+that `pre_hash` upserts can verify through REST/collab state while failing to appear
+in the Grid view. Use `create_task` for new cards; use `update_task` or `move_task`
+when you have a `task_key`.
+
+For rows created manually in AppFlowy, use `appflowy_move_task_by_id` or
 `appflowy_update_database_row_by_id`; REST `pre_hash` upsert cannot target an
 arbitrary existing `row_id`.
 
-For assistant workflows where a human names a card instead of giving a row id,
-use `search-tasks` / `appflowy_search_tasks` to match the `Description` field
-with `exact` or `contains` mode. `update-task-by-name`, `move-task-by-name`, and
-`delete-task-by-name` first resolve that Description text and only mutate when
-there is exactly one match. If there are duplicates, they return candidates and
-take no action. These operations are still dry-run by default; real row-id
-collab updates/deletes require the same write gates as the underlying row-id
-tools.
+For assistant workflows where a human names a card, use `appflowy_search_tasks`
+first (with `exact` or `contains` mode), then call an explicit operation with the
+resolved `row_id`. `update_task_by_name`, `move_task_by_name`, and
+`delete_task_by_name` refuse to act when more than one card matches.
 
-These helpers are intentionally not fuzzy planners. They do not decide what the
-user meant, choose among similar cards, or clean a board autonomously. The
-calling AI should list/search, inspect candidates, and then call an explicit
-operation with an explicit target.
+---
 
-Experimental collab write tools (dry-run by default; require `APPFLOWY_ALLOW_WRITES=true` **and**
-`APPFLOWY_ALLOW_COLLAB_WRITES=true`; requires Node.js 18+ with `npm install` in
-`src/appflowy_mcp_toolkit/collab/`):
+## For AI agents / contributor onboarding
 
-- `appflowy_update_database_row_by_id` — updates cells on an existing
-  `DatabaseRow` collab object by `row_id`. This is the path for manually-created
-  rows/cards that do not have an MCP `task_key`.
-- `appflowy_move_task_by_id` — status-only wrapper for moving an existing/manual
-  task card by `row_id`.
-- `appflowy_delete_database_row` — deletes a row from all views via Yjs collab
-  mutation. This is the only confirmed delete path; AppFlowy Web does not expose
-  a REST row-delete endpoint. The current verification means absent from database
-  view row lists; explicit row-detail lookup by id may still resolve the old row
-  object.
-- `appflowy_reorder_database_row` — reorders a row/card inside a specific
-  database view by mutating that view's `row_orders` YArray.
-- `appflowy_reorder_database_column` — reorders a board column/status group
-  inside a specific database view by mutating `groups[field_id].groups`.
+Start with:
 
-Current API limitation: public AppFlowy REST does not expose a confirmed row-delete
-endpoint. Row/card deletion in AppFlowy Web is a collab/Yjs update. The
-`appflowy_delete_database_row`, `appflowy_reorder_database_row`, and
-`appflowy_reorder_database_column` tools implement narrow Yjs paths
-experimentally; they have been covered by offline helper integration tests, but
-Docker/browser live proof is still pending for ordering.
-tested against disposable self-hosted workspaces, but remains
-opt-in and is not yet recommended for production use.
+- `AGENTS.md` - working rules, safety boundaries, test gates
+- `docs/appflowy-coverage-matrix.md` - implemented, candidate, and deferred surface
+- `docs/rest-vs-collab.md` - when to use REST vs Yjs collab
+- `docs/browser-ui-acceptance.md` - why Grid/Board rendering is tested separately
+- `docs/typed-field-coverage.md` - rich field/cell coverage
+- `docs/self-hosted-test-plan.md` - local Docker testing
+- `docs/release-checklist.md` - gates before publishing
 
-Board-rendering investigation: AppFlowy Web also calls a binary `blob/diff` endpoint
-to seed row documents before rendering database views. `blob-diff` /
-`appflowy_get_database_blob_diff` decodes that response into a safe summary (row ids,
-operation types, RID values and doc-state byte counts) without exposing raw row document
-state. This is diagnostic only; it does not mutate AppFlowy.
+Do not use a real/private AppFlowy workspace for write tests. Use the self-hosted
+Docker stack described in `docs/self-hosted-test-plan.md`.
 
-File storage coverage now includes read-only usage/metadata, v1 upload/download/delete
-helpers, and a helper that uploads a local file and returns a typed Media-cell object:
-`GET /api/file_storage/{workspace_id}/usage`,
-`GET /api/file_storage/{workspace_id}/blobs`,
-`GET /api/file_storage/{workspace_id}/metadata/{file_id}`, and
-`GET /api/file_storage/{workspace_id}/v1/metadata/{parent_dir}/{file_id}` plus
-`PUT` / `GET` / `DELETE` for
-`/api/file_storage/{workspace_id}/v1/blob/{parent_dir}/{file_id}`. File writes remain
-dry-run/gated by default. For database Media fields, the proven convention is
-`parent_dir = database_id`; `upload-media-file` returns the object that can be used in
-typed row values with `upload_type = Cloud`.
+---
 
-Known AppFlowy Web limitation: Board rendering can be stale even when a row is already
-present in REST and collab state. In local browser testing, verified rows must render
-in Grid; Board rendering remains a separate diagnostic observation because it can stay
-stale after direct load.
-Use `verify-row` / `appflowy_verify_database_row` for data-plane verification; use
-browser tests separately for UI rendering.
-
-## Self-Hosted AppFlowy Tests
-
-The repo includes an optional self-hosted test workflow under
-[`docker/appflowy-test/`](docker/appflowy-test/). It uses the official
-`AppFlowy-IO/AppFlowy-Cloud` compose project at a pinned revision instead of vendoring
-AppFlowy into this repo.
+## Self-hosted AppFlowy tests (Docker)
 
 ```bash
 scripts/appflowy_test_env_up.sh
 python scripts/appflowy_test_seed.py
-set -a
-source .env.selfhosted.generated
-set +a
-APPFLOWY_SELFHOSTED_TESTS=true uv run pytest tests/selfhosted -q
+set -a; source .env.selfhosted.generated; set +a
+APPFLOWY_SELFHOSTED_TESTS=true uv run pytest tests/selfhosted -q -s
 scripts/appflowy_test_env_down.sh --volumes
 ```
 
-Self-hosted tests are destructive and must only target the local disposable stack.
-The workflow has been validated against the pinned Docker stack; see
-[`docs/self-hosted-test-plan.md`](docs/self-hosted-test-plan.md) for current pins,
-seed behavior, and remaining UI/browser work.
-
-Optional browser smoke against the local stack:
+Optional browser smoke:
 
 ```bash
-set -a
-source .env.selfhosted.generated
-set +a
 APPFLOWY_BROWSER_TESTS=true uv run --extra browser pytest tests/browser -q -s
 ```
 
-Current browser expectation is: login/Grid rendering should pass; MCP-created rows
-are verified through REST/collab/blob-diff before the UI assertion, and the created
-row must appear in Grid. Board screenshots are still diagnostic evidence for the known
-stale-board behavior.
+---
 
 ## Development
 
 ```bash
-python -m pip install -e '.[dev,mcp]'
-python -m pytest
-python -m ruff format --check .
-python -m ruff check .
-python -m mypy src tests
+git clone https://github.com/Cosmin-DB/appflowy-mcp-toolkit
+cd appflowy-mcp-toolkit
+uv sync --extra dev --extra browser
+uv run pytest -q          # offline unit tests only
+scripts/test_all_local.sh # full battery including Docker
 ```
+
+---
+
+## Why this exists
+
+Most AppFlowy automation examples stop at a few REST calls. That is not enough for an
+agent that needs to safely operate a real task board. AppFlowy has REST routes, collab
+state, row ordering, typed database cells, file storage, and a web UI that can lag
+behind the data plane.
+
+This project makes those edges explicit: local-first testing with disposable Docker,
+writes disabled by default, typed helpers with data-plane verification, and documented
+deferred areas instead of pretending everything is solved.
+
+Built by **Ela** (AI agent) with human supervision from Cosmin.

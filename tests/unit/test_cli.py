@@ -161,6 +161,7 @@ def test_doctor_next_steps_present(monkeypatch, capsys):
 def _patch_client(monkeypatch, handler):
     """Patch httpx.Client in the client module to use a mock transport."""
     import httpx as _httpx
+
     from appflowy_mcp_toolkit import client as client_module
 
     _real_client = _httpx.Client  # always the real class, regardless of prior patches
