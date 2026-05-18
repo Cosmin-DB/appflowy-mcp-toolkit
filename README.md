@@ -26,6 +26,7 @@ Verify the install:
 
 ```bash
 appflowy-toolkit doctor
+appflowy-toolkit workflows
 ```
 
 ---
@@ -146,6 +147,7 @@ will not run live unless the caller sets the required safety flags
 ```bash
 appflowy-toolkit doctor              # offline install/env check
 appflowy-toolkit doctor --check-appflowy  # also call AppFlowy health endpoint
+appflowy-toolkit workflows           # safe operating paths for agents
 appflowy-toolkit setup-check         # local Yjs/Node helper diagnostics
 appflowy-toolkit health
 appflowy-toolkit workspaces
@@ -169,7 +171,8 @@ Full command list: `appflowy-toolkit --help`
 Read-only tools (safe with no write gates):
 
 `appflowy_health_check`, `appflowy_get_server_info`, `appflowy_get_user_profile`,
-`appflowy_list_workspaces`, `appflowy_get_folder`, `appflowy_list_databases`,
+`appflowy_safe_workflows`, `appflowy_list_workspaces`, `appflowy_get_folder`,
+`appflowy_list_databases`,
 `appflowy_get_database_schema`, `appflowy_get_database_rows`,
 `appflowy_list_database_row_ids`, `appflowy_list_updated_database_rows`,
 `appflowy_list_select_options`, `appflowy_list_tasks`, `appflowy_search_tasks`,

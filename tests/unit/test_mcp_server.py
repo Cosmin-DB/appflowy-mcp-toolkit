@@ -13,6 +13,7 @@ from appflowy_mcp_toolkit.mcp.server import mcp
 
 EXPECTED_READ_TOOLS = {
     "appflowy_health_check",
+    "appflowy_safe_workflows",
     "appflowy_get_server_info",
     "appflowy_get_user_profile",
     "appflowy_get_user_workspace_info",

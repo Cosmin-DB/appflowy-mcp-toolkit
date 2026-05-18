@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from appflowy_mcp_toolkit.client import AppFlowyClient
 from appflowy_mcp_toolkit.formatting import compact
+from appflowy_mcp_toolkit.workflows import safe_workflows
 
 try:
     from mcp.server.fastmcp import FastMCP
@@ -13,6 +14,12 @@ mcp = FastMCP("appflowy-mcp-toolkit")
 
 def _client() -> AppFlowyClient:
     return AppFlowyClient()
+
+
+@mcp.tool(name="appflowy_safe_workflows", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_safe_workflows() -> str:
+    """Return safe operating paths for agents using AppFlowy task/database tools."""
+    return compact(safe_workflows())
 
 
 @mcp.tool(name="appflowy_health_check", annotations={"readOnlyHint": True})  # type: ignore[arg-type]

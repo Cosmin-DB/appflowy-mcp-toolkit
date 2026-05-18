@@ -20,6 +20,9 @@ First public PyPI release.
   package version, Python runtime, env flag presence (token masked to boolean),
   collab helper setup, MCP import availability, and recommended next steps.
   `--network` flag optionally calls the AppFlowy health endpoint.
+- **Safe workflow guide**: `appflowy-toolkit workflows` and
+  `appflowy_safe_workflows` expose the preferred task/card/page paths for agents
+  without requiring credentials or network access.
 - **`appflowy-toolkit setup-check`**: local Yjs/Node collab helper diagnostics
   (unchanged from pre-release; preserved for backward compatibility).
 - **Task workflow**: `create_task`, `update_task`, `move_task`, `delete_task` and

@@ -153,6 +153,23 @@ def test_doctor_next_steps_present(monkeypatch, capsys):
     assert len(out["next_steps"]) > 0
 
 
+def test_workflows_is_offline_guidance(monkeypatch, capsys):
+    from unittest.mock import patch as _patch
+
+    with _patch(
+        "appflowy_mcp_toolkit.cli.main.AppFlowyClient",
+        side_effect=AssertionError("workflows must not create a client"),
+    ):
+        assert main(["workflows"]) == 0
+
+    out = json.loads(capsys.readouterr().out)
+    assert out["task_cards"]["new_visible_card"]["preferred"] == (
+        "create-task / appflowy_create_task"
+    )
+    assert "document_markdown" in out["page_documents"]
+    assert "publishing/public sharing" in out["unsupported"]
+
+
 # ---------------------------------------------------------------------------
 # setup-check tests (unchanged behaviour)
 # ---------------------------------------------------------------------------

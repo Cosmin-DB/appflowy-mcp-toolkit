@@ -10,6 +10,7 @@ from typing import Any
 
 from appflowy_mcp_toolkit.client import AppFlowyClient
 from appflowy_mcp_toolkit.formatting import to_json
+from appflowy_mcp_toolkit.workflows import safe_workflows
 
 
 def _run_doctor(*, network: bool) -> dict[str, Any]:  # noqa: C901
@@ -138,6 +139,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     sub.add_parser("health")
+    sub.add_parser(
+        "workflows",
+        description=(
+            "Print safe AppFlowy operating paths for agents. "
+            "This is offline guidance and does not require credentials."
+        ),
+    )
     sub.add_parser(
         "setup-check",
         description=(
@@ -744,6 +752,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "doctor":
         print(to_json(_run_doctor(network=args.network)))
+        return 0
+
+    if args.command == "workflows":
+        print(to_json(safe_workflows()))
         return 0
 
     if args.command == "setup-check":
