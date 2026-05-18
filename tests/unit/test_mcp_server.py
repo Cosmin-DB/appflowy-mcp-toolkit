@@ -21,6 +21,10 @@ EXPECTED_READ_TOOLS = {
     "appflowy_get_workspace_settings",
     "appflowy_list_workspace_members",
     "appflowy_get_workspace_usage",
+    "appflowy_get_publish_namespace",
+    "appflowy_get_publish_default",
+    "appflowy_list_published_pages",
+    "appflowy_get_published_page_info",
     "appflowy_list_template_categories",
     "appflowy_get_template_category",
     "appflowy_list_template_creators",
@@ -426,6 +430,43 @@ def test_template_readonly_tools_delegate_to_client() -> None:
     assert json.loads(templates_raw[0][0].text) == [{"view_id": "tpl1", "name": "Brief"}]
     assert json.loads(template_raw[0][0].text) == {"view_id": "tpl1", "name": "Brief"}
     assert json.loads(homepage_raw[0][0].text) == {"featured_templates": []}
+
+
+def test_publishing_metadata_readonly_tools_delegate_to_client() -> None:
+    with patch("appflowy_mcp_toolkit.mcp.server.AppFlowyClient") as client_cls:
+        instance = client_cls.return_value.__enter__.return_value
+        instance.get_workspace_publish_namespace.return_value = "demo-space"
+        instance.get_workspace_publish_default.return_value = {"view_id": "v-home"}
+        instance.list_published_pages.return_value = [{"view_id": "v-1"}]
+        instance.get_published_page_info.return_value = {"view_id": "v-1"}
+
+        namespace_raw: Any = asyncio.run(
+            mcp.call_tool("appflowy_get_publish_namespace", {"workspace_id": "ws"})
+        )
+        default_raw: Any = asyncio.run(
+            mcp.call_tool("appflowy_get_publish_default", {"workspace_id": "ws"})
+        )
+        published_raw: Any = asyncio.run(
+            mcp.call_tool("appflowy_list_published_pages", {"workspace_id": "ws"})
+        )
+        page_raw: Any = asyncio.run(
+            mcp.call_tool(
+                "appflowy_get_published_page_info",
+                {"view_id": "v-1", "include_unpublished": True},
+            )
+        )
+
+    instance.get_workspace_publish_namespace.assert_called_once_with("ws")
+    instance.get_workspace_publish_default.assert_called_once_with("ws")
+    instance.list_published_pages.assert_called_once_with("ws")
+    instance.get_published_page_info.assert_called_once_with(
+        "v-1",
+        include_unpublished=True,
+    )
+    assert json.loads(namespace_raw[0][0].text) == "demo-space"
+    assert json.loads(default_raw[0][0].text) == {"view_id": "v-home"}
+    assert json.loads(published_raw[0][0].text) == [{"view_id": "v-1"}]
+    assert json.loads(page_raw[0][0].text) == {"view_id": "v-1"}
 
 
 def test_file_storage_readonly_tools_delegate_to_client() -> None:

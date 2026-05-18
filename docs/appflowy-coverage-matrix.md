@@ -29,7 +29,7 @@ Approximate coverage by object family:
 | Collab diagnostics/update/delete | medium | high for diagnostics/delete and row-id cell updates, low for arbitrary mutations | unit/offline Yjs tests; browser lifecycle coverage for narrow row delete; generic writes not exposed |
 | Files/blobs | metadata plus v1 upload/download/delete | high for Docker-proven single-file flow | unit-tested; Docker/self-hosted single-file upload/download/delete |
 | Trash/favorites/recent | read implemented | high | unit-tested; selected page lifecycle smoke for trash/restore/delete |
-| Sharing/publishing | none | candidate but safety-sensitive | not applicable; deferred |
+| Sharing/publishing | read-only publish metadata implemented; write mutations deferred | candidate but safety-sensitive | unit-tested publish metadata routes |
 | Search | read implemented | medium; depends on search service | unit-tested |
 | Templates | read-only discovery implemented | medium; depends on template-center data in deployment | unit-tested against pinned AppFlowy template-center routes |
 | Quick notes | CRUD implemented, dry-run writes | medium until self-hosted smoke expands | unit-tested; no browser/human validation yet |
@@ -63,7 +63,7 @@ Evidence vocabulary:
 | Trash | trash list implemented | n/a | single restore implemented dry-run default | single delete-from-trash implemented dry-run default | partial | unit-tested; single-page path covered by self-hosted lifecycle smoke | Bulk restore/delete deferred |
 | Favorites/recent | recent/favorite list implemented | add recent implemented dry-run default | favorite toggle/reorder implemented dry-run default | n/a | mostly implemented | unit-tested; no browser/human validation yet | Browser polish deferred |
 | Sharing/guests | list shared views exists | share view route exists | revoke/access detail routes exist | revoke route exists | missing | route discovery only; mutations deferred | Safety-sensitive; require explicit gates |
-| Publishing | many publish-info/publish routes exist | publish routes exist | patch/unpublish/default namespace routes exist | delete published collabs route exists | missing | route discovery only; no implementation/browser/human validation | Safety-sensitive; document first, implement later |
+| Publishing | namespace/default/list/get metadata implemented | publish routes exist | patch/unpublish/default namespace routes exist | delete published collabs route exists | read-only metadata implemented; write mutations deferred | unit-tested against publish metadata routes; no browser/human validation | Safety-sensitive; implement publish/unpublish only with explicit gates and browser proof |
 | Search | search implemented | n/a | n/a | n/a | read implemented | unit-tested; service-dependent | AI summary endpoint deferred |
 | Templates | category/creator/template/homepage routes implemented | n/a | n/a | n/a | read-only discovery implemented; instantiation absent upstream | unit-tested against AppFlowy template-center routes | Add self-hosted smoke if local stack has seeded template-center data |
 | Quick notes | list implemented | create implemented dry-run default | update implemented dry-run default | delete implemented dry-run default | CRUD implemented | unit-tested; no browser/human validation yet | Add self-hosted smoke if quick notes are enabled in local stack |
@@ -86,6 +86,7 @@ Evidence vocabulary:
    - Recent/favorite/trash list. **Done.**
    - Search. **Done, AI summary deferred.**
    - Template-center read-only discovery. **Done; instantiation absent upstream.**
+   - Publishing metadata reads. **Done; publish/unpublish writes deferred.**
    - Database view configuration diagnostics. **Done, read-only.**
 
 3. **Page/view management**

@@ -82,6 +82,42 @@ def appflowy_get_workspace_usage(workspace_id: str) -> str:
         return compact(client.get_workspace_usage(workspace_id))
 
 
+@mcp.tool(name="appflowy_get_publish_namespace", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_get_publish_namespace(workspace_id: str) -> str:
+    """Get the public publish namespace for one AppFlowy workspace."""
+    with _client() as client:
+        return compact(client.get_workspace_publish_namespace(workspace_id))
+
+
+@mcp.tool(name="appflowy_get_publish_default", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_get_publish_default(workspace_id: str) -> str:
+    """Get the default published view info for one AppFlowy workspace."""
+    with _client() as client:
+        return compact(client.get_workspace_publish_default(workspace_id))
+
+
+@mcp.tool(name="appflowy_list_published_pages", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_list_published_pages(workspace_id: str) -> str:
+    """List published page metadata for one AppFlowy workspace."""
+    with _client() as client:
+        return compact(client.list_published_pages(workspace_id))
+
+
+@mcp.tool(name="appflowy_get_published_page_info", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+def appflowy_get_published_page_info(
+    view_id: str,
+    include_unpublished: bool = False,
+) -> str:
+    """Get published page metadata for one AppFlowy view id."""
+    with _client() as client:
+        return compact(
+            client.get_published_page_info(
+                view_id,
+                include_unpublished=include_unpublished,
+            )
+        )
+
+
 @mcp.tool(name="appflowy_list_template_categories", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
 def appflowy_list_template_categories(
     name_contains: str | None = None,

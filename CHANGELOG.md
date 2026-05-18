@@ -42,6 +42,8 @@ First public PyPI release.
   support claims.
 - **Template discovery**: read-only template-center tools for categories,
   creators, template listings, single template details, and template homepage groups.
+- **Publishing metadata**: read-only tools for workspace publish namespace,
+  default published view, published-page list, and per-view publish info.
 
 ### Known limitations / backlog
 
@@ -54,6 +56,7 @@ First public PyPI release.
 - Row/card delete and reorder use Yjs collab mutations (no REST endpoint available
   in AppFlowy). These paths are tested but require explicit
   `APPFLOWY_ALLOW_COLLAB_WRITES=true` and a local Node.js runtime.
-- Member/invite/admin mutations, AI/chat routes, and Notion migration are deferred.
+- Publish/unpublish writes, member/invite/admin mutations, AI/chat routes, and
+  Notion migration are deferred.
 - Template instantiation is not supported; AppFlowy's template-center routes are
   read-only for this release.

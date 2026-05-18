@@ -71,9 +71,13 @@ def safe_workflows() -> dict[str, Any]:
                 "template-center category/template/creator discovery is read-only; "
                 "template instantiation is not supported by exposed AppFlowy routes."
             ),
+            "publishing": (
+                "publish namespace/default/list/info metadata reads are available; "
+                "publish/unpublish writes are deferred as safety-sensitive."
+            ),
         },
         "unsupported": [
-            "publishing/public sharing",
+            "publishing/public sharing mutations",
             "member, invite, access, and admin mutations",
             "template instantiation as an end-to-end workflow",
             "import/export and migrations",

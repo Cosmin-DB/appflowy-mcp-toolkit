@@ -214,6 +214,19 @@ def build_parser() -> argparse.ArgumentParser:
     workspace_usage = sub.add_parser("workspace-usage")
     workspace_usage.add_argument("--workspace-id", required=True)
 
+    publish_namespace = sub.add_parser("publish-namespace")
+    publish_namespace.add_argument("--workspace-id", required=True)
+
+    publish_default = sub.add_parser("publish-default")
+    publish_default.add_argument("--workspace-id", required=True)
+
+    published_pages = sub.add_parser("published-pages")
+    published_pages.add_argument("--workspace-id", required=True)
+
+    published_page_info = sub.add_parser("published-page-info")
+    published_page_info.add_argument("--view-id", required=True)
+    published_page_info.add_argument("--include-unpublished", action="store_true", default=False)
+
     create_space = sub.add_parser("create-space")
     create_space.add_argument("--workspace-id", required=True)
     create_space.add_argument("--name", required=True)
@@ -829,6 +842,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = client.list_workspace_members(args.workspace_id)
         elif args.command == "workspace-usage":
             result = client.get_workspace_usage(args.workspace_id)
+        elif args.command == "publish-namespace":
+            result = client.get_workspace_publish_namespace(args.workspace_id)
+        elif args.command == "publish-default":
+            result = client.get_workspace_publish_default(args.workspace_id)
+        elif args.command == "published-pages":
+            result = client.list_published_pages(args.workspace_id)
+        elif args.command == "published-page-info":
+            result = client.get_published_page_info(
+                args.view_id,
+                include_unpublished=args.include_unpublished,
+            )
         elif args.command == "template-categories":
             result = client.list_template_categories(
                 name_contains=args.name_contains,

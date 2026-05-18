@@ -127,7 +127,7 @@ is explicitly tested and documented.
 | Raw append blocks to a page | low-level primitive, not a polished document editor | route/unit coverage only; no polished document UI validation |
 | Polished document/page Markdown editing | not supported yet; backlog | not applicable |
 | Block-level document editing: update/delete/move/insert blocks | not supported yet; backlog | not applicable |
-| Publishing / public sharing | not supported yet; safety-sensitive deferred work | not applicable |
+| Publishing / public sharing | read-only metadata supported; publish/unpublish writes deferred | unit-tested against pinned AppFlowy publish metadata routes |
 | Member / invite / access/admin mutations | not supported yet; safety-sensitive deferred work | not applicable |
 | Templates | read-only category/creator/template discovery supported; instantiation not supported | unit-tested against pinned AppFlowy template-center routes |
 | Import/export and migrations | not supported yet | not applicable |
@@ -163,6 +163,8 @@ appflowy-toolkit template-categories
 appflowy-toolkit templates --is-featured
 appflowy-toolkit template --view-id <id>
 appflowy-toolkit template-homepage --per-count 3
+appflowy-toolkit published-pages --workspace-id <id>
+appflowy-toolkit published-page-info --view-id <id>
 appflowy-toolkit folder --workspace-id <id> --depth 2
 appflowy-toolkit databases --workspace-id <id>
 appflowy-toolkit fields  --workspace-id <id> --database-id <id>
@@ -193,6 +195,8 @@ Read-only tools (safe with no write gates):
 `appflowy_list_trash_views`, `appflowy_get_page_view`,
 `appflowy_get_workspace_settings`, `appflowy_list_workspace_members`,
 `appflowy_get_workspace_usage`, `appflowy_get_file_storage_usage`,
+`appflowy_get_publish_namespace`, `appflowy_get_publish_default`,
+`appflowy_list_published_pages`, `appflowy_get_published_page_info`,
 `appflowy_list_file_storage_blobs`, `appflowy_get_file_metadata`,
 `appflowy_get_file_metadata_v1`, `appflowy_list_template_categories`,
 `appflowy_get_template_category`, `appflowy_list_template_creators`,

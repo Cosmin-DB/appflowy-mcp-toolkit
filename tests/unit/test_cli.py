@@ -167,7 +167,7 @@ def test_workflows_is_offline_guidance(monkeypatch, capsys):
         "create-task / appflowy_create_task"
     )
     assert "document_markdown" in out["page_documents"]
-    assert "publishing/public sharing" in out["unsupported"]
+    assert "publishing/public sharing mutations" in out["unsupported"]
 
 
 # ---------------------------------------------------------------------------

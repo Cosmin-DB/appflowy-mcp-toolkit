@@ -224,6 +224,62 @@ class AppFlowyClient:
             raise AppFlowySchemaError("Expected AppFlowy workspace usage response", payload=data)
         return usage
 
+    def get_workspace_publish_namespace(self, workspace_id: str) -> str:
+        data = self.request(
+            "GET",
+            f"/api/workspace/{workspace_id}/publish-namespace",
+            require_auth=False,
+        )
+        namespace = self._extract_data(data)
+        if not isinstance(namespace, str):
+            raise AppFlowySchemaError(
+                "Expected AppFlowy publish namespace response",
+                payload=data,
+            )
+        return namespace
+
+    def get_workspace_publish_default(self, workspace_id: str) -> dict[str, Any]:
+        data = self.request(
+            "GET",
+            f"/api/workspace/{workspace_id}/publish-default",
+            require_auth=False,
+        )
+        default_info = self._extract_data(data)
+        if not isinstance(default_info, dict):
+            raise AppFlowySchemaError(
+                "Expected AppFlowy default published view response",
+                payload=data,
+            )
+        return default_info
+
+    def list_published_pages(self, workspace_id: str) -> list[dict[str, Any]]:
+        data = self.request(
+            "GET",
+            f"/api/workspace/{workspace_id}/published-info",
+            require_auth=False,
+        )
+        return self._extract_list(data)
+
+    def get_published_page_info(
+        self,
+        view_id: str,
+        *,
+        include_unpublished: bool = False,
+    ) -> dict[str, Any]:
+        prefix = "/api/workspace/v1" if include_unpublished else "/api/workspace"
+        data = self.request(
+            "GET",
+            f"{prefix}/published-info/{view_id}",
+            require_auth=False,
+        )
+        publish_info = self._extract_data(data)
+        if not isinstance(publish_info, dict):
+            raise AppFlowySchemaError(
+                "Expected AppFlowy published page info response",
+                payload=data,
+            )
+        return publish_info
+
     def get_file_storage_usage(self, workspace_id: str) -> dict[str, Any]:
         data = self.request("GET", f"/api/file_storage/{workspace_id}/usage")
         usage = self._extract_data(data)
