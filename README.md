@@ -6,10 +6,11 @@ Covers the practical agent workflows: inspect workspaces and folders, create and
 task cards, write typed database fields, upload media, and verify changes before
 touching real data. Writes are disabled by default.
 
-> **0.2.0.** Core task-board, typed-field, media, page/view organization,
+> **0.3.0.** Core task-board, typed-field, media, page/view organization,
 > publishing, template discovery, and published-page duplication paths are tested.
-> Append Markdown to pages is supported. Full fetch/replace/block-level document
-> editing is backlog.
+> High-value MCP tools return structured content, MCP tool calls share a
+> process-wide rate limiter, and common operational failures surface as clean
+> tool errors. Full fetch/replace/block-level document editing is backlog.
 
 ---
 

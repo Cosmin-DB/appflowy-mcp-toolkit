@@ -10,6 +10,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 No unreleased changes yet.
 
+## [0.3.0] - 2026-05-18
+
+MCP protocol hardening release. This release keeps the AppFlowy feature surface
+from `0.2.0` and improves how agents consume results, share rate limits, and
+recover from operational failures.
+
+### Added
+
+- **Structured MCP outputs** for high-value tools while preserving the existing
+  text/JSON response for backwards compatibility:
+  `appflowy_list_tasks`, `appflowy_get_database_rows`,
+  `appflowy_verify_database_row`, `appflowy_create_task`,
+  `appflowy_publish_page`, `appflowy_list_templates`, and
+  `appflowy_get_database_view_configs`. List-like structured payloads are exposed
+  as `{"result": [...]}` because MCP `structuredContent` must be a JSON object.
+- **MCP error-handling coverage** for `AppFlowyError`, auth failures, rate-limit
+  failures, write-gate failures, and local-file-read-gate failures. These cases
+  are verified to surface as clean FastMCP tool errors instead of raw exceptions
+  or traceback-shaped protocol responses.
+
+### Changed / Hardened
+
+- **MCP server rate limiting is now shared per server process**. Tool calls in the
+  same MCP server consume the same limiter buckets, so agents cannot bypass the
+  limit by creating a fresh `AppFlowyClient` per tool call. CLI/direct client usage
+  keeps the existing per-client limiter fallback.
+
 ## [0.2.0] - 2026-05-18
 
 Validated AppFlowy Cloud release with page publishing, template duplication, Markdown
