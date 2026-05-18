@@ -10,10 +10,27 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [{name = "Cosmin Dobrescu"}]
-dependencies = ["httpx>=0.27.0"]
+dependencies = ["httpx>=0.27.0", "mcp>=1.2.0"]
+keywords = ["appflowy", "mcp", "model-context-protocol", "automation", "agents"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/Cosmin-DB/appflowy-mcp-toolkit"
+Repository = "https://github.com/Cosmin-DB/appflowy-mcp-toolkit"
+Issues = "https://github.com/Cosmin-DB/appflowy-mcp-toolkit/issues"
+Documentation = "https://github.com/Cosmin-DB/appflowy-mcp-toolkit#readme"
 
 [project.optional-dependencies]
-mcp = ["mcp>=1.2.0"]
+mcp = []
 dev = ["pytest>=8.0", "ruff>=0.8.0", "mypy>=1.10", "pytest-asyncio>=0.24"]
 browser = ["playwright>=1.55"]
 

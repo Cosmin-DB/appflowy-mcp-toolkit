@@ -88,3 +88,45 @@ A new contributor or AI agent should be able to start from:
 - `docs/appflowy-coverage-matrix.md` for implemented/deferred AppFlowy surface.
 - `docs/self-hosted-test-plan.md` for local Docker testing.
 - `docs/browser-ui-acceptance.md` for browser/UI caveats.
+
+## PyPI Publishing
+
+The package is published with PyPI Trusted Publishing, not a long-lived API token.
+Do not paste PyPI tokens into chat, issues, logs, or local files.
+
+One-time PyPI setup:
+
+- PyPI project name: `appflowy-mcp-toolkit`
+- GitHub owner: `Cosmin-DB`
+- GitHub repository: `appflowy-mcp-toolkit`
+- Workflow filename: `release.yml`
+- GitHub environment: `pypi`
+
+Local package verification before creating a GitHub Release:
+
+```bash
+rm -rf dist
+uv build
+uv run --with twine python -m twine check dist/*
+pipx install --force dist/*.whl
+appflowy-toolkit --help
+appflowy-mcp-server --help
+```
+
+If `pipx` is not installed on the local machine, the same wheel can be checked with uv:
+
+```bash
+uv tool install --force dist/*.whl
+appflowy-toolkit --help
+```
+appflowy-toolkit --help
+appflowy-mcp-server --help
+```
+
+Publish flow:
+
+1. Confirm all release gates pass.
+2. Confirm the PyPI Trusted Publisher above is configured.
+3. Create and push a version tag, for example `v0.1.0`.
+4. Create a GitHub Release from that tag.
+5. The `release.yml` workflow builds the wheel/sdist and publishes to PyPI.
