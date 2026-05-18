@@ -122,9 +122,16 @@ in their respective config files.
 | Row/card reorder (Yjs collab, requires collab writes gate) | supported with explicit opt-in |
 | Board column reorder (Yjs collab) | supported with explicit opt-in |
 | Row delete (Yjs collab, no REST endpoint in AppFlowy) | supported with explicit opt-in |
-| Polished document/page Markdown editing | backlog |
-| Member / invite / admin mutations | deferred |
-| AI / chat routes | deferred |
+| Raw append blocks to a page | low-level primitive, not a polished document editor |
+| Polished document/page Markdown editing | not supported yet; backlog |
+| Block-level document editing: update/delete/move/insert blocks | not supported yet; backlog |
+| Publishing / public sharing | not supported yet; safety-sensitive deferred work |
+| Member / invite / access/admin mutations | not supported yet; safety-sensitive deferred work |
+| Templates | not supported yet; read-only discovery is a candidate |
+| Import/export and migrations | not supported yet |
+| Comments, reminders, live cursors, presence | not supported yet |
+| AppFlowy AI / chat routes | not supported yet |
+| Broad generic collab/Yjs mutation tools | intentionally not supported |
 
 **Supported with explicit opt-in** means the feature works and is tested, but it
 will not run live unless the caller sets the required safety flags
