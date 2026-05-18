@@ -32,6 +32,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   make no network call do not consume rate budget.  Raises `AppFlowyError`
   when a bucket is exhausted (no silent retry/sleep).
 
+- **MCP tool annotations hardened**: all 74 tool decorators now use explicit
+  `ToolAnnotations` objects (no more dict type-ignore casts). Added
+  `destructiveHint=True` for delete/trash/unpublish/delete-blob tools,
+  `openWorldHint=True` for publish/upload/create/instantiate tools, and
+  `idempotentHint=True` for read tools. Protocol-level error tests confirm
+  FastMCP wraps `AppFlowyError` as `ToolError` at the tool boundary.
+
 - **compact() truncation fix**: when output exceeds `max_chars`, `compact()`
   now returns a valid JSON object with `truncated: true`, `max_chars`,
   `original_chars`, a `preview` string, and `guidance` — never a raw

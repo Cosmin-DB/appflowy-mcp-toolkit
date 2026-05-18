@@ -6,6 +6,7 @@ from appflowy_mcp_toolkit.workflows import safe_workflows
 
 try:
     from mcp.server.fastmcp import FastMCP
+    from mcp.types import ToolAnnotations
 except ImportError as exc:  # pragma: no cover
     raise SystemExit("Install MCP extras with: python -m pip install -e '.[mcp]'") from exc
 
@@ -16,20 +17,26 @@ def _client() -> AppFlowyClient:
     return AppFlowyClient()
 
 
-@mcp.tool(name="appflowy_safe_workflows", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_safe_workflows", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_safe_workflows() -> str:
     """Return safe operating paths for agents using AppFlowy task/database tools."""
     return compact(safe_workflows())
 
 
-@mcp.tool(name="appflowy_health_check", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_health_check",
+    annotations=ToolAnnotations(readOnlyHint=True, idempotentHint=True),
+)
 def appflowy_health_check() -> str:
     """Check whether AppFlowy is reachable with the configured token."""
     with _client() as client:
         return compact(client.health_check())
 
 
-@mcp.tool(name="appflowy_list_workspaces", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_list_workspaces",
+    annotations=ToolAnnotations(readOnlyHint=True, idempotentHint=True),
+)
 def appflowy_list_workspaces(include_member_count: bool = False, include_role: bool = False) -> str:
     """List AppFlowy workspaces visible to the configured account."""
     with _client() as client:
@@ -40,70 +47,79 @@ def appflowy_list_workspaces(include_member_count: bool = False, include_role: b
         return compact(data)
 
 
-@mcp.tool(name="appflowy_get_server_info", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_get_server_info",
+    annotations=ToolAnnotations(readOnlyHint=True, idempotentHint=True),
+)
 def appflowy_get_server_info() -> str:
     """Get public AppFlowy server capability information."""
     with _client() as client:
         return compact(client.get_server_info())
 
 
-@mcp.tool(name="appflowy_get_user_profile", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_get_user_profile",
+    annotations=ToolAnnotations(readOnlyHint=True, idempotentHint=True),
+)
 def appflowy_get_user_profile() -> str:
     """Get the authenticated AppFlowy user profile."""
     with _client() as client:
         return compact(client.get_user_profile())
 
 
-@mcp.tool(name="appflowy_get_user_workspace_info", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_user_workspace_info", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_user_workspace_info() -> str:
     """Get workspace metadata for the authenticated AppFlowy user."""
     with _client() as client:
         return compact(client.get_user_workspace_info())
 
 
-@mcp.tool(name="appflowy_get_workspace_settings", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_workspace_settings", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_workspace_settings(workspace_id: str) -> str:
     """Get read-only settings for one AppFlowy workspace."""
     with _client() as client:
         return compact(client.get_workspace_settings(workspace_id))
 
 
-@mcp.tool(name="appflowy_list_workspace_members", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_list_workspace_members", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_list_workspace_members(workspace_id: str) -> str:
     """List members for one AppFlowy workspace."""
     with _client() as client:
         return compact(client.list_workspace_members(workspace_id))
 
 
-@mcp.tool(name="appflowy_get_workspace_usage", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_workspace_usage", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_workspace_usage(workspace_id: str) -> str:
     """Get read-only usage information for one AppFlowy workspace."""
     with _client() as client:
         return compact(client.get_workspace_usage(workspace_id))
 
 
-@mcp.tool(name="appflowy_get_publish_namespace", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_publish_namespace", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_publish_namespace(workspace_id: str) -> str:
     """Get the public publish namespace for one AppFlowy workspace."""
     with _client() as client:
         return compact(client.get_workspace_publish_namespace(workspace_id))
 
 
-@mcp.tool(name="appflowy_get_publish_default", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_publish_default", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_publish_default(workspace_id: str) -> str:
     """Get the default published view info for one AppFlowy workspace."""
     with _client() as client:
         return compact(client.get_workspace_publish_default(workspace_id))
 
 
-@mcp.tool(name="appflowy_list_published_pages", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_list_published_pages",
+    annotations=ToolAnnotations(readOnlyHint=True, idempotentHint=True),
+)
 def appflowy_list_published_pages(workspace_id: str) -> str:
     """List published page metadata for one AppFlowy workspace."""
     with _client() as client:
         return compact(client.list_published_pages(workspace_id))
 
 
-@mcp.tool(name="appflowy_get_published_page_info", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_published_page_info", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_published_page_info(
     view_id: str,
     include_unpublished: bool = False,
@@ -118,7 +134,10 @@ def appflowy_get_published_page_info(
         )
 
 
-@mcp.tool(name="appflowy_publish_page", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_publish_page",
+    annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=True),
+)
 def appflowy_publish_page(
     workspace_id: str,
     view_id: str,
@@ -147,7 +166,10 @@ def appflowy_publish_page(
         )
 
 
-@mcp.tool(name="appflowy_unpublish_page", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_unpublish_page",
+    annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=True, destructiveHint=True),
+)
 def appflowy_unpublish_page(
     workspace_id: str,
     view_id: str,
@@ -162,7 +184,10 @@ def appflowy_unpublish_page(
         return compact(client.unpublish_page(workspace_id, view_id, dry_run=dry_run))
 
 
-@mcp.tool(name="appflowy_duplicate_published_page", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_duplicate_published_page",
+    annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=True),
+)
 def appflowy_duplicate_published_page(
     workspace_id: str,
     published_view_id: str,
@@ -187,7 +212,10 @@ def appflowy_duplicate_published_page(
         )
 
 
-@mcp.tool(name="appflowy_instantiate_template", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_instantiate_template",
+    annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=True),
+)
 def appflowy_instantiate_template(
     workspace_id: str,
     template_view_id: str,
@@ -212,7 +240,7 @@ def appflowy_instantiate_template(
         )
 
 
-@mcp.tool(name="appflowy_list_template_categories", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_list_template_categories", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_list_template_categories(
     name_contains: str | None = None,
     category_type: int | None = None,
@@ -227,28 +255,28 @@ def appflowy_list_template_categories(
         )
 
 
-@mcp.tool(name="appflowy_get_template_category", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_template_category", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_template_category(category_id: str) -> str:
     """Get one AppFlowy template category by id."""
     with _client() as client:
         return compact(client.get_template_category(category_id))
 
 
-@mcp.tool(name="appflowy_list_template_creators", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_list_template_creators", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_list_template_creators(name_contains: str | None = None) -> str:
     """List AppFlowy template-center creators."""
     with _client() as client:
         return compact(client.list_template_creators(name_contains=name_contains))
 
 
-@mcp.tool(name="appflowy_get_template_creator", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_template_creator", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_template_creator(creator_id: str) -> str:
     """Get one AppFlowy template creator by id."""
     with _client() as client:
         return compact(client.get_template_creator(creator_id))
 
 
-@mcp.tool(name="appflowy_list_templates", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_list_templates", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_list_templates(
     category_id: str | None = None,
     is_featured: bool | None = None,
@@ -267,21 +295,24 @@ def appflowy_list_templates(
         )
 
 
-@mcp.tool(name="appflowy_get_template", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_template", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_template(view_id: str) -> str:
     """Get one AppFlowy template by template view id."""
     with _client() as client:
         return compact(client.get_template(view_id))
 
 
-@mcp.tool(name="appflowy_get_template_homepage", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_template_homepage", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_template_homepage(per_count: int | None = None) -> str:
     """Get AppFlowy's template-center homepage groups."""
     with _client() as client:
         return compact(client.get_template_homepage(per_count=per_count))
 
 
-@mcp.tool(name="appflowy_create_space", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_create_space",
+    annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=True),
+)
 def appflowy_create_space(
     workspace_id: str,
     name: str,
@@ -306,7 +337,7 @@ def appflowy_create_space(
         )
 
 
-@mcp.tool(name="appflowy_update_space", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_update_space", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_update_space(
     workspace_id: str,
     view_id: str,
@@ -331,35 +362,38 @@ def appflowy_update_space(
         )
 
 
-@mcp.tool(name="appflowy_get_file_storage_usage", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_file_storage_usage", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_file_storage_usage(workspace_id: str) -> str:
     """Get read-only file-storage capacity usage for one workspace."""
     with _client() as client:
         return compact(client.get_file_storage_usage(workspace_id))
 
 
-@mcp.tool(name="appflowy_list_file_storage_blobs", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_list_file_storage_blobs", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_list_file_storage_blobs(workspace_id: str) -> str:
     """List file-storage blob metadata for one workspace without fetching blob bytes."""
     with _client() as client:
         return compact(client.list_file_storage_blobs(workspace_id))
 
 
-@mcp.tool(name="appflowy_get_file_metadata", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_file_metadata", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_file_metadata(workspace_id: str, file_id: str) -> str:
     """Get v0 file metadata by file id without downloading blob content."""
     with _client() as client:
         return compact(client.get_file_metadata(workspace_id, file_id))
 
 
-@mcp.tool(name="appflowy_get_file_metadata_v1", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_file_metadata_v1", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_file_metadata_v1(workspace_id: str, parent_dir: str, file_id: str) -> str:
     """Get v1 file metadata by parent directory and file id without blob content."""
     with _client() as client:
         return compact(client.get_file_metadata_v1(workspace_id, parent_dir, file_id))
 
 
-@mcp.tool(name="appflowy_upload_file_blob_v1", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_upload_file_blob_v1",
+    annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=True),
+)
 def appflowy_upload_file_blob_v1(
     workspace_id: str,
     parent_dir: str,
@@ -380,7 +414,10 @@ def appflowy_upload_file_blob_v1(
         )
 
 
-@mcp.tool(name="appflowy_delete_file_blob_v1", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_delete_file_blob_v1",
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+)
 def appflowy_delete_file_blob_v1(
     workspace_id: str,
     parent_dir: str,
@@ -399,7 +436,10 @@ def appflowy_delete_file_blob_v1(
         )
 
 
-@mcp.tool(name="appflowy_upload_file_as_media", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_upload_file_as_media",
+    annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=True),
+)
 def appflowy_upload_file_as_media(
     workspace_id: str,
     database_id: str,
@@ -424,7 +464,7 @@ def appflowy_upload_file_as_media(
         )
 
 
-@mcp.tool(name="appflowy_get_folder", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_folder", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_folder(
     workspace_id: str,
     depth: int | None = None,
@@ -435,7 +475,10 @@ def appflowy_get_folder(
         return compact(client.get_folder(workspace_id, depth=depth, root_view_id=root_view_id))
 
 
-@mcp.tool(name="appflowy_create_folder_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_create_folder_view",
+    annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=True),
+)
 def appflowy_create_folder_view(
     workspace_id: str,
     parent_view_id: str,
@@ -460,14 +503,17 @@ def appflowy_create_folder_view(
         )
 
 
-@mcp.tool(name="appflowy_get_page_view", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_page_view", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_page_view(workspace_id: str, view_id: str) -> str:
     """Get a page/view collab payload by view id."""
     with _client() as client:
         return compact(client.get_page_view(workspace_id, view_id))
 
 
-@mcp.tool(name="appflowy_create_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_create_page_view",
+    annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=True),
+)
 def appflowy_create_page_view(
     workspace_id: str,
     parent_view_id: str,
@@ -494,7 +540,7 @@ def appflowy_create_page_view(
         )
 
 
-@mcp.tool(name="appflowy_update_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_update_page_view", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_update_page_view(
     workspace_id: str,
     view_id: str,
@@ -519,7 +565,7 @@ def appflowy_update_page_view(
         )
 
 
-@mcp.tool(name="appflowy_rename_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_rename_page_view", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_rename_page_view(
     workspace_id: str,
     view_id: str,
@@ -531,7 +577,7 @@ def appflowy_rename_page_view(
         return compact(client.update_page_name(workspace_id, view_id, name=name, dry_run=dry_run))
 
 
-@mcp.tool(name="appflowy_favorite_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_favorite_page_view", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_favorite_page_view(
     workspace_id: str,
     view_id: str,
@@ -552,14 +598,14 @@ def appflowy_favorite_page_view(
         )
 
 
-@mcp.tool(name="appflowy_remove_page_icon", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_remove_page_icon", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_remove_page_icon(workspace_id: str, view_id: str, dry_run: bool = True) -> str:
     """Remove a page icon. Dry-run by default."""
     with _client() as client:
         return compact(client.remove_page_icon(workspace_id, view_id, dry_run=dry_run))
 
 
-@mcp.tool(name="appflowy_append_blocks_to_page", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_append_blocks_to_page", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_append_blocks_to_page(
     workspace_id: str,
     view_id: str,
@@ -578,7 +624,7 @@ def appflowy_append_blocks_to_page(
         )
 
 
-@mcp.tool(name="appflowy_append_markdown_to_page", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_append_markdown_to_page", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_append_markdown_to_page(
     workspace_id: str,
     view_id: str,
@@ -604,7 +650,7 @@ def appflowy_append_markdown_to_page(
         )
 
 
-@mcp.tool(name="appflowy_move_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_move_page_view", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_move_page_view(
     workspace_id: str,
     view_id: str,
@@ -625,7 +671,9 @@ def appflowy_move_page_view(
         )
 
 
-@mcp.tool(name="appflowy_reorder_favorite_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_reorder_favorite_page_view", annotations=ToolAnnotations(readOnlyHint=False)
+)
 def appflowy_reorder_favorite_page_view(
     workspace_id: str,
     view_id: str,
@@ -644,7 +692,7 @@ def appflowy_reorder_favorite_page_view(
         )
 
 
-@mcp.tool(name="appflowy_duplicate_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_duplicate_page_view", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_duplicate_page_view(
     workspace_id: str,
     view_id: str,
@@ -663,7 +711,9 @@ def appflowy_duplicate_page_view(
         )
 
 
-@mcp.tool(name="appflowy_create_page_database_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_create_page_database_view", annotations=ToolAnnotations(readOnlyHint=False)
+)
 def appflowy_create_page_database_view(
     workspace_id: str,
     view_id: str,
@@ -684,21 +734,27 @@ def appflowy_create_page_database_view(
         )
 
 
-@mcp.tool(name="appflowy_trash_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_trash_page_view",
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+)
 def appflowy_trash_page_view(workspace_id: str, view_id: str, dry_run: bool = True) -> str:
     """Move a page view to trash. Dry-run by default."""
     with _client() as client:
         return compact(client.move_page_view_to_trash(workspace_id, view_id, dry_run=dry_run))
 
 
-@mcp.tool(name="appflowy_restore_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_restore_page_view", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_restore_page_view(workspace_id: str, view_id: str, dry_run: bool = True) -> str:
     """Restore a page view from trash. Dry-run by default."""
     with _client() as client:
         return compact(client.restore_page_view_from_trash(workspace_id, view_id, dry_run=dry_run))
 
 
-@mcp.tool(name="appflowy_delete_trashed_page_view", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_delete_trashed_page_view",
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+)
 def appflowy_delete_trashed_page_view(
     workspace_id: str,
     view_id: str,
@@ -709,7 +765,7 @@ def appflowy_delete_trashed_page_view(
         return compact(client.delete_page_view_from_trash(workspace_id, view_id, dry_run=dry_run))
 
 
-@mcp.tool(name="appflowy_add_recent_pages", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_add_recent_pages", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_add_recent_pages(
     workspace_id: str,
     recent_view_ids: list[str],
@@ -720,56 +776,64 @@ def appflowy_add_recent_pages(
         return compact(client.add_recent_pages(workspace_id, recent_view_ids, dry_run=dry_run))
 
 
-@mcp.tool(name="appflowy_restore_all_pages_from_trash", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_restore_all_pages_from_trash", annotations=ToolAnnotations(readOnlyHint=False)
+)
 def appflowy_restore_all_pages_from_trash(workspace_id: str, dry_run: bool = True) -> str:
     """Restore all trashed pages in a workspace. Dry-run by default."""
     with _client() as client:
         return compact(client.restore_all_pages_from_trash(workspace_id, dry_run=dry_run))
 
 
-@mcp.tool(name="appflowy_delete_all_pages_from_trash", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_delete_all_pages_from_trash",
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+)
 def appflowy_delete_all_pages_from_trash(workspace_id: str, dry_run: bool = True) -> str:
     """Permanently delete all trashed pages in a workspace. Dry-run by default."""
     with _client() as client:
         return compact(client.delete_all_pages_from_trash(workspace_id, dry_run=dry_run))
 
 
-@mcp.tool(name="appflowy_list_recent_views", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_list_recent_views", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_list_recent_views(workspace_id: str) -> str:
     """List recently visited views in a workspace."""
     with _client() as client:
         return compact(client.list_recent_views(workspace_id))
 
 
-@mcp.tool(name="appflowy_list_favorite_views", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_list_favorite_views", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_list_favorite_views(workspace_id: str) -> str:
     """List favorite views in a workspace."""
     with _client() as client:
         return compact(client.list_favorite_views(workspace_id))
 
 
-@mcp.tool(name="appflowy_list_trash_views", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_list_trash_views", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_list_trash_views(workspace_id: str) -> str:
     """List views currently in workspace trash."""
     with _client() as client:
         return compact(client.list_trash_views(workspace_id))
 
 
-@mcp.tool(name="appflowy_list_databases", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_list_databases",
+    annotations=ToolAnnotations(readOnlyHint=True, idempotentHint=True),
+)
 def appflowy_list_databases(workspace_id: str) -> str:
     """List databases in a workspace."""
     with _client() as client:
         return compact(client.list_databases(workspace_id))
 
 
-@mcp.tool(name="appflowy_get_database_schema", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_database_schema", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_database_schema(workspace_id: str, database_id: str) -> str:
     """List fields/schema for a database."""
     with _client() as client:
         return compact(client.list_database_fields(workspace_id, database_id))
 
 
-@mcp.tool(name="appflowy_create_database_field", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_create_database_field", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_create_database_field(
     workspace_id: str,
     database_id: str,
@@ -792,7 +856,7 @@ def appflowy_create_database_field(
         )
 
 
-@mcp.tool(name="appflowy_add_select_option", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_add_select_option", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_add_select_option(
     workspace_id: str,
     database_id: str,
@@ -819,7 +883,7 @@ def appflowy_add_select_option(
         )
 
 
-@mcp.tool(name="appflowy_rename_select_option", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_rename_select_option", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_rename_select_option(
     workspace_id: str,
     database_id: str,
@@ -844,7 +908,7 @@ def appflowy_rename_select_option(
         )
 
 
-@mcp.tool(name="appflowy_hide_select_option", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_hide_select_option", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_hide_select_option(
     workspace_id: str,
     database_id: str,
@@ -870,7 +934,7 @@ def appflowy_hide_select_option(
         )
 
 
-@mcp.tool(name="appflowy_show_select_option", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_show_select_option", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_show_select_option(
     workspace_id: str,
     database_id: str,
@@ -896,14 +960,16 @@ def appflowy_show_select_option(
         )
 
 
-@mcp.tool(name="appflowy_list_database_row_ids", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_list_database_row_ids", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_list_database_row_ids(workspace_id: str, database_id: str) -> str:
     """List row IDs for a database."""
     with _client() as client:
         return compact(client.list_database_row_ids(workspace_id, database_id))
 
 
-@mcp.tool(name="appflowy_list_updated_database_rows", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_list_updated_database_rows", annotations=ToolAnnotations(readOnlyHint=True)
+)
 def appflowy_list_updated_database_rows(
     workspace_id: str,
     database_id: str,
@@ -920,7 +986,7 @@ def appflowy_list_updated_database_rows(
         )
 
 
-@mcp.tool(name="appflowy_list_quick_notes", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_list_quick_notes", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_list_quick_notes(
     workspace_id: str,
     search_term: str | None = None,
@@ -939,7 +1005,10 @@ def appflowy_list_quick_notes(
         )
 
 
-@mcp.tool(name="appflowy_create_quick_note", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_create_quick_note",
+    annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=True),
+)
 def appflowy_create_quick_note(
     workspace_id: str,
     data: object | None = None,
@@ -953,7 +1022,7 @@ def appflowy_create_quick_note(
         return compact(client.create_quick_note(workspace_id, data=data, dry_run=dry_run))
 
 
-@mcp.tool(name="appflowy_update_quick_note", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_update_quick_note", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_update_quick_note(
     workspace_id: str,
     quick_note_id: str,
@@ -975,7 +1044,10 @@ def appflowy_update_quick_note(
         )
 
 
-@mcp.tool(name="appflowy_delete_quick_note", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_delete_quick_note",
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+)
 def appflowy_delete_quick_note(
     workspace_id: str,
     quick_note_id: str,
@@ -989,7 +1061,7 @@ def appflowy_delete_quick_note(
         return compact(client.delete_quick_note(workspace_id, quick_note_id, dry_run=dry_run))
 
 
-@mcp.tool(name="appflowy_search_documents", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_search_documents", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_search_documents(
     workspace_id: str,
     query: str,
@@ -1014,7 +1086,10 @@ def appflowy_search_documents(
         )
 
 
-@mcp.tool(name="appflowy_get_database_rows", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_get_database_rows",
+    annotations=ToolAnnotations(readOnlyHint=True, idempotentHint=True),
+)
 def appflowy_get_database_rows(
     workspace_id: str,
     database_id: str,
@@ -1026,7 +1101,7 @@ def appflowy_get_database_rows(
         return compact(client.get_database_rows(workspace_id, database_id, ids, with_doc=with_doc))
 
 
-@mcp.tool(name="appflowy_list_select_options", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_list_select_options", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_list_select_options(
     workspace_id: str,
     database_id: str,
@@ -1037,7 +1112,7 @@ def appflowy_list_select_options(
         return compact(client.list_select_options(workspace_id, database_id, field_name=field_name))
 
 
-@mcp.tool(name="appflowy_get_collab_json", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_collab_json", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_collab_json(
     workspace_id: str,
     object_id: str,
@@ -1070,7 +1145,7 @@ def appflowy_get_collab_json(
         )
 
 
-@mcp.tool(name="appflowy_get_database_row_orders", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_database_row_orders", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_database_row_orders(workspace_id: str, database_id: str) -> str:
     """Return per-view row orders extracted from a database collab document.
 
@@ -1081,7 +1156,7 @@ def appflowy_get_database_row_orders(workspace_id: str, database_id: str) -> str
         return compact(client.get_database_row_orders(workspace_id, database_id))
 
 
-@mcp.tool(name="appflowy_get_database_view_configs", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_database_view_configs", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_database_view_configs(workspace_id: str, database_id: str) -> str:
     """Return database view configuration extracted from collab JSON.
 
@@ -1093,7 +1168,7 @@ def appflowy_get_database_view_configs(workspace_id: str, database_id: str) -> s
         return compact(client.get_database_view_configs(workspace_id, database_id))
 
 
-@mcp.tool(name="appflowy_get_database_blob_diff", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_get_database_blob_diff", annotations=ToolAnnotations(readOnlyHint=True))
 def appflowy_get_database_blob_diff(
     workspace_id: str,
     database_id: str,
@@ -1115,7 +1190,9 @@ def appflowy_get_database_blob_diff(
         )
 
 
-@mcp.tool(name="appflowy_list_tasks", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_list_tasks", annotations=ToolAnnotations(readOnlyHint=True, idempotentHint=True)
+)
 def appflowy_list_tasks(
     workspace_id: str,
     database_id: str,
@@ -1126,7 +1203,10 @@ def appflowy_list_tasks(
         return compact(client.list_tasks(workspace_id, database_id, with_doc=with_doc))
 
 
-@mcp.tool(name="appflowy_search_tasks", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_search_tasks",
+    annotations=ToolAnnotations(readOnlyHint=True, idempotentHint=True),
+)
 def appflowy_search_tasks(
     workspace_id: str,
     database_id: str,
@@ -1149,7 +1229,10 @@ def appflowy_search_tasks(
         )
 
 
-@mcp.tool(name="appflowy_verify_database_row", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_verify_database_row",
+    annotations=ToolAnnotations(readOnlyHint=True, idempotentHint=True),
+)
 def appflowy_verify_database_row(
     workspace_id: str,
     database_id: str,
@@ -1172,7 +1255,9 @@ def appflowy_verify_database_row(
         )
 
 
-@mcp.tool(name="appflowy_create_task", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_create_task", annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=True)
+)
 def appflowy_create_task(
     workspace_id: str,
     database_id: str,
@@ -1199,7 +1284,7 @@ def appflowy_create_task(
         )
 
 
-@mcp.tool(name="appflowy_update_task", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_update_task", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_update_task(
     workspace_id: str,
     database_id: str,
@@ -1226,7 +1311,7 @@ def appflowy_update_task(
         )
 
 
-@mcp.tool(name="appflowy_update_task_by_name", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_update_task_by_name", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_update_task_by_name(
     workspace_id: str,
     database_id: str,
@@ -1253,7 +1338,7 @@ def appflowy_update_task_by_name(
         )
 
 
-@mcp.tool(name="appflowy_move_task", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_move_task", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_move_task(
     workspace_id: str,
     database_id: str,
@@ -1274,7 +1359,7 @@ def appflowy_move_task(
         )
 
 
-@mcp.tool(name="appflowy_move_task_by_name", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_move_task_by_name", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_move_task_by_name(
     workspace_id: str,
     database_id: str,
@@ -1299,7 +1384,9 @@ def appflowy_move_task_by_name(
         )
 
 
-@mcp.tool(name="appflowy_update_database_row_by_id", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_update_database_row_by_id", annotations=ToolAnnotations(readOnlyHint=False)
+)
 def appflowy_update_database_row_by_id(
     workspace_id: str,
     database_id: str,
@@ -1325,7 +1412,7 @@ def appflowy_update_database_row_by_id(
         )
 
 
-@mcp.tool(name="appflowy_move_task_by_id", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_move_task_by_id", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_move_task_by_id(
     workspace_id: str,
     database_id: str,
@@ -1346,7 +1433,10 @@ def appflowy_move_task_by_id(
         )
 
 
-@mcp.tool(name="appflowy_delete_task", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_delete_task",
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+)
 def appflowy_delete_task(
     workspace_id: str,
     database_id: str,
@@ -1358,7 +1448,10 @@ def appflowy_delete_task(
         return compact(client.delete_task(workspace_id, database_id, row_id, dry_run=dry_run))
 
 
-@mcp.tool(name="appflowy_delete_task_by_name", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_delete_task_by_name",
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+)
 def appflowy_delete_task_by_name(
     workspace_id: str,
     database_id: str,
@@ -1381,7 +1474,10 @@ def appflowy_delete_task_by_name(
         )
 
 
-@mcp.tool(name="appflowy_create_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_create_database_row",
+    annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=True),
+)
 def appflowy_create_database_row(
     workspace_id: str,
     database_id: str,
@@ -1405,7 +1501,10 @@ def appflowy_create_database_row(
         )
 
 
-@mcp.tool(name="appflowy_create_verified_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_create_verified_database_row",
+    annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=True),
+)
 def appflowy_create_verified_database_row(
     workspace_id: str,
     database_id: str,
@@ -1431,7 +1530,10 @@ def appflowy_create_verified_database_row(
         )
 
 
-@mcp.tool(name="appflowy_create_typed_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_create_typed_database_row",
+    annotations=ToolAnnotations(readOnlyHint=False, openWorldHint=True),
+)
 def appflowy_create_typed_database_row(
     workspace_id: str,
     database_id: str,
@@ -1459,7 +1561,7 @@ def appflowy_create_typed_database_row(
         )
 
 
-@mcp.tool(name="appflowy_upsert_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_upsert_database_row", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_upsert_database_row(
     workspace_id: str,
     database_id: str,
@@ -1485,7 +1587,9 @@ def appflowy_upsert_database_row(
         )
 
 
-@mcp.tool(name="appflowy_upsert_typed_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_upsert_typed_database_row", annotations=ToolAnnotations(readOnlyHint=False)
+)
 def appflowy_upsert_typed_database_row(
     workspace_id: str,
     database_id: str,
@@ -1513,7 +1617,7 @@ def appflowy_upsert_typed_database_row(
         )
 
 
-@mcp.tool(name="appflowy_upsert_managed_task", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_upsert_managed_task", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_upsert_managed_task(
     workspace_id: str,
     database_id: str,
@@ -1543,7 +1647,9 @@ def appflowy_upsert_managed_task(
         )
 
 
-@mcp.tool(name="appflowy_upsert_verified_managed_task", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_upsert_verified_managed_task", annotations=ToolAnnotations(readOnlyHint=False)
+)
 def appflowy_upsert_verified_managed_task(
     workspace_id: str,
     database_id: str,
@@ -1574,7 +1680,7 @@ def appflowy_upsert_verified_managed_task(
         )
 
 
-@mcp.tool(name="appflowy_move_managed_task_status", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_move_managed_task_status", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_move_managed_task_status(
     workspace_id: str,
     database_id: str,
@@ -1595,7 +1701,10 @@ def appflowy_move_managed_task_status(
         )
 
 
-@mcp.tool(name="appflowy_delete_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(
+    name="appflowy_delete_database_row",
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+)
 def appflowy_delete_database_row(
     workspace_id: str,
     database_id: str,
@@ -1630,7 +1739,7 @@ def appflowy_delete_database_row(
         )
 
 
-@mcp.tool(name="appflowy_reorder_database_row", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_reorder_database_row", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_reorder_database_row(
     workspace_id: str,
     database_id: str,
@@ -1663,7 +1772,7 @@ def appflowy_reorder_database_row(
         )
 
 
-@mcp.tool(name="appflowy_reorder_database_column", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+@mcp.tool(name="appflowy_reorder_database_column", annotations=ToolAnnotations(readOnlyHint=False))
 def appflowy_reorder_database_column(
     workspace_id: str,
     database_id: str,

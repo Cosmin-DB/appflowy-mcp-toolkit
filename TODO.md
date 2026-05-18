@@ -45,11 +45,11 @@ ordered by practical risk and protocol maturity.
   for calls per minute, writes per minute, blob/collab per minute, and max
   concurrent calls. Controlled via APPFLOWY_RATE_LIMIT_* env vars;
   APPFLOWY_RATE_LIMIT_ENABLED=false disables. Raises AppFlowyError on excess.
-- [P2] Add richer MCP annotations where FastMCP preserves them:
-  destructiveHint, openWorldHint, and idempotentHint for delete, publish,
-  upload, instantiate/duplicate, trash, and collab write tools.
-- [P2] Add protocol-level tool error tests. Verify AppFlowy auth/schema/rate
-  errors surface as tool execution errors rather than protocol crashes.
+- [DONE] Add richer MCP annotations: destructiveHint on delete/trash/unpublish/delete-blob,
+  openWorldHint on publish/upload/create/instantiate, idempotentHint on read tools.
+  All annotations now use ToolAnnotations objects (no more dict type-ignore casts).
+- [DONE] Add protocol-level tool error tests. Verified that FastMCP wraps AppFlowyError
+  as ToolError (not a protocol crash). Tests in test_mcp_annotations_errors.py.
 - [P3] Consider structured MCP responses for high-value tools while preserving
   text/JSON compatibility for clients that expect the current shape.
 
