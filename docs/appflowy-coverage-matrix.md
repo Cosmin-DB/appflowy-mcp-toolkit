@@ -17,50 +17,57 @@ does not yet offer polished document/page Markdown editing.
 
 Approximate coverage by object family:
 
-| Area | Current coverage | Confidence |
-|---|---:|---|
-| Server/user read | basic read | high |
-| Workspaces read/basic create | medium-high | high for read/create, low for admin |
-| Folder/view/page read | high | high for tree/page read, medium for mutations |
-| Document/page Markdown editing | backlog | current raw append-block primitive is not a user-facing document workflow |
-| Database schema/rows/tasks | high | high for task lifecycle data plane |
-| Database fields | medium | read/create done, field-type payloads are caller supplied |
-| Database typed fields | high | most task-card/scalar fields and Media uploads covered; relation/translate deferred |
-| Collab diagnostics/update/delete | medium | high for diagnostics/delete and row-id cell updates, low for arbitrary mutations |
-| Files/blobs | metadata plus v1 upload/download/delete | high for Docker-proven single-file flow |
-| Trash/favorites/recent | read implemented | high |
-| Sharing/publishing | none | candidate but safety-sensitive |
-| Search | read implemented | medium; depends on search service |
-| Quick notes | CRUD implemented, dry-run writes | medium until self-hosted smoke expands |
-| Chat/AI | none | deferred |
-| Members/invites/admin | very low | safety-sensitive/deferred by default |
+| Area | Current coverage | Confidence | Validation evidence |
+|---|---:|---|---|
+| Server/user read | basic read | high | unit-tested; CI |
+| Workspaces read/basic create | medium-high | high for read/create, low for admin | unit-tested; write paths dry-run by default |
+| Folder/view/page read | high | high for tree/page read, medium for mutations | unit-tested; self-hosted page lifecycle smoke |
+| Document/page Markdown editing | backlog | current raw append-block primitive is not a user-facing document workflow | not applicable; raw append-block has route/unit coverage only |
+| Database schema/rows/tasks | high | high for task lifecycle data plane | unit-tested; self-hosted; browser-tested Grid/Board lifecycle; human-verified visible task card on 2026-05-18 |
+| Database fields | medium | read/create done, field-type payloads are caller supplied | unit-tested; field creation write path is dry-run by default |
+| Database typed fields | high | most task-card/scalar fields and Media uploads covered; relation/translate deferred | unit-tested; browser-tested typed fields; Docker/self-hosted Media upload flow |
+| Collab diagnostics/update/delete | medium | high for diagnostics/delete and row-id cell updates, low for arbitrary mutations | unit/offline Yjs tests; browser lifecycle coverage for narrow row delete; generic writes not exposed |
+| Files/blobs | metadata plus v1 upload/download/delete | high for Docker-proven single-file flow | unit-tested; Docker/self-hosted single-file upload/download/delete |
+| Trash/favorites/recent | read implemented | high | unit-tested; selected page lifecycle smoke for trash/restore/delete |
+| Sharing/publishing | none | candidate but safety-sensitive | not applicable; deferred |
+| Search | read implemented | medium; depends on search service | unit-tested |
+| Quick notes | CRUD implemented, dry-run writes | medium until self-hosted smoke expands | unit-tested; no browser/human validation yet |
+| Chat/AI | none | deferred | not applicable |
+| Members/invites/admin | very low | safety-sensitive/deferred by default | read-only coverage only; mutations deferred |
+
+Evidence vocabulary:
+
+- **unit-tested**: offline tests run in CI/local without needing a live AppFlowy Web session.
+- **self-hosted/Docker**: exercised against a disposable AppFlowy stack.
+- **browser-tested**: AppFlowy Web was driven through Playwright and the visible UI was asserted.
+- **human-verified**: a person confirmed the behavior in the real web UI. Keep the date and scenario in the table when this applies.
 
 ## Object And Operation Matrix
 
-| Object family | Read/list | Create | Update/move | Delete/trash | Current status | Next decision |
-|---|---|---|---|---|---|---|
-| Workspace | list/settings/members/usage implemented | create implemented, dry-run default | patch/open routes exist | delete/leave/member removal routes exist | partial | Keep destructive admin gated or deferred |
-| Space | folder tree shows spaces | create space implemented dry-run default | update space implemented dry-run default | via page/view trash/delete semantics | implemented except dedicated delete | Add self-hosted org-structure smoke next |
-| Folder/view/page tree | get folder/page-view implemented | folder-view/page-view create, duplicate, database-view implemented dry-run default | update/rename/favorite/reorder/move implemented dry-run default | trash/restore/delete-trashed and bulk trash ops implemented dry-run default | broad page/view surface implemented and self-hosted page lifecycle smoke added | Full browser UI automation remains separate |
-| Document/page body | row document text supported on row create/detail | raw append-block implemented dry-run default | collab/document updates are deeper | trash via page-view routes | backlog/primitive | Do not present as Markdown/page editing yet; defer friendly helpers and full block editor |
-| Database list | list databases implemented | database-view route exists | view/layout routes likely collab-backed | page-view trash/delete | partial | Add database-view creation only after page/view work |
-| Database fields | list fields implemented | create field implemented dry-run default | no safe update/delete route confirmed from matrix yet | no safe delete route confirmed | partial | Add friendly field-type builders later; raw payload route exists now |
-| Database rows | list ids/details implemented | create/upsert implemented | upsert/update, status move, and row-id collab update implemented | no REST delete; Yjs row-order delete implemented | high | Broaden field type tests and keep collab mutations narrowly scoped |
-| Typed row cells | schema parsing implemented | typed create/upsert implemented | typed upsert implemented | delete via row delete path | common + scalar + network media fields Docker-proven | Investigate relation/translate and media upload workflows |
-| Task board | list plus Description exact/contains search implemented | Status option/board column add implemented | managed task move, manual row-id move, Description-resolved update/move with ambiguity guard, Status option rename/hide/show, row/card reorder, and board column reorder implemented | row/card delete via Yjs row-order delete, including Description-resolved delete with ambiguity guard; Status option delete deferred | high for data plane, medium for structural view mutations | Add browser UI acceptance for Grid/Board and ordering |
-| Row/card ordering | row_orders read implemented | n/a | row/card reorder implemented via narrow Yjs row_orders mutation; board column reorder implemented via groups[field_id].groups mutation | n/a | unit + offline Yjs helper integration covered; Docker/browser proof pending | Add local Docker/browser ordering acceptance |
-| Database view configuration | filters/sorts/groups/field settings/layout settings read implemented | n/a | updates require Yjs view mutation proof | n/a | diagnostic only | Keep read-only until Docker/self-hosted proof exists |
-| Collab documents | JSON/raw/blob diff read implemented | create collab route exists | web-update used for row delete and DatabaseRow cell updates only | delete collab route exists but dangerous | partial | Keep generic collab writes private/diagnostic; do not expose broad destructive collab delete |
-| File storage/blobs | usage/list/metadata and v1 blob download implemented | v1 single-upload implemented; multipart routes mapped but deferred | multipart complete routes mapped but deferred | v1 blob delete implemented | v1 upload/download/delete Docker-proven; Media-cell linking Docker-proven | Add multipart only if large-file demand appears |
-| Trash | trash list implemented | n/a | single restore implemented dry-run default | single delete-from-trash implemented dry-run default | partial | Bulk restore/delete deferred |
-| Favorites/recent | recent/favorite list implemented | add recent implemented dry-run default | favorite toggle/reorder implemented dry-run default | n/a | mostly implemented | Browser polish deferred |
-| Sharing/guests | list shared views exists | share view route exists | revoke/access detail routes exist | revoke route exists | missing | Safety-sensitive; require explicit gates |
-| Publishing | many publish-info/publish routes exist | publish routes exist | patch/unpublish/default namespace routes exist | delete published collabs route exists | missing | Safety-sensitive; document first, implement later |
-| Search | search implemented | n/a | n/a | n/a | read implemented | AI summary endpoint deferred |
-| Quick notes | list implemented | create implemented dry-run default | update implemented dry-run default | delete implemented dry-run default | CRUD implemented | Add self-hosted smoke if quick notes are enabled in local stack |
-| Chat/AI | many chat/AI routes exist | create chat/question/answer/context | settings/question update | delete chat | missing | Defer: product-specific, may depend on AI services |
-| Import | create/import/detail routes exist | import route exists | n/a | n/a | missing | Defer until release; external side effects |
-| Access requests/invites/members | routes exist | invite/join/approve routes exist | member update exists | member/workspace delete exists | missing | Admin/security-sensitive; read-only first |
+| Object family | Read/list | Create | Update/move | Delete/trash | Current status | Validation evidence | Next decision |
+|---|---|---|---|---|---|---|---|
+| Workspace | list/settings/members/usage implemented | create implemented, dry-run default | patch/open routes exist | delete/leave/member removal routes exist | partial | unit-tested; destructive/admin writes not live-validated | Keep destructive admin gated or deferred |
+| Space | folder tree shows spaces | create space implemented dry-run default | update space implemented dry-run default | via page/view trash/delete semantics | implemented except dedicated delete | unit-tested; page lifecycle self-hosted smoke covers adjacent routes | Add self-hosted org-structure smoke next |
+| Folder/view/page tree | get folder/page-view implemented | folder-view/page-view create, duplicate, database-view implemented dry-run default | update/rename/favorite/reorder/move implemented dry-run default | trash/restore/delete-trashed and bulk trash ops implemented dry-run default | broad page/view surface implemented and self-hosted page lifecycle smoke added | unit-tested; self-hosted lifecycle smoke; browser validation limited | Full browser UI automation remains separate |
+| Document/page body | row document text supported on row create/detail | raw append-block implemented dry-run default | collab/document updates are deeper | trash via page-view routes | backlog/primitive | route/unit coverage only; no polished document UI validation | Do not present as Markdown/page editing yet; defer friendly helpers and full block editor |
+| Database list | list databases implemented | database-view route exists | view/layout routes likely collab-backed | page-view trash/delete | partial | unit-tested reads; creation remains dry-run/gated | Add database-view creation only after page/view work |
+| Database fields | list fields implemented | create field implemented dry-run default | no safe update/delete route confirmed from matrix yet | no safe delete route confirmed | partial | unit-tested; no broad browser/human validation yet | Add friendly field-type builders later; raw payload route exists now |
+| Database rows | list ids/details implemented | create/upsert implemented | upsert/update, status move, and row-id collab update implemented | no REST delete; Yjs row-order delete implemented | high | unit-tested; self-hosted; browser-tested task lifecycle; human-verified visible task card on 2026-05-18 | Broaden field type tests and keep collab mutations narrowly scoped |
+| Typed row cells | schema parsing implemented | typed create/upsert implemented | typed upsert implemented | delete via row delete path | common + scalar + network media fields Docker-proven | unit-tested; browser-tested typed fields; Docker/self-hosted Media upload flow | Investigate relation/translate and media upload workflows |
+| Task board | list plus Description exact/contains search implemented | Status option/board column add implemented | managed task move, manual row-id move, Description-resolved update/move with ambiguity guard, Status option rename/hide/show, row/card reorder, and board column reorder implemented | row/card delete via Yjs row-order delete, including Description-resolved delete with ambiguity guard; Status option delete deferred | high for data plane, medium for structural view mutations | unit-tested; self-hosted; browser-tested Grid/Board lifecycle; human-verified visible card on 2026-05-18 | Add stricter visual ordering assertions |
+| Row/card ordering | row_orders read implemented | n/a | row/card reorder implemented via narrow Yjs row_orders mutation; board column reorder implemented via groups[field_id].groups mutation | n/a | unit + offline Yjs helper integration covered; Docker/browser proof pending | unit/offline Yjs tests; browser presence coverage, not exact visual order | Add local Docker/browser ordering acceptance |
+| Database view configuration | filters/sorts/groups/field settings/layout settings read implemented | n/a | updates require Yjs view mutation proof | n/a | diagnostic only | unit-tested read diagnostics only | Keep read-only until Docker/self-hosted proof exists |
+| Collab documents | JSON/raw/blob diff read implemented | create collab route exists | web-update used for row delete and DatabaseRow cell updates only | delete collab route exists but dangerous | partial | unit/offline tests for narrow write helpers; broad mutations intentionally absent | Keep generic collab writes private/diagnostic; do not expose broad destructive collab delete |
+| File storage/blobs | usage/list/metadata and v1 blob download implemented | v1 single-upload implemented; multipart routes mapped but deferred | multipart complete routes mapped but deferred | v1 blob delete implemented | v1 upload/download/delete Docker-proven; Media-cell linking Docker-proven | unit-tested; Docker/self-hosted upload/download/delete and Media-cell link | Add multipart only if large-file demand appears |
+| Trash | trash list implemented | n/a | single restore implemented dry-run default | single delete-from-trash implemented dry-run default | partial | unit-tested; single-page path covered by self-hosted lifecycle smoke | Bulk restore/delete deferred |
+| Favorites/recent | recent/favorite list implemented | add recent implemented dry-run default | favorite toggle/reorder implemented dry-run default | n/a | mostly implemented | unit-tested; no browser/human validation yet | Browser polish deferred |
+| Sharing/guests | list shared views exists | share view route exists | revoke/access detail routes exist | revoke route exists | missing | route discovery only; mutations deferred | Safety-sensitive; require explicit gates |
+| Publishing | many publish-info/publish routes exist | publish routes exist | patch/unpublish/default namespace routes exist | delete published collabs route exists | missing | route discovery only; no implementation/browser/human validation | Safety-sensitive; document first, implement later |
+| Search | search implemented | n/a | n/a | n/a | read implemented | unit-tested; service-dependent | AI summary endpoint deferred |
+| Quick notes | list implemented | create implemented dry-run default | update implemented dry-run default | delete implemented dry-run default | CRUD implemented | unit-tested; no browser/human validation yet | Add self-hosted smoke if quick notes are enabled in local stack |
+| Chat/AI | many chat/AI routes exist | create chat/question/answer/context | settings/question update | delete chat | missing | route discovery only; deferred | Defer: product-specific, may depend on AI services |
+| Import | create/import/detail routes exist | import route exists | n/a | n/a | missing | route discovery only; deferred | Defer until release; external side effects |
+| Access requests/invites/members | routes exist | invite/join/approve routes exist | member update exists | member/workspace delete exists | missing | read-only/member-list coverage only; mutations deferred | Admin/security-sensitive; read-only first |
 
 ## Implementation Order
 

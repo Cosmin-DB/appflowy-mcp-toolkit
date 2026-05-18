@@ -108,37 +108,43 @@ is explicitly tested and documented.
 
 ## What is supported
 
-| Area | Status |
-|---|---|
-| Workspaces, user profile, server info | supported |
-| Folder / page / view reads | supported |
-| Database schema, rows, typed fields | supported |
-| Task create / update / move / delete | supported |
-| Select and multi-select field writes | supported |
-| Number, checkbox, URL, summary, time fields | supported |
-| File storage metadata + v1 upload/download/delete | supported |
-| Media field upload (returns typed cell object) | supported |
-| Quick notes read/write | supported |
-| Full-text search | supported |
-| Page/view organization (create, move, trash, restore) | supported |
-| Row/card reorder (Yjs collab, requires collab writes gate) | supported with explicit opt-in |
-| Board column reorder (Yjs collab) | supported with explicit opt-in |
-| Row delete (Yjs collab, no REST endpoint in AppFlowy) | supported with explicit opt-in |
-| Raw append blocks to a page | low-level primitive, not a polished document editor |
-| Polished document/page Markdown editing | not supported yet; backlog |
-| Block-level document editing: update/delete/move/insert blocks | not supported yet; backlog |
-| Publishing / public sharing | not supported yet; safety-sensitive deferred work |
-| Member / invite / access/admin mutations | not supported yet; safety-sensitive deferred work |
-| Templates | not supported yet; read-only discovery is a candidate |
-| Import/export and migrations | not supported yet |
-| Comments, reminders, live cursors, presence | not supported yet |
-| AppFlowy AI / chat routes | not supported yet |
-| Broad generic collab/Yjs mutation tools | intentionally not supported |
+| Area | Status | Validation evidence |
+|---|---|---|
+| Workspaces, user profile, server info | supported | unit-tested; CI |
+| Folder / page / view reads | supported | unit-tested; self-hosted page lifecycle smoke |
+| Database schema, rows, typed fields | supported | unit-tested; self-hosted tests; browser-tested typed fields |
+| Task create / update / move / delete | supported | unit-tested; self-hosted tests; browser-tested Grid/Board lifecycle; human-verified visible card on 2026-05-18 |
+| Select and multi-select field writes | supported | unit-tested; typed-field browser coverage where rendered by AppFlowy Web |
+| Number, checkbox, URL, summary, time fields | supported | unit-tested; browser-tested typed field rendering |
+| File storage metadata + v1 upload/download/delete | supported | unit-tested; Docker/self-hosted single-file flow |
+| Media field upload (returns typed cell object) | supported | Docker/self-hosted upload flow; typed Media cell coverage |
+| Quick notes read/write | supported | unit-tested; no browser/human validation yet |
+| Full-text search | supported | unit-tested; depends on AppFlowy search service |
+| Page/view organization (create, move, trash, restore) | supported | unit-tested; self-hosted page lifecycle smoke; limited browser validation |
+| Row/card reorder (Yjs collab, requires collab writes gate) | supported with explicit opt-in | unit/offline Yjs tests; data-plane + browser presence coverage; exact visual order remains a documented gap |
+| Board column reorder (Yjs collab) | supported with explicit opt-in | unit/offline Yjs tests; Docker/browser proof pending |
+| Row delete (Yjs collab, no REST endpoint in AppFlowy) | supported with explicit opt-in | unit/offline Yjs tests; browser lifecycle delete coverage |
+| Raw append blocks to a page | low-level primitive, not a polished document editor | route/unit coverage only; no polished document UI validation |
+| Polished document/page Markdown editing | not supported yet; backlog | not applicable |
+| Block-level document editing: update/delete/move/insert blocks | not supported yet; backlog | not applicable |
+| Publishing / public sharing | not supported yet; safety-sensitive deferred work | not applicable |
+| Member / invite / access/admin mutations | not supported yet; safety-sensitive deferred work | not applicable |
+| Templates | not supported yet; read-only discovery is a candidate | not applicable |
+| Import/export and migrations | not supported yet | not applicable |
+| Comments, reminders, live cursors, presence | not supported yet | not applicable |
+| AppFlowy AI / chat routes | not supported yet | not applicable |
+| Broad generic collab/Yjs mutation tools | intentionally not supported | not applicable |
 
 **Supported with explicit opt-in** means the feature works and is tested, but it
 will not run live unless the caller sets the required safety flags
 (`APPFLOWY_ALLOW_WRITES`, and for Yjs/collab paths
 `APPFLOWY_ALLOW_COLLAB_WRITES`). Yjs helpers also need a local Node.js runtime.
+
+Validation evidence is intentionally explicit. **Unit-tested** means offline test
+coverage; **self-hosted/Docker** means a disposable AppFlowy stack was exercised;
+**browser-tested** means AppFlowy Web was checked through Playwright; and
+**human-verified** means a person confirmed the behavior in the real web UI. When
+human validation changes, update this table in the same commit.
 
 ---
 

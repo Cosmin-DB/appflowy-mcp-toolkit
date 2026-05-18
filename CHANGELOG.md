@@ -37,6 +37,9 @@ First public PyPI release.
 - **Self-hosted Docker test workflow** with seeded credentials and offline unit suite.
 - **Browser smoke tests** (opt-in, Playwright): Grid rendering, task lifecycle,
   typed field rendering, Board visibility after Grid warm-up.
+- **Validation evidence docs**: README and coverage matrix now distinguish
+  unit-tested, self-hosted/Docker-tested, browser-tested, and human-verified
+  support claims.
 
 ### Known limitations / backlog
 
