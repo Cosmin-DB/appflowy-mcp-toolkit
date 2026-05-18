@@ -119,16 +119,17 @@ in their respective config files.
 | Quick notes read/write | supported |
 | Full-text search | supported |
 | Page/view organization (create, move, trash, restore) | supported |
-| Row/card reorder (Yjs collab, requires collab writes gate) | guarded |
-| Board column reorder (Yjs collab) | guarded |
-| Row delete (Yjs collab, no REST endpoint in AppFlowy) | guarded |
+| Row/card reorder (Yjs collab, requires collab writes gate) | supported with explicit opt-in |
+| Board column reorder (Yjs collab) | supported with explicit opt-in |
+| Row delete (Yjs collab, no REST endpoint in AppFlowy) | supported with explicit opt-in |
 | Polished document/page Markdown editing | backlog |
 | Member / invite / admin mutations | deferred |
 | AI / chat routes | deferred |
 
-**Guarded** means the feature works and is tested, but requires explicit opt-in
-environment flags (`APPFLOWY_ALLOW_WRITES`, `APPFLOWY_ALLOW_COLLAB_WRITES`) and a
-local Node.js runtime for Yjs helpers.
+**Supported with explicit opt-in** means the feature works and is tested, but it
+will not run live unless the caller sets the required safety flags
+(`APPFLOWY_ALLOW_WRITES`, and for Yjs/collab paths
+`APPFLOWY_ALLOW_COLLAB_WRITES`). Yjs helpers also need a local Node.js runtime.
 
 ---
 

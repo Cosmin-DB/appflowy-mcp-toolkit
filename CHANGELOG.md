@@ -12,7 +12,7 @@ First public PyPI release.
 
 ### Added
 
-- **MCP server** (`appflowy-mcp-server`): stdio MCP server with read and guarded
+- **MCP server** (`appflowy-mcp-server`): stdio MCP server with read and opt-in
   write tools for workspaces, folders, databases, tasks, quick notes, search, and
   file storage.
 - **CLI** (`appflowy-toolkit`): commands for all implemented REST/collab paths.
@@ -29,7 +29,7 @@ First public PyPI release.
   time, datetime, and media cell writes with `create_typed_database_row_verified`.
 - **File storage**: v1 upload/download/delete, usage/metadata reads, and a
   `upload_file_as_media` helper that returns a typed Media-cell object.
-- **Collab write tools** (guarded, require explicit opt-in flags):
+- **Collab write tools** (supported with explicit opt-in flags):
   row update by id, row delete, row reorder, board column reorder.
 - **Self-hosted Docker test workflow** with seeded credentials and offline unit suite.
 - **Browser smoke tests** (opt-in, Playwright): Grid rendering, task lifecycle,
