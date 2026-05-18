@@ -1,0 +1,1 @@
+"""Domain mixins for AppFlowyClient."""

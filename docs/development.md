@@ -15,6 +15,36 @@ python -m ruff check .
 python -m mypy src tests
 ```
 
+## Architecture
+
+The codebase is split by responsibility rather than by individual MCP tool:
+
+- `client.py` owns transport concerns only: HTTP requests, auth refresh, response
+  extraction, write gates, URL building, and the shared client configuration.
+- `client_parts/` contains AppFlowy domain mixins. Each module groups API methods
+  for one area such as pages, databases, tasks/rows, publishing, templates, files,
+  diagnostics, or workspaces.
+- `client_parts/base.py` is the internal typing contract shared by mixins. It
+  avoids circular imports while making cross-domain calls explicit to `mypy`.
+- `client_parts/helpers.py` contains private normalization helpers for AppFlowy
+  collab/database shapes. Keep schema-shape compatibility code here unless it is
+  specific to one domain.
+- `mcp/server.py` owns MCP process setup: the FastMCP instance, shared
+  process-level rate limiter, client construction, structured tool result helper,
+  and server entrypoint.
+- `mcp/tools/` contains MCP tool registrations grouped by public feature area.
+  Tool names are the public API, so moving code between modules must not rename
+  tools without an intentional compatibility decision.
+
+When adding functionality, prefer this path:
+
+1. Add or update AppFlowy API behavior in the relevant `client_parts/` module.
+2. Expose it through the matching `mcp/tools/` module.
+3. Add unit tests at the client/tool boundary before any live cloud or browser
+   smoke test.
+4. Keep risky writes behind the existing gates, or add a new explicit gate when
+   the blast radius is meaningfully different.
+
 Self-hosted Docker smoke:
 
 ```bash
