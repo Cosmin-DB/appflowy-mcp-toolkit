@@ -69,6 +69,10 @@ ordered by practical risk and protocol maturity.
 - [P1] Improve pagination and explicit limits for large-output tools: rows,
   search, folder tree, templates, and collab diagnostics. Do not rely only on
   final-output truncation.
+- [P1] Add a general `query_database_rows` workflow for non-task databases:
+  explicit filters, sorting, pagination, and a bounded client-side query mode
+  where AppFlowy has no suitable server-side route. Keep it separate from
+  task-board helpers so agents do not overfit every database to Tasks.
 - [P1] Consolidate advanced/diagnostic tools behind clearer naming or explicit
   flags (`debug`, `advanced`, `include_raw`) so agents do not call broad or raw
   diagnostics by accident.
@@ -132,10 +136,20 @@ services, or require policy decisions beyond a normal task-board MCP.
   content from outside the user's own trusted workspace. Apply it to
   `duplicate_published_page` / `instantiate_template` if the source provenance
   is not clearly local/trusted.
+- [P1] Add multipart / large-file upload support only when there is real demand.
+  Preserve the current local-file-read roots gate, define public size limits,
+  and test streaming/resume behavior before advertising it.
 - [P1] Complete Quick Notes investigation. Current AppFlowy Cloud smoke showed
   create/update/delete return success, but `quick-notes` list remains empty.
   Do not call Quick Notes end-user-ready until the product/list behavior is
   understood and tested.
+- [P2] If admin/member mutations are added, put them behind a separate gate such
+  as `APPFLOWY_ALLOW_ADMIN_WRITES=true`. Do not mix invite/member/admin writes
+  with ordinary row/page writes.
+- [P3] AppFlowy AI-tool parity (`ai_complete`, summarize/translate row,
+  list AI models) is optional/commercial parity, not core MCP value. Prefer
+  letting the calling AI reason unless AppFlowy-native AI routes add unique
+  product context or permissions.
 - [P2] Add targeted self-hosted/cloud smoke tests for publishing, templates,
   append Markdown, and Quick Notes where the deployment supports them. Keep
   data-plane assertions separate from browser/UI assertions.
