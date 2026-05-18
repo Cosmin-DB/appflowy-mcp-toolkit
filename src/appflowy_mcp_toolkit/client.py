@@ -12,6 +12,7 @@ import httpx
 from .blob_diff import decode_database_blob_diff_response, encode_database_blob_diff_request
 from .config import AppFlowyConfig
 from .errors import AppFlowyError, AppFlowySchemaError, classify_http_error
+from .rate_limit import RateLimiter
 from .typed_fields import build_cells, build_collab_cell_updates
 
 
@@ -24,6 +25,7 @@ class AppFlowyClient:
         self.config = config or AppFlowyConfig.from_env()
         self._client = http_client or httpx.Client(timeout=self.config.timeout_seconds)
         self._owns_client = http_client is None
+        self._rate_limiter = RateLimiter.from_config(self.config)
 
     def close(self) -> None:
         if self._owns_client:
@@ -46,10 +48,14 @@ class AppFlowyClient:
         _retry_refresh: bool = True,
     ) -> dict[str, Any]:
         url = self._url(path)
+        self._rate_limiter.check(method, path)
         headers = {"Accept": "application/json"}
         if require_auth:
             headers["Authorization"] = f"Bearer {self.config.require_token()}"
-        response = self._client.request(method, url, headers=headers, params=params, json=json)
+        try:
+            response = self._client.request(method, url, headers=headers, params=params, json=json)
+        finally:
+            self._rate_limiter.release_concurrent()
         if response.status_code == 401 and _retry_refresh and self.config.refresh_token:
             self._refresh_access_token()
             return self.request(
@@ -85,10 +91,14 @@ class AppFlowyClient:
         _retry_refresh: bool = True,
     ) -> bytes:
         url = self._url(path)
+        self._rate_limiter.check(method, path)
         headers = {"Accept": "application/octet-stream", "Content-Type": content_type}
         if require_auth:
             headers["Authorization"] = f"Bearer {self.config.require_token()}"
-        response = self._client.request(method, url, headers=headers, content=content)
+        try:
+            response = self._client.request(method, url, headers=headers, content=content)
+        finally:
+            self._rate_limiter.release_concurrent()
         if response.status_code == 401 and _retry_refresh and self.config.refresh_token:
             self._refresh_access_token()
             return self.request_bytes(
@@ -118,10 +128,14 @@ class AppFlowyClient:
         _retry_refresh: bool = True,
     ) -> dict[str, Any]:
         url = self._url(path)
+        self._rate_limiter.check(method, path)
         headers = {"Accept": "application/json", "Content-Type": content_type}
         if require_auth:
             headers["Authorization"] = f"Bearer {self.config.require_token()}"
-        response = self._client.request(method, url, headers=headers, content=content)
+        try:
+            response = self._client.request(method, url, headers=headers, content=content)
+        finally:
+            self._rate_limiter.release_concurrent()
         if response.status_code == 401 and _retry_refresh and self.config.refresh_token:
             self._refresh_access_token()
             return self.request_content_json(
@@ -155,10 +169,14 @@ class AppFlowyClient:
         _retry_refresh: bool = True,
     ) -> tuple[str, bytes]:
         url = self._url(path)
+        self._rate_limiter.check(method, path)
         headers = {"Accept": "application/octet-stream"}
         if require_auth:
             headers["Authorization"] = f"Bearer {self.config.require_token()}"
-        response = self._client.request(method, url, headers=headers)
+        try:
+            response = self._client.request(method, url, headers=headers)
+        finally:
+            self._rate_limiter.release_concurrent()
         if response.status_code == 401 and _retry_refresh and self.config.refresh_token:
             self._refresh_access_token()
             return self.request_bytes_with_headers(

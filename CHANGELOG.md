@@ -24,6 +24,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Both gates apply equally to `upload_file_as_media` via delegation.
   - 17 new unit tests in `tests/unit/test_local_upload_hardening.py`.
 
+- **In-process rate limiting**: `AppFlowyClient` now enforces sliding-window
+  buckets at the network layer (all four request methods).  Defaults:
+  120 calls/min overall, 30 writes/min, 20 blob\/collab/min, 8 concurrent.
+  Controlled by `APPFLOWY_RATE_LIMIT_*` env vars; set
+  `APPFLOWY_RATE_LIMIT_ENABLED=false` to disable.  Dry-run operations that
+  make no network call do not consume rate budget.  Raises `AppFlowyError`
+  when a bucket is exhausted (no silent retry/sleep).
+
 - **compact() truncation fix**: when output exceeds `max_chars`, `compact()`
   now returns a valid JSON object with `truncated: true`, `max_chars`,
   `original_chars`, a `preview` string, and `guidance` — never a raw

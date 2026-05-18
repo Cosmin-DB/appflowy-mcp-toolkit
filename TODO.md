@@ -41,8 +41,10 @@ ordered by practical risk and protocol maturity.
 - [P1] Sweep docs for support-status drift before release. README,
   coverage matrix, release checklist, changelog, and tool docs must agree about
   templates, publishing, Markdown append support, and deferred page editing.
-- [P2] Add simple MCP/server-side rate limits: calls per minute, writes per
-  minute, concurrent calls, and stricter limits for blob/collab operations.
+- [DONE] Add simple MCP/server-side rate limits: per-client sliding-window buckets
+  for calls per minute, writes per minute, blob/collab per minute, and max
+  concurrent calls. Controlled via APPFLOWY_RATE_LIMIT_* env vars;
+  APPFLOWY_RATE_LIMIT_ENABLED=false disables. Raises AppFlowyError on excess.
 - [P2] Add richer MCP annotations where FastMCP preserves them:
   destructiveHint, openWorldHint, and idempotentHint for delete, publish,
   upload, instantiate/duplicate, trash, and collab write tools.
