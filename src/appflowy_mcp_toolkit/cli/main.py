@@ -262,6 +262,31 @@ def build_parser() -> argparse.ArgumentParser:
     unpublish_page.add_argument("--view-id", required=True)
     unpublish_page.add_argument("--execute", action="store_true")
 
+    dup_pub = sub.add_parser(
+        "duplicate-published-page",
+        description=(
+            "Duplicate a published AppFlowy page/template into a destination view. "
+            "Requires APPFLOWY_ALLOW_WRITES=true when --execute is passed."
+        ),
+    )
+    dup_pub.add_argument("--workspace-id", required=True)
+    dup_pub.add_argument("--published-view-id", required=True)
+    dup_pub.add_argument("--dest-view-id", required=True)
+    dup_pub.add_argument("--execute", action="store_true")
+
+    inst_tmpl = sub.add_parser(
+        "instantiate-template",
+        description=(
+            "Instantiate a published AppFlowy template into a destination view. "
+            "Only works for pages/templates already published on AppFlowy. "
+            "Requires APPFLOWY_ALLOW_WRITES=true when --execute is passed."
+        ),
+    )
+    inst_tmpl.add_argument("--workspace-id", required=True)
+    inst_tmpl.add_argument("--template-view-id", required=True)
+    inst_tmpl.add_argument("--dest-view-id", required=True)
+    inst_tmpl.add_argument("--execute", action="store_true")
+
     create_space = sub.add_parser("create-space")
     create_space.add_argument("--workspace-id", required=True)
     create_space.add_argument("--name", required=True)
@@ -907,6 +932,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = client.unpublish_page(
                 args.workspace_id,
                 args.view_id,
+                dry_run=not args.execute,
+            )
+        elif args.command == "duplicate-published-page":
+            result = client.duplicate_published_page(
+                args.workspace_id,
+                published_view_id=args.published_view_id,
+                dest_view_id=args.dest_view_id,
+                dry_run=not args.execute,
+            )
+        elif args.command == "instantiate-template":
+            result = client.instantiate_template(
+                args.workspace_id,
+                template_view_id=args.template_view_id,
+                dest_view_id=args.dest_view_id,
                 dry_run=not args.execute,
             )
         elif args.command == "template-categories":

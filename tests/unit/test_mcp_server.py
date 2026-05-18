@@ -111,6 +111,8 @@ EXPECTED_WRITE_TOOLS = {
     "appflowy_reorder_database_column",
     "appflowy_publish_page",
     "appflowy_unpublish_page",
+    "appflowy_duplicate_published_page",
+    "appflowy_instantiate_template",
 }
 
 EXPECTED_ALL_TOOLS = EXPECTED_READ_TOOLS | EXPECTED_WRITE_TOOLS

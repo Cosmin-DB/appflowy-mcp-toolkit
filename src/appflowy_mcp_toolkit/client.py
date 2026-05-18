@@ -337,6 +337,65 @@ class AppFlowyClient:
         data = self.request("POST", path)
         return {"path": path, "response": data}
 
+    def duplicate_published_page(
+        self,
+        workspace_id: str,
+        *,
+        published_view_id: str,
+        dest_view_id: str,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Duplicate a published AppFlowy page/template into the workspace.
+
+        Route confirmed in AppFlowy-Cloud src/api/workspace.rs:
+          POST /api/workspace/{workspace_id}/published-duplicate
+        Payload: { published_view_id, dest_view_id }
+        Response: { view_id: <root_view_id_for_duplicate> }
+
+        This writes to the user's own workspace and therefore requires only
+        APPFLOWY_ALLOW_WRITES=true (not the publish gate).
+        Dry-run (default) returns method/path/payload summary without network call.
+        """
+        path = f"/api/workspace/{workspace_id}/published-duplicate"
+        payload: dict[str, Any] = {
+            "published_view_id": published_view_id,
+            "dest_view_id": dest_view_id,
+        }
+        if dry_run:
+            return {"dry_run": True, "method": "POST", "path": path, "json": payload}
+        self._require_writes_enabled()
+        data = self.request("POST", path, json=payload)
+        result = self._extract_data(data)
+        if not isinstance(result, dict):
+            raise AppFlowySchemaError(
+                "Expected DuplicatePublishedPageResponse from AppFlowy", payload=data
+            )
+        return result
+
+    def instantiate_template(
+        self,
+        workspace_id: str,
+        *,
+        template_view_id: str,
+        dest_view_id: str,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Instantiate a published AppFlowy template into a destination view.
+
+        Friendly alias for duplicate_published_page that uses template_view_id
+        as the published_view_id.  Only works for pages/templates that are
+        already published on AppFlowy; arbitrary unpublished templates are not
+        supported via this route.
+
+        Requires APPFLOWY_ALLOW_WRITES=true for live execution.
+        """
+        return self.duplicate_published_page(
+            workspace_id,
+            published_view_id=template_view_id,
+            dest_view_id=dest_view_id,
+            dry_run=dry_run,
+        )
+
     def get_file_storage_usage(self, workspace_id: str) -> dict[str, Any]:
         data = self.request("GET", f"/api/file_storage/{workspace_id}/usage")
         usage = self._extract_data(data)

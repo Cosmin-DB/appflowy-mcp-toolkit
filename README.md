@@ -129,7 +129,7 @@ is explicitly tested and documented.
 | Block-level document editing: update/delete/move/insert blocks | not supported yet; backlog | not applicable |
 | Publishing / public sharing | read metadata + publish/unpublish writes supported (gated) | unit-tested; no browser/human validation yet |
 | Member / invite / access/admin mutations | not supported yet; safety-sensitive deferred work | not applicable |
-| Templates | read-only category/creator/template discovery supported; instantiation not supported | unit-tested against pinned AppFlowy template-center routes |
+| Templates | read-only category/creator/template discovery supported; published template instantiation supported (gated); arbitrary unpublished template instantiation not supported | unit-tested against pinned AppFlowy template-center and published-duplicate routes |
 | Import/export and migrations | not supported yet | not applicable |
 | Comments, reminders, live cursors, presence | not supported yet | not applicable |
 | AppFlowy AI / chat routes | not supported yet | not applicable |
@@ -233,7 +233,8 @@ Write tools (dry-run by default; set `APPFLOWY_ALLOW_WRITES=true` to execute):
 Publish write tools (also require `APPFLOWY_ALLOW_PUBLISH_WRITES=true`; dry-run by default;
 no browser/human validation yet, unit-tested only):
 
-`appflowy_publish_page`, `appflowy_unpublish_page`
+`appflowy_publish_page`, `appflowy_unpublish_page`,
+`appflowy_duplicate_published_page`, `appflowy_instantiate_template`
 
 Experimental collab write tools (also require `APPFLOWY_ALLOW_COLLAB_WRITES=true`
 and Node.js 18+ with `npm install` run in `src/appflowy_mcp_toolkit/collab/`):

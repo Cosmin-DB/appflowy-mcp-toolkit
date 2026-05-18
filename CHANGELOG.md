@@ -10,8 +10,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- **`publish_page` / `unpublish_page`** client methods, `publish-page` / `unpublish-page`
-  CLI commands, and `appflowy_publish_page` / `appflowy_unpublish_page` MCP tools.
+- **`duplicate_published_page` / `instantiate_template`** client methods,
+  `duplicate-published-page` / `instantiate-template` CLI commands, and
+  `appflowy_duplicate_published_page` / `appflowy_instantiate_template` MCP tools.
+  Route confirmed in AppFlowy-Cloud `src/api/workspace.rs`:
+  `POST /api/workspace/{workspace_id}/published-duplicate`
+  Payload: `{ published_view_id, dest_view_id }`.
+  Duplicates/instantiates a published page or template into a destination view.
+  Requires only `APPFLOWY_ALLOW_WRITES=true` (not the publish gate — writes to
+  the user's own workspace, not a public endpoint).
+  Unit-tested; no browser/human validation yet.
+  Note: only published pages/templates work; arbitrary unpublished template
+  instantiation is not supported via this route.
+
+- **`publish_page` / `unpublish_page`** client methods, `publish-page` /
+  `unpublish-page` CLI commands, and `appflowy_publish_page` /
+  `appflowy_unpublish_page` MCP tools (carried forward from previous slice).
   Routes confirmed in AppFlowy-Cloud `src/api/workspace.rs`:
   `POST /api/workspace/{workspace_id}/page-view/{view_id}/publish` and `/unpublish`.
   Both operations are dry-run by default and require two explicit env gates for live

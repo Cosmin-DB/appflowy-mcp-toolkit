@@ -162,6 +162,56 @@ def appflowy_unpublish_page(
         return compact(client.unpublish_page(workspace_id, view_id, dry_run=dry_run))
 
 
+@mcp.tool(name="appflowy_duplicate_published_page", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_duplicate_published_page(
+    workspace_id: str,
+    published_view_id: str,
+    dest_view_id: str,
+    dry_run: bool = True,
+) -> str:
+    """Duplicate a published AppFlowy page or template into a destination view.
+
+    Dry-run by default.  Live execution requires APPFLOWY_ALLOW_WRITES=true.
+    Only works for pages/templates that are already published on AppFlowy;
+    arbitrary unpublished templates cannot be instantiated via this route.
+    Returns { view_id } of the duplicated root view on success.
+    """
+    with _client() as client:
+        return compact(
+            client.duplicate_published_page(
+                workspace_id,
+                published_view_id=published_view_id,
+                dest_view_id=dest_view_id,
+                dry_run=dry_run,
+            )
+        )
+
+
+@mcp.tool(name="appflowy_instantiate_template", annotations={"readOnlyHint": False})  # type: ignore[arg-type]
+def appflowy_instantiate_template(
+    workspace_id: str,
+    template_view_id: str,
+    dest_view_id: str,
+    dry_run: bool = True,
+) -> str:
+    """Instantiate a published AppFlowy template into a destination view.
+
+    Friendly alias for appflowy_duplicate_published_page that accepts a
+    template_view_id.  Only works for pages/templates already published on
+    AppFlowy.  Arbitrary unpublished templates are not supported.
+    Dry-run by default.  Live execution requires APPFLOWY_ALLOW_WRITES=true.
+    """
+    with _client() as client:
+        return compact(
+            client.instantiate_template(
+                workspace_id,
+                template_view_id=template_view_id,
+                dest_view_id=dest_view_id,
+                dry_run=dry_run,
+            )
+        )
+
+
 @mcp.tool(name="appflowy_list_template_categories", annotations={"readOnlyHint": True})  # type: ignore[arg-type]
 def appflowy_list_template_categories(
     name_contains: str | None = None,
