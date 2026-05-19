@@ -80,3 +80,13 @@ source .env.selfhosted.generated
 set +a
 APPFLOWY_BROWSER_TESTS=true uv run --extra browser pytest tests/browser -q -s
 ```
+
+For a release-style run that also enables the self-hosted suite:
+
+```bash
+APPFLOWY_BROWSER_TESTS=true APPFLOWY_SELFHOSTED_TESTS=true \
+  uv run --extra browser pytest -q -rs
+```
+
+If Docker socket permissions depend on group membership that is not loaded in
+the current shell, run the same command through `sg docker`.

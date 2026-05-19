@@ -10,6 +10,37 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 No unreleased changes yet.
 
+## [0.4.0] - 2026-05-19
+
+Modular architecture and release-gate hardening release. This release keeps
+public CLI commands, MCP tool names, and behavior compatible with `0.3.0` while
+making the implementation easier to extend safely.
+
+### Changed / Hardened
+
+- **Modularized the MCP server by domain**. `mcp/server.py` now owns only process
+  setup, shared helpers, rate limiter construction, and tool-module registration.
+  Public tool decorators live under `mcp/tools/` by domain (`tasks_rows`,
+  `databases`, `pages`, `publishing`, `spaces_files`, `templates`,
+  `diagnostics`, and `core`).
+- **Split the AppFlowy client implementation into domain mixins** under
+  `client_parts/`, with `client.py` acting as the transport/auth/write-gate
+  facade. This keeps endpoint-specific changes closer to the AppFlowy surface
+  they implement.
+- **Hardened browser acceptance helpers** for the local self-hosted AppFlowy Web
+  stack. The Playwright login flow now handles the password-login landing screen,
+  reuses the browser token during the pytest process, retries direct To-dos
+  navigation after login redirects, and reports explicit login-state failures.
+- **Reduced browser flakiness for freshly created pages** by retrying transient
+  `404`/`Page not found` responses before failing page/document visibility tests.
+
+### Validation
+
+- Full release gate run with browser and self-hosted Docker tests enabled:
+  `353 passed in 594.01s`, with zero skips and zero failures.
+- The zero-skip run used Docker group access for the compose-control test:
+  `sg docker -c '... APPFLOWY_BROWSER_TESTS=true APPFLOWY_SELFHOSTED_TESTS=true uv run --extra browser pytest -q -rs'`.
+
 ## [0.3.0] - 2026-05-18
 
 MCP protocol hardening release. This release keeps the AppFlowy feature surface

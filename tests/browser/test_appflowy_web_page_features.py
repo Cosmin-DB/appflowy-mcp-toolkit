@@ -68,9 +68,16 @@ def _first_space_id(client: AppFlowyClient, workspace_id: str) -> str:
 
 
 def _open_page(page: Any, workspace_id: str, view_id: str) -> str:
-    page.goto(f"{_app_url()}/{workspace_id}/{view_id}", wait_until="networkidle", timeout=30_000)
-    page.wait_for_timeout(4_000)
-    return page.locator("body").inner_text(timeout=15_000)
+    url = f"{_app_url()}/{workspace_id}/{view_id}"
+    last_text = ""
+    for _attempt in range(5):
+        page.goto(url, wait_until="networkidle", timeout=30_000)
+        page.wait_for_timeout(4_000)
+        last_text = page.locator("body").inner_text(timeout=15_000)
+        if "404 Not Found" not in last_text and "Page not found" not in last_text:
+            return last_text
+        page.wait_for_timeout(2_000)
+    return last_text
 
 
 def _publish_url(namespace: str, publish_name: str) -> str:

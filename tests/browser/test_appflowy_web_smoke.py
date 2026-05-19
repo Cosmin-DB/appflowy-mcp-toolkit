@@ -19,6 +19,9 @@ pytestmark = pytest.mark.skipif(
 sync_playwright = pytest.importorskip("playwright.sync_api").sync_playwright
 
 ARTIFACT_DIR = Path(".local/browser-smoke")
+LOGIN_MARKERS = ("Continue with email", "Continue with password", "Sign up here")
+_CACHED_BROWSER_TOKEN_JSON: str | None = None
+_LAST_BROWSER_CREDENTIALS: tuple[str, str] | None = None
 
 
 def _selfhosted_ids() -> tuple[str, str]:
@@ -55,22 +58,87 @@ def _app_url() -> str:
     return f"{base_url.rstrip('/')}/app"
 
 
-def _login(page: Any, email: str, password: str) -> None:
-    page.goto(_app_url(), wait_until="networkidle", timeout=30_000)
-    page.wait_for_timeout(1_000)
-    if page.get_by_placeholder("Please enter your email address").count() == 0:
+def _looks_logged_out(page: Any) -> bool:
+    with suppress(Exception):
+        if "/login" in page.url:
+            return True
+        body_text = page.locator("body").inner_text(timeout=5_000)
+        return all(marker in body_text for marker in LOGIN_MARKERS)
+    return False
+
+
+def _assert_logged_in(page: Any) -> None:
+    if _looks_logged_out(page):
         body_text = page.locator("body").inner_text(timeout=10_000)
-        if "/login" not in page.url and "Welcome to AppFlowy" not in body_text:
-            return
-        page.goto(
-            f"{_app_url().rsplit('/app', 1)[0]}/login", wait_until="networkidle", timeout=30_000
+        raise AssertionError(
+            "Browser is still on the AppFlowy login screen after login attempt: "
+            f"url={page.url!r}, body={body_text[:200]!r}"
         )
+
+
+def _cache_browser_token(page: Any) -> None:
+    global _CACHED_BROWSER_TOKEN_JSON
+    token_json = page.evaluate("localStorage.getItem('token')")
+    if isinstance(token_json, str) and token_json:
+        _CACHED_BROWSER_TOKEN_JSON = token_json
+
+
+def _restore_cached_browser_token(page: Any) -> bool:
+    if not _CACHED_BROWSER_TOKEN_JSON:
+        return False
+    page.goto(_app_url(), wait_until="domcontentloaded", timeout=30_000)
+    page.evaluate(
+        "(tokenJson) => localStorage.setItem('token', tokenJson)",
+        _CACHED_BROWSER_TOKEN_JSON,
+    )
+    page.goto(_app_url(), wait_until="networkidle", timeout=30_000)
+    page.wait_for_timeout(2_000)
+    return not _looks_logged_out(page)
+
+
+def _login(page: Any, email: str, password: str) -> None:
+    global _LAST_BROWSER_CREDENTIALS
+    _LAST_BROWSER_CREDENTIALS = (email, password)
+
+    if _restore_cached_browser_token(page):
+        return
+
+    login_url = f"{_app_url().rsplit('/app', 1)[0]}/login"
+    for attempt in range(2):
+        page.goto(_app_url(), wait_until="networkidle", timeout=30_000)
         page.wait_for_timeout(1_000)
-    page.get_by_placeholder("Please enter your email address").fill(email)
-    page.get_by_role("button", name="Continue with password").click()
-    page.get_by_placeholder("Enter password").fill(password)
-    page.get_by_role("button", name="Continue").click()
-    page.wait_for_url("**/app**", timeout=20_000)
+        if not _looks_logged_out(page):
+            _cache_browser_token(page)
+            return
+        if page.get_by_placeholder("Please enter your email address").count() == 0:
+            page.goto(login_url, wait_until="networkidle", timeout=30_000)
+            page.wait_for_timeout(1_000)
+        if page.get_by_placeholder("Please enter your email address").count() == 0:
+            page.get_by_role("button", name="Continue with password").click()
+            page.get_by_placeholder("Please enter your email address").wait_for(timeout=10_000)
+        page.get_by_placeholder("Please enter your email address").fill(email)
+        page.get_by_role("button", name="Continue with password").click()
+        page.get_by_placeholder("Enter password").fill(password)
+        page.get_by_role("button", name="Continue").click()
+        page.wait_for_timeout(2_000)
+        with suppress(Exception):
+            page.wait_for_function(
+                """
+                () => !location.href.includes('/login')
+                    && !(
+                        document.body.innerText.includes('Continue with email')
+                        && document.body.innerText.includes('Continue with password')
+                        && document.body.innerText.includes('Sign up here')
+                    )
+                """,
+                timeout=20_000,
+            )
+        if not _looks_logged_out(page):
+            _cache_browser_token(page)
+            return
+        if attempt == 0:
+            page.wait_for_timeout(2_000)
+    _assert_logged_in(page)
 
 
 def _open_todos(page: Any, workspace_id: str, database_id: str) -> None:
@@ -81,6 +149,15 @@ def _open_todos(page: Any, workspace_id: str, database_id: str) -> None:
         page.goto(target_url, wait_until="networkidle", timeout=30_000)
         page.wait_for_timeout(3_000)
         last_text = page.locator("body").inner_text(timeout=10_000)
+        if _looks_logged_out(page):
+            if _LAST_BROWSER_CREDENTIALS is not None:
+                _login(page, *_LAST_BROWSER_CREDENTIALS)
+                page.wait_for_timeout(1_000)
+                continue
+            raise AssertionError(
+                "Opening the To-dos view redirected to the AppFlowy login screen: "
+                f"url={page.url!r}, body={last_text[:200]!r}"
+            )
         if "404 Not Found" not in last_text and "Page not found" not in last_text:
             return
         page.wait_for_timeout(1_000)

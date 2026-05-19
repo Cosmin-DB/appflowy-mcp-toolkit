@@ -6,11 +6,12 @@ Covers the practical agent workflows: inspect workspaces and folders, create and
 task cards, write typed database fields, upload media, and verify changes before
 touching real data. Writes are disabled by default.
 
-> **0.3.0.** Core task-board, typed-field, media, page/view organization,
-> publishing, template discovery, and published-page duplication paths are tested.
-> High-value MCP tools return structured content, MCP tool calls share a
-> process-wide rate limiter, and common operational failures surface as clean
-> tool errors. Full fetch/replace/block-level document editing is backlog.
+> **0.4.0.** The MCP/client internals are modularized by domain while preserving
+> public tool names and behavior. Core task-board, typed-field, media,
+> page/view organization, publishing, template discovery, and published-page
+> duplication paths remain tested; the full release gate includes unit,
+> self-hosted Docker, browser, lint, type, and build checks. Full
+> fetch/replace/block-level document editing is backlog.
 
 ---
 

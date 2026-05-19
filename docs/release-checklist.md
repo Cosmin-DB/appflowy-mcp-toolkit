@@ -71,6 +71,20 @@ APPFLOWY_SELFHOSTED_TESTS=true uv run pytest tests/selfhosted -q -s
 APPFLOWY_BROWSER_TESTS=true uv run --extra browser pytest tests/browser -q -s
 ```
 
+For a single all-in release gate with the opt-in suites enabled:
+
+```bash
+APPFLOWY_BROWSER_TESTS=true APPFLOWY_SELFHOSTED_TESTS=true \
+  uv run --extra browser pytest -q -rs
+```
+
+If the current shell does not have access to `/var/run/docker.sock` but the user
+belongs to the Docker group, run the all-in gate through that group:
+
+```bash
+sg docker -c 'APPFLOWY_BROWSER_TESTS=true APPFLOWY_SELFHOSTED_TESTS=true uv run --extra browser pytest -q -rs'
+```
+
 Current expected browser result: Grid/login smoke, task lifecycle, typed field
 rendering, Board visibility after Grid warm-up, board column lifecycle visibility,
 board column reorder data-plane + Board presence, append-Markdown page visibility,
